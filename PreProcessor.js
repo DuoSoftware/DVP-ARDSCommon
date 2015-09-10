@@ -22,7 +22,7 @@ var execute = function (logKey, data, callback) {
                 result = reqMetaDataHandler.ReloadMetaData(data.Company, data.Tenant, data.Class, data.Type, data.Category);
             }
             else {
-                if (result = null) {
+                if (result == null) {
                     callback(null, null);
                 } else {
                     var metaObj = JSON.parse(result);
