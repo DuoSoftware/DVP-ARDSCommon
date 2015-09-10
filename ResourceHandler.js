@@ -434,8 +434,8 @@ var SearchConcurrencyInfoByTags = function (logKey, tags, callback) {
     }
 };
 
-var DoResourceSelection = function (company, tenant, sessionId, reqclass, reqtype, reqcategory, selectionAlgo, handlingAlgo, otherInfo, callback) {
-    var params = util.format('/resourceselection/getresource/%d/%d/%s/%s/%s/%s/%s/%s/%s', company, tenant, sessionId, reqclass, reqtype, reqcategory, selectionAlgo, handlingAlgo, otherInfo);
+var DoResourceSelection = function (company, tenant,resourceCount, sessionId, reqclass, reqtype, reqcategory, selectionAlgo, handlingAlgo, otherInfo, callback) {
+    var params = util.format('/resourceselection/getresource/%d/%d/%d/%s/%s/%s/%s/%s/%s/%s', company, tenant, resourceCount, sessionId, reqclass, reqtype, reqcategory, selectionAlgo, handlingAlgo, otherInfo);
     restClientHandler.DoGet(config.Services.resourceSelectionUrl, params, function (err, res, obj) {
         callback(err, res, obj);
     });
