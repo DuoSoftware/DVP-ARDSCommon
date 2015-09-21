@@ -1,7 +1,7 @@
 ﻿var util = require('util');
 var redisHandler = require('./RedisHandler.js');
 var infoLogger = require('./InformationLogger.js');
-var dbConn = require('DVP-DBModels');
+var dbConn = require('dvp-dbmodels');
 var EventEmitter = require('events').EventEmitter;
 
 
@@ -30,12 +30,12 @@ var IterateData = function (data) {
 };
 
 var SetAttributeJunctionInfo = function (attributeMetaObj, attributes, callback) {
-    attributeMetaObj.setArdsAttributeinfo(null).then(function (result) {
+    attributeMetaObj.setArdsAttributeInfo(null).then(function (result) {
         var saji = IterateData(attributes);
         saji.on('continueIterateData', function (obj) {
-            dbConn.ArdsAttributeinfo.find({ where: [{ Tenant: attributeMetaObj.Tenant }, { Company: attributeMetaObj.Company }, { Attribute: obj }] }).then(function (results) {
+            dbConn.ArdsAttributeInfo.find({ where: [{ Tenant: attributeMetaObj.Tenant }, { Company: attributeMetaObj.Company }, { Attribute: obj }] }).then(function (results) {
                 if (results) {
-                    results.addArdsAttributeMetadata(attributeMetaObj).then(function (result) {
+                    results.addArdsAttributeMetaData(attributeMetaObj).then(function (result) {
 
                     }).catch(function (resMapGroup) {
 
@@ -58,7 +58,7 @@ var SetAttributeJunctionInfo = function (attributeMetaObj, attributes, callback)
 var SetAttributeMetaData = function (company, tenant, reqMetaId, atrributeMetaInfo, callback) {
     var sam = IterateData(atrributeMetaInfo);
     sam.on('continueIterateData', function (obj) {
-        dbConn.ArdsAttributeMetadata.create(
+        dbConn.ArdsAttributeMetaData.create(
             {
                 Tenant: tenant,
                 Company: company,
@@ -85,7 +85,7 @@ var UpdateAttributeMetaData = function (company, tenant, reqMetaId, atrributeMet
     var sam = IterateData(atrributeMetaInfo);
     sam.on('continueIterateData', function (obj) {
 
-        dbConn.ArdsAttributeMetadata.find({ where: [{ RequestMetadataId: reqMetaId }] }).then(function (results) {
+        dbConn.ArdsAttributeMetaData.find({ where: [{ RequestMetadataId: reqMetaId }] }).then(function (results) {
             if (results) {
                 results.updateAttributes({
                     Tenant: tenant,
@@ -123,7 +123,7 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
     redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
         infoLogger.DetailLogger.log('info', '%s Finished AddMeataData- Redis. Result: %s', logKey, result);
 
-        dbConn.ArdsRequestMetadata.create(
+        dbConn.ArdsRequestMetaData.create(
             {
                 Tenant: metaDataObj.Tenant,
                 Company: metaDataObj.Company,
@@ -172,7 +172,7 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
     redisHandler.SetObj_T(logKey, key, obj, tag, function (err, result) {
         infoLogger.DetailLogger.log('info', '%s Finished SetMeataData. Result: %s', logKey, result);
         
-        dbConn.ArdsRequestMetadata.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (results) {
+        dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (results) {
             if (results) {
                 results.updateAttributes({
                     ServingAlgo: metaDataObj.ServingAlgo,
@@ -242,9 +242,9 @@ var RemoveMeataData = function (logKey, company, tenant, mclass, type, category,
             var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "class_" + metaDataObj.Class, "type_" + metaDataObj.Type, "category_" + metaDataObj.Category, "objtype_ReqMETA"];
     
             redisHandler.RemoveObj_T(logKey, key, tag, function (err, result) {
-                dbConn.ArdsRequestMetadata.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (reqMeta) {
+                dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (reqMeta) {
                     if (reqMeta) {
-                        dbConn.ArdsAttributeMetadata.destroy({ where: [{ RequestMetadataId: reqMeta.RequestMetadataId }] }).then(function (results) {
+                        dbConn.ArdsAttributeMetaData.destroy({ where: [{ RequestMetadataId: reqMeta.RequestMetadataId }] }).then(function (results) {
                             if (results) {
                             }
                         }).error(function (err) {
@@ -270,8 +270,8 @@ var RemoveMeataData = function (logKey, company, tenant, mclass, type, category,
 
 
 var ReloadMetaData = function (company, tenant, mclass, type, category) {
-    dbConn.ArdsRequestMetadata.find({
-        where: [{ Tenant: tenant }, { Company: company }, { Class: mclass }, { Type: type }, { Category: category }], include: [{ model: dbConn.ArdsAttributeMetadata, as: "ArdsAttributeMetadata", include: [{ model: dbConn.ArdsAttributeinfo, as: "ArdsAttributeinfo" }] }]
+    dbConn.ArdsRequestMetaData.find({
+        where: [{ Tenant: tenant }, { Company: company }, { Class: mclass }, { Type: type }, { Category: category }], include: [{ model: dbConn.ArdsAttributeMetadata, as: "ArdsAttributeMetaData", include: [{ model: dbConn.ArdsAttributeinfo, as: "ArdsAttributeInfo" }] }]
     }).then(function (reqMeta) {
         if (reqMeta) {
             var ddd = JSON.stringify(reqMeta);
