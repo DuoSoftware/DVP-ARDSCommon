@@ -58,7 +58,7 @@ var RemoveResourceState = function (logKey, company, tenant, resourceid, callbac
     });
 }
 
-var AddResource = function (logKey, basicData, callback) {
+var AddResource = function (logKey, basicData, callback)  {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddResource *************************', logKey);
 
     var concurrencyInfo = [];
@@ -80,7 +80,7 @@ var AddResource = function (logKey, basicData, callback) {
             });
         }
         var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', basicData.Company, basicData.Tenant, basicData.ResourceId, obj.Category);
-        var concurrencyObj = { Company: basicData.Company, Tenant: basicData.Tenant, Category: obj.Category, LastConnectedTime: "", RejectCount: 0, ResourceId: basicData.ResourceId, ObjKey: cObjkey };
+        var concurrencyObj = { Company: basicData.Company, Tenant: basicData.Tenant, Category: obj.Category, LastConnectedTime: "", RejectCount: 0, ResourceId: basicData.ResourceId, ObjKey: cObjkey, RefInfo: obj.RefInfo};
         var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "category_" + concurrencyObj.Category, "resourceid_" + basicData.ResourceId, "objtype_ConcurrencyInfo"];
         concurrencyInfo.push(cObjkey);
 
