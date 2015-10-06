@@ -60,8 +60,28 @@ var DoPostDirect = function (serviceurl, postData, callback) {
     });
 };
 
+var DoGetDirect = function (serviceurl, postData, callback) {
+    var jsonStr = JSON.stringify(postData);
+    var httpUrl = util.format('%s? %s', serviceurl, jsonStr);
+
+    var options = {
+        url: httpUrl,
+        headers: {
+            'content-type': 'text/plain'
+        }
+    };
+    request(options, function optionalCallback(err, httpResponse, body) {
+        if (err) {
+            console.log('upload failed:', err);
+        }
+        console.log('Server returned: %j', body);
+        callback(err, httpResponse, body);
+    });
+};
+
 module.exports.DoGet = DoGet;
 module.exports.DoPost = DoPost;
 module.exports.DoGetSync = DoGetSync;
 module.exports.DoPostSync = DoPostSync;
 module.exports.DoPostDirect = DoPostDirect;
+module.exports.DoGetDirect = DoGetDirect;

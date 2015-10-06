@@ -94,7 +94,7 @@ var SendCallBack = function (logKey, serverurl, resultToSend, callback) {
     infoLogger.DetailLogger.log('info', '%s SendCallBack Server Url: %s :: ResultToSend: %s', logKey, serverurl, resultToSend);
 
     //var surl = util.format('%s//%s', url.parse(serverurl).protocol, url.parse(serverurl).host);
-    restClientHandler.DoPostDirect(serverurl, resultToSend, function (err, res, result) {
+    restClientHandler.DoGetDirect(serverurl, resultToSend, function (err, res, result) {
         if (err) {
             infoLogger.DetailLogger.log('error', '%s Finished SendCallBack. Error: %s', logKey, err);
             console.log(err);
