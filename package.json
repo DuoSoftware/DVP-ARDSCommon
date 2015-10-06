@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "Authorization.js",
   "dependencies": {
-    "dvp-dbmodels": "^0.0.4",
+    "dvp-dbmodels": "^0.0.15",
     "config": "^1.16.0",
     "redis": "^0.12.1",
     "redis-lock": "^0.1.0",
