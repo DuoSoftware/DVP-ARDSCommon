@@ -243,6 +243,7 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, category, resou
         else {
             var cObj = JSON.parse(obj);
             cObj.LastConnectedTime = date.toISOString();
+            cObj.RejectCount = 0;
             var jCObj = JSON.stringify(cObj);
             var cObjTags = ["company_" + cObj.Company, "tenant_" + cObj.Tenant, "category_" + cObj.Category, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
         
