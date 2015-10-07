@@ -80,7 +80,10 @@ var AddResource = function (logKey, basicData, callback)  {
             });
         }
         var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', basicData.Company, basicData.Tenant, basicData.ResourceId, obj.Category);
-        var concurrencyObj = { Company: basicData.Company, Tenant: basicData.Tenant, Category: obj.Category, LastConnectedTime: "", RejectCount: 0, ResourceId: basicData.ResourceId, ObjKey: cObjkey, RefInfo: obj.RefInfo};
+        tempRefInfoObj = JSON.parse(obj.RefInfo);
+        tempRefInfoObj.ResourceId = basicData.ResourceId;
+        tempRefInfoObjStr = JSON.stringify(tempRefInfoObj);
+        var concurrencyObj = { Company: basicData.Company, Tenant: basicData.Tenant, Category: obj.Category, LastConnectedTime: "", RejectCount: 0, ResourceId: basicData.ResourceId, ObjKey: cObjkey, RefInfo: tempRefInfoObjStr};
         var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "category_" + concurrencyObj.Category, "resourceid_" + basicData.ResourceId, "objtype_ConcurrencyInfo"];
         concurrencyInfo.push(cObjkey);
 

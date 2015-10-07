@@ -1,6 +1,7 @@
 ﻿var assert = require('assert');
 var restify = require('restify');
 var request = require('request');
+var util = require('util');
 
 var client = function (url) {
     return restify.createJsonClient({
@@ -63,7 +64,7 @@ var DoPostDirect = function (serviceurl, postData, callback) {
 var DoGetDirect = function (serviceurl, postData, callback) {
     var jsonStr = JSON.stringify(postData);
     var httpUrl = util.format('%s? %s', serviceurl, jsonStr);
-
+    console.log('RouteRequest:: %s', httpUrl);
     var options = {
         url: httpUrl,
         headers: {
