@@ -269,7 +269,10 @@ var UpdateRejectCount = function (logKey, company, tenant, category, resourceid,
             cObj.RejectCount = cObj.RejectCount + 1;
             var jCObj = JSON.stringify(cObj);
             var cObjTags = ["company_" + cObj.Company, "tenant_" + cObj.Tenant, "category_" + cObj.Category, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
-            
+
+            //todo
+            //if RejectCount > max reject count, update notification service
+
             redisHandler.SetObj_V_T(logKey, cObjkey, jCObj, cObjTags, vid, function () {
                 infoLogger.DetailLogger.log('info', '%s Finished UpdateRejectCount. Result: %s', logKey, result);
                 callback(err, result, vid);
