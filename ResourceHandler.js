@@ -392,6 +392,15 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, category, re
                                     callback(err, result);
                                 });
                                 break;
+
+                            case "Completed":
+                                setTimeout(UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.Category, cs.ResourceId, cs.SlotId, otherInfo, function (err, result) {
+
+                                }), 10000);
+                                callback(err, "OK");
+                                break;
+                            default :
+                                callback(err, "Invalied Request");
                         }
                     }
                 }
