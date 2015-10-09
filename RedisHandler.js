@@ -4,7 +4,7 @@ var EventEmiter = require('events').EventEmitter;
 var config = require('config');
 var infoLogger = require('./InformationLogger.js');
 
-client = redis.createClient(6379, config.Redis.redisip);
+client = redis.createClient(config.Redis.redisport, config.Redis.redisip);
 client.select(config.Redis.redisdb, redis.print);
 //client.select(config.Redis.redisdb, function () { /* ... */ });
 client.on("error", function (err) {
