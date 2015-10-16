@@ -453,7 +453,13 @@ var SearchConcurrencyInfoByTags = function (logKey, tags, callback) {
 };
 
 var DoResourceSelection = function (company, tenant,resourceCount, sessionId, reqclass, reqtype, reqcategory, selectionAlgo, handlingAlgo, otherInfo, callback) {
-    var rUrl = util.format('http://%s:%s',config.Services.routingServiceHost,config.Services.routingServicePort)
+
+
+    var rUrl = util.format('http://%s',config.Services.routingServiceHost)
+
+    if(validator.isIP(config.Services.routingServiceHost)) {
+        rUrl = util.format('http://%s:%s', config.Services.routingServiceHost, config.Services.routingServicePort)
+    }
     var params = util.format('/resourceselection/getresource/%d/%d/%d/%s/%s/%s/%s/%s/%s/%s', company, tenant, resourceCount, sessionId, reqclass, reqtype, reqcategory, selectionAlgo, handlingAlgo, otherInfo);
     restClientHandler.DoGet(rUrl, params, function (err, res, obj) {
         callback(err, res, obj);
