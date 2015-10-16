@@ -5,7 +5,7 @@
   "main": "Authorization.js",
   "dependencies": {
     "redis": "^0.12.1",
-    "dvp-dbmodels": "^0.0.15",
+    "dvp-dbmodels": "^0.0.20",
     "winston": "^1.0.1",
     "redis-lock": "^0.1.0",
     "request": "^2.64.0",
