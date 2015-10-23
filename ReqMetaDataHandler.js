@@ -12,10 +12,10 @@ var IterateData = function (data) {
             var count = 0;
             for (var i in data) {
                 var val = data[i];
-                
+
                 e.emit('continueIterateData', val);
                 count++;
-                
+
                 if (data.length === count) {
                     e.emit('endIterateData');
                 }
@@ -25,7 +25,7 @@ var IterateData = function (data) {
             e.emit('endIterateData');
         }
     });
-    
+
     return (e);
 };
 
@@ -52,7 +52,7 @@ var SetAttributeJunctionInfo = function (attributeMetaObj, attributes, callback)
         console.log(resMapGroup);
         callback("Failed");
     });
-    
+
 };
 
 var SetAttributeMetaData = function (company, tenant, reqMetaId, atrributeMetaInfo, callback) {
@@ -69,12 +69,12 @@ var SetAttributeMetaData = function (company, tenant, reqMetaId, atrributeMetaIn
                 RequestMetadataId: reqMetaId
             }
         ).then(function (results) {
-        
-            SetAttributeJunctionInfo(results, obj.AttributeCode, function () { });
-        //callback(null, "OK");
-        }).error(function (err) {
-            callback(err, "Failed");
-        });
+
+                SetAttributeJunctionInfo(results, obj.AttributeCode, function () { });
+                //callback(null, "OK");
+            }).error(function (err) {
+                callback(err, "Failed");
+            });
     });
     sam.on('endIterateData', function (obj) {
         callback("OK");
@@ -117,9 +117,9 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
 
     var key = util.format('ReqMETA:%d:%d:%s:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.Class, metaDataObj.Type, metaDataObj.Category);
     var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "class_" + metaDataObj.Class, "type_" + metaDataObj.Type, "category_" + metaDataObj.Category, "objtype_ReqMETA"];
-    
+
     var obj = JSON.stringify(metaDataObj);
-    
+
     redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
         infoLogger.DetailLogger.log('info', '%s Finished AddMeataData- Redis. Result: %s', logKey, result);
 
@@ -139,23 +139,23 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
                 MaxRejectCount: metaDataObj.MaxRejectCount
             }
         ).then(function (results) {
-            
-            SetAttributeMetaData(metaDataObj.Company, metaDataObj.Tenant, results.RequestMetadataId, metaDataObj.AttributeMeta, function () {
-                infoLogger.DetailLogger.log('info', '%s Finished AddMeataData-pgsql. Result: %s', logKey, result);
-                callback(null, "OK");
+
+                SetAttributeMetaData(metaDataObj.Company, metaDataObj.Tenant, results.RequestMetadataId, metaDataObj.AttributeMeta, function () {
+                    infoLogger.DetailLogger.log('info', '%s Finished AddMeataData-pgsql. Result: %s', logKey, result);
+                    callback(null, "OK");
+                });
+            }).error(function (err) {
+                callback(err, "Failed");
             });
-        }).error(function (err) {
-            callback(err, "Failed");
-        });
     });
 };
 
 var ReaddMetaData = function (metaDataObj, callback) {
     var key = util.format('ReqMETA:%d:%d:%s:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.Class, metaDataObj.Type, metaDataObj.Category);
     var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "class_" + metaDataObj.Class, "type_" + metaDataObj.Type, "category_" + metaDataObj.Category, "objtype_ReqMETA"];
-    
+
     var obj = JSON.stringify(metaDataObj);
-    
+
     redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
         infoLogger.DetailLogger.log('info', 'Finished ReAddMeataData- Redis. Result: %s', result);
     });
@@ -166,12 +166,12 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
 
     var key = util.format('ReqMETA:%d:%d:%s:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.Class, metaDataObj.Type, metaDataObj.Category);
     var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "class_" + metaDataObj.Class, "type_" + metaDataObj.Type, "category_" + metaDataObj.Category, "objtype_ReqMETA"];
-    
+
     var obj = JSON.stringify(metaDataObj);
-    
+
     redisHandler.SetObj_T(logKey, key, obj, tag, function (err, result) {
         infoLogger.DetailLogger.log('info', '%s Finished SetMeataData. Result: %s', logKey, result);
-        
+
         dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (results) {
             if (results) {
                 results.updateAttributes({
@@ -216,8 +216,8 @@ var SearchMeataDataByTags = function (logKey, tags, callback) {
     if (Array.isArray(tags)) {
         tags.push("objtype_ReqMETA");
         redisHandler.SearchObj_T(logKey, tags, function (err, result) {
-        infoLogger.DetailLogger.log('info', '%s Finished SearchMeataDataByTags. Result: %s', logKey, result);
-        callback(err, result);
+            infoLogger.DetailLogger.log('info', '%s Finished SearchMeataDataByTags. Result: %s', logKey, result);
+            callback(err, result);
         });
     }
     else {
@@ -232,7 +232,7 @@ var RemoveMeataData = function (logKey, company, tenant, mclass, type, category,
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveMeataData *************************', logKey);
 
     var key = util.format('ReqMETA:%s:%s:%s:%s:%s', company, tenant, mclass, type, category);
-    
+
     redisHandler.GetObj(logKey, key, function (err, obj) {
         if (err) {
             callback(err, "false");
@@ -240,7 +240,7 @@ var RemoveMeataData = function (logKey, company, tenant, mclass, type, category,
         else {
             var metaDataObj = JSON.parse(obj);
             var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "class_" + metaDataObj.Class, "type_" + metaDataObj.Type, "category_" + metaDataObj.Category, "objtype_ReqMETA"];
-    
+
             redisHandler.RemoveObj_T(logKey, key, tag, function (err, result) {
                 dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (reqMeta) {
                     if (reqMeta) {
@@ -251,7 +251,7 @@ var RemoveMeataData = function (logKey, company, tenant, mclass, type, category,
                         });
                         reqMeta.destroy({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (results) {
                             if (results) {
-                        
+
                                 infoLogger.DetailLogger.log('info', '%s Finished RemoveMeataData. Result: %s', logKey, result);
                                 callback(err, result);
                             }
@@ -271,12 +271,12 @@ var RemoveMeataData = function (logKey, company, tenant, mclass, type, category,
 
 var ReloadMetaData = function (company, tenant, mclass, type, category) {
     dbConn.ArdsRequestMetaData.find({
-        where: [{ Tenant: tenant }, { Company: company }, { Class: mclass }, { Type: type }, { Category: category }], include: [{ model: dbConn.ArdsAttributeMetadata, as: "ArdsAttributeMetaData", include: [{ model: dbConn.ArdsAttributeinfo, as: "ArdsAttributeInfo" }] }]
+        where: [{ Tenant: tenant }, { Company: company }, { Class: mclass }, { Type: type }, { Category: category }], include: [{ model: dbConn.ArdsAttributeMetaData, as: "ArdsAttributeMetaData", include: [{ model: dbConn.ArdsAttributeInfo, as: "ArdsAttributeInfo" }] }]
     }).then(function (reqMeta) {
         if (reqMeta) {
             var ddd = JSON.stringify(reqMeta);
             var attMetaData = [];
-            
+
             for (var i in reqMeta.ArdsAttributeMetadata) {
                 var objattMeta = reqMeta.ArdsAttributeMetadata[i];
                 var attData = [];
@@ -287,7 +287,7 @@ var ReloadMetaData = function (company, tenant, mclass, type, category) {
                 tempattMeta = { AttributeClass: objattMeta.AttributeClass, AttributeType: objattMeta.AttributeType, AttributeCategory: objattMeta.AttributeCategory, WeightPrecentage: objattMeta.WeightPrecentage, AttributeCode: attData };
                 attMetaData.push(tempattMeta);
             }
-            
+
             var metaDataObj = { Company: reqMeta.Company, Tenant: reqMeta.Tenant, Class: reqMeta.Class, Type: reqMeta.Type, Category: reqMeta.Category, ServingAlgo: reqMeta.ServingAlgo, HandlingAlgo: reqMeta.HandlingAlgo, SelectionAlgo: reqMeta.SelectionAlgo, MaxReservedTime: reqMeta.MaxReservedTime, MaxRejectCount: reqMeta.MaxRejectCount, ReqHandlingAlgo: reqMeta.ReqHandlingAlgo, ReqSelectionAlgo: reqMeta.ReqSelectionAlgo, AttributeMeta: attMetaData };
             ReaddMetaData(metaDataObj, function () { });
             return metaDataObj;
