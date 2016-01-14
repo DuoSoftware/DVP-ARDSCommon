@@ -9,7 +9,7 @@ var AddRequest = function (logKey, requestObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequest *************************', logKey);
             
     var key = util.format('Request:%d:%d:%s', requestObj.Company, requestObj.Tenant, requestObj.SessionId);
-    var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "class_" + requestObj.Class, "type_" + requestObj.Type, "category_" + requestObj.Category, "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo_" + requestObj.HandlingAlgo, "selectionalgo_" + requestObj.SelectionAlgo, "objtype_Request"];
+    var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "serverType_" + requestObj.ServerType, "requestType_" + requestObj.RequestType, "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo_" + requestObj.HandlingAlgo, "selectionalgo_" + requestObj.SelectionAlgo, "objtype_Request"];
     
     var tempAttributeList = [];
     for (var i in requestObj.AttributeInfo) {
@@ -49,7 +49,7 @@ var SetRequest = function (logKey, requestObj, cVid, callback) {
             callback(err, null, 0);
         }
         else if (result == "1") {
-            var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "class_" + requestObj.Class, "type_" + requestObj.Type, "category_" + requestObj.Category, "objtype_Request", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo" + requestObj.HandlingAlgo, "selectionalgo" + requestObj.SelectionAlgo];
+            var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "serverType_" + requestObj.ServerType, "requestType_" + requestObj.RequestType, "objtype_Request", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo" + requestObj.HandlingAlgo, "selectionalgo" + requestObj.SelectionAlgo];
             var tempAttributeList = [];
             for (var i in requestObj.AttributeInfo) {
                 var atts = requestObj.AttributeInfo[i].AttributeCode;
@@ -89,7 +89,7 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, callback) {
         }
         else {
             var requestObj = JSON.parse(obj);
-            var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "class_" + requestObj.Class, "type_" + requestObj.Type, "category_" + requestObj.Category, "objtype_Request", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo_" + requestObj.HandlingAlgo, "selectionalgo_" + requestObj.SelectionAlgo];
+            var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "serverType_" + requestObj.ServerType, "requestType_" + requestObj.RequestType, "objtype_Request", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo_" + requestObj.HandlingAlgo, "selectionalgo_" + requestObj.SelectionAlgo];
             var tempAttributeList = [];
             for (var i in requestObj.AttributeInfo) {
                 var atts = requestObj.AttributeInfo[i].AttributeCode;
@@ -134,7 +134,7 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
         }
         else {
             var requestObj = JSON.parse(obj);
-            var stags = ["company_"+company+"", "tenant_"+tenant+ "", "category_"+ requestObj.Category+ "", "handlingrequest_"+sessionId+ "", "objtype_CSlotInfo"];
+            var stags = ["company_"+company+"", "tenant_"+tenant+ "", "requestType_"+ requestObj.RequestType+ "", "handlingrequest_"+sessionId+ "", "objtype_CSlotInfo"];
             
             redisHandler.SearchObj_T(logKey, stags, function (err, result) {
                 if (err) {
@@ -143,7 +143,7 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
                 else {
                     if (result.length == 1) {
                         var csObj = result[0];
-                        resourceHandler.UpdateSlotStateAvailable(logKey, company, tenant, csObj.Category, csObj.ResourceId, csObj.SlotId, "Reject", function (err, reply) {
+                        resourceHandler.UpdateSlotStateAvailable(logKey, company, tenant, csObj.RequestType, csObj.ResourceId, csObj.SlotId, "Reject", function (err, reply) {
                             if (err) {
                                 console.log(err);
                             }
@@ -210,7 +210,7 @@ var AddProcessingRequest = function (logKey, requestObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddProcessingRequest *************************', logKey);
 
     var key = util.format('ProcessingRequest:%d:%d:%s', requestObj.Company, requestObj.Tenant, requestObj.SessionId);
-    var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "class_" + requestObj.Class, "type_" + requestObj.Type, "category_" + requestObj.Category, "objtype_ProcessingRequest", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo" + requestObj.HandlingAlgo, "selectionalgo" + requestObj.SelectionAlgo];
+    var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "serverType_" + requestObj.ServerType, "requestType_" + requestObj.RequestType, "objtype_ProcessingRequest", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo" + requestObj.HandlingAlgo, "selectionalgo" + requestObj.SelectionAlgo];
     for (var i in requestObj.AttributeInfo) {
         tag.push("attribute_" + requestObj.AttributeInfo[i].AttributeCode);
     }
@@ -242,7 +242,7 @@ var RemoveProcessingRequest = function (logKey, company, tenant, sessionId, call
         }
         else {
             var requestObj = JSON.parse(obj);
-            var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "class_" + requestObj.Class, "type_" + requestObj.Type, "category_" + requestObj.Category, "objtype_Request", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo" + requestObj.HandlingAlgo, "selectionalgo" + requestObj.SelectionAlgo];
+            var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "serverType_" + requestObj.ServerType, "requestType_" + requestObj.RequestType, "objtype_Request", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo" + requestObj.HandlingAlgo, "selectionalgo" + requestObj.SelectionAlgo];
             for (var i in requestObj.AttributeInfo) {
                 tag.push("attribute_" + requestObj.AttributeInfo[i].AttributeCode);
             }

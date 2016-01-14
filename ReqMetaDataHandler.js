@@ -3,6 +3,7 @@ var redisHandler = require('./RedisHandler.js');
 var infoLogger = require('./InformationLogger.js');
 var dbConn = require('dvp-dbmodels');
 var EventEmitter = require('events').EventEmitter;
+var resourceService = require('./services/resourceService');
 
 
 var IterateData = function (data) {
@@ -111,48 +112,106 @@ var UpdateAttributeMetaData = function (company, tenant, reqMetaId, atrributeMet
     });
 };
 
+var SetAttributeGroupInfo = function (accessToken,groupIds) {
+    var e = new EventEmitter();
+    process.nextTick(function () {
+        if (Array.isArray(groupIds)) {
+            var count = 0;
+            for (var i in groupIds) {
+                var val = groupIds[i];
+                resourceService.GetAttributeGroupWithDetails(accessToken,val,function(err, res, obj){
+                    count++;
+                    if(err){
+                        console.log(err);
+                    }else {
+                        if(obj.IsSuccess) {
+                            var data = obj.Result;
+                            var attIdList = [];
+                            for (var j in data.ResAttributeGroups) {
+                                var attInfo = data.ResAttributeGroups[j];
+                                attIdList.push(attInfo.AttributeId.toString());
+                            }
+                            var tmpGroupInfo = {
+                                AttributeGroupName: data.GroupName,
+                                HandlingType: data.GroupType,
+                                WeightPrecentage: data.Percentage.toString(),
+                                AttributeCode: attIdList
+                            };
+                            e.emit('groupInfo', tmpGroupInfo);
+                        }
+                    }
+                    if (groupIds.length === count) {
+                        e.emit('endgroupInfo');
+                    }
+                });
+
+            }
+        }
+        else {
+            e.emit('endgroupInfo');
+        }
+    });
+
+    return (e);
+};
 
 var AddMeataData = function (logKey, metaDataObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddMeataData *************************', logKey);
+    var accessToken = util.format('%d#%d',metaDataObj.Tenant,metaDataObj.Company);
+    var key = util.format('ReqMETA:%d:%d:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.ServerType, metaDataObj.RequestType);
+    var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
+    var tempAttributeGroupInfo = [];
+    var sagi = SetAttributeGroupInfo(accessToken, metaDataObj.AttributeGroups);
 
-    var key = util.format('ReqMETA:%d:%d:%s:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.Class, metaDataObj.Type, metaDataObj.Category);
-    var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "class_" + metaDataObj.Class, "type_" + metaDataObj.Type, "category_" + metaDataObj.Category, "objtype_ReqMETA"];
+    sagi.on('groupInfo', function(obj){
+        tempAttributeGroupInfo.push(obj);
+    });
 
-    var obj = JSON.stringify(metaDataObj);
-
-    redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
-        infoLogger.DetailLogger.log('info', '%s Finished AddMeataData- Redis. Result: %s', logKey, result);
-
-        dbConn.ArdsRequestMetaData.create(
-            {
-                Tenant: metaDataObj.Tenant,
-                Company: metaDataObj.Company,
-                Class: metaDataObj.Class,
-                Type: metaDataObj.Type,
-                Category: metaDataObj.Category,
-                ServingAlgo: metaDataObj.ServingAlgo,
-                HandlingAlgo: metaDataObj.HandlingAlgo,
-                SelectionAlgo: metaDataObj.SelectionAlgo,
-                ReqHandlingAlgo: metaDataObj.ReqHandlingAlgo,
-                ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
-                MaxReservedTime: metaDataObj.MaxReservedTime,
-                MaxRejectCount: metaDataObj.MaxRejectCount
-            }
-        ).then(function (results) {
-
-                SetAttributeMetaData(metaDataObj.Company, metaDataObj.Tenant, results.RequestMetadataId, metaDataObj.AttributeMeta, function () {
-                    infoLogger.DetailLogger.log('info', '%s Finished AddMeataData-pgsql. Result: %s', logKey, result);
-                    callback(null, "OK");
-                });
-            }).error(function (err) {
+    sagi.on('endgroupInfo', function() {
+        metaDataObj.AttributeMeta = tempAttributeGroupInfo;
+        var obj = JSON.stringify(metaDataObj);
+        redisHandler.CheckObjExists(logKey,key,function (err, result) {
+            if (err) {
+                console.log(err);
                 callback(err, "Failed");
-            });
+            }
+            else if (result == "0") {
+                redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
+                    if (err) {
+                        callback(err, "Failed");
+                    } else {
+                        infoLogger.DetailLogger.log('info', '%s Finished AddMeataData- Redis. Result: %s', logKey, result);
+                        dbConn.ArdsRequestMetaData.create(
+                            {
+                                Tenant: metaDataObj.Tenant,
+                                Company: metaDataObj.Company,
+                                ServerType: metaDataObj.ServerType,
+                                RequestType: metaDataObj.RequestType,
+                                AttributeGroups: JSON.stringify(metaDataObj.AttributeGroups),
+                                ServingAlgo: metaDataObj.ServingAlgo,
+                                HandlingAlgo: metaDataObj.HandlingAlgo,
+                                SelectionAlgo: metaDataObj.SelectionAlgo,
+                                ReqHandlingAlgo: metaDataObj.ReqHandlingAlgo,
+                                ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
+                                MaxReservedTime: metaDataObj.MaxReservedTime,
+                                MaxRejectCount: metaDataObj.MaxRejectCount,
+                                MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime
+                            }
+                        ).then(function (results) {
+                                callback(null, "OK");
+                            }).error(function (err) {
+                                callback(err, "Failed");
+                            });
+                    }
+                });
+            }
+        });
     });
 };
 
 var ReaddMetaData = function (metaDataObj, callback) {
-    var key = util.format('ReqMETA:%d:%d:%s:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.Class, metaDataObj.Type, metaDataObj.Category);
-    var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "class_" + metaDataObj.Class, "type_" + metaDataObj.Type, "category_" + metaDataObj.Category, "objtype_ReqMETA"];
+    var key = util.format('ReqMETA:%d:%d:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.ServerType, metaDataObj.RequestType);
+    var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
 
     var obj = JSON.stringify(metaDataObj);
 
@@ -164,46 +223,53 @@ var ReaddMetaData = function (metaDataObj, callback) {
 var SetMeataData = function (logKey, metaDataObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetMeataData *************************', logKey);
 
-    var key = util.format('ReqMETA:%d:%d:%s:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.Class, metaDataObj.Type, metaDataObj.Category);
-    var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "class_" + metaDataObj.Class, "type_" + metaDataObj.Type, "category_" + metaDataObj.Category, "objtype_ReqMETA"];
+    var key = util.format('ReqMETA:%d:%d:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.ServerType, metaDataObj.RequestType);
+    var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
 
-    var obj = JSON.stringify(metaDataObj);
+    var tempAttributeGroupInfo = [];
+    var sagi = SetAttributeGroupInfo(accessToken, metaDataObj.AttributeGroups);
 
-    redisHandler.SetObj_T(logKey, key, obj, tag, function (err, result) {
-        infoLogger.DetailLogger.log('info', '%s Finished SetMeataData. Result: %s', logKey, result);
+    sagi.on('groupInfo', function(obj){
+        tempAttributeGroupInfo.push(obj);
+    });
+    sagi.on('endgroupInfo', function() {
+        metaDataObj.AttributeMeta = tempAttributeGroupInfo;
+        var obj = JSON.stringify(metaDataObj);
 
-        dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (results) {
-            if (results) {
-                results.updateAttributes({
-                    ServingAlgo: metaDataObj.ServingAlgo,
-                    HandlingAlgo: metaDataObj.HandlingAlgo,
-                    SelectionAlgo: metaDataObj.SelectionAlgo,
-                    ReqHandlingAlgo: metaDataObj.ReqHandlingAlgo,
-                    ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
-                    MaxReservedTime: metaDataObj.MaxReservedTime,
-                    MaxRejectCount: metaDataObj.MaxRejectCount
-                }).then(function (results) {
+        redisHandler.SetObj_T(logKey, key, obj, tag, function (err, result) {
+            infoLogger.DetailLogger.log('info', '%s Finished SetMeataData. Result: %s', logKey, result);
 
-                    UpdateAttributeMetaData(metaDataObj.Company, metaDataObj.Tenant, results.RequestMetadataId, metaDataObj.AttributeMeta, function () {
-                        infoLogger.DetailLogger.log('info', '%s Finished AddMeataData-pgsql. Result: %s', logKey, result);
+            dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (results) {
+                if (results) {
+                    results.updateAttributes({
+                        AttributeGroups: JSON.stringify(metaDataObj.AttributeGroups),
+                        ServingAlgo: metaDataObj.ServingAlgo,
+                        HandlingAlgo: metaDataObj.HandlingAlgo,
+                        SelectionAlgo: metaDataObj.SelectionAlgo,
+                        ReqHandlingAlgo: metaDataObj.ReqHandlingAlgo,
+                        ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
+                        MaxReservedTime: metaDataObj.MaxReservedTime,
+                        MaxRejectCount: metaDataObj.MaxRejectCount,
+                        MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime
+                    }).then(function (results) {
                         callback(null, "OK");
+                    }).error(function (err) {
+                        callback(err, "Failed");
                     });
-                }).error(function (err) {
-                    callback(err, "Failed");
-                });
-            }
-        }).error(function (err) {
-            callback(err, "Failed");
-        });
+                }
+            }).error(function (err) {
+                callback(err, "Failed");
+            });
 
-        //callback(err, result);
+            //callback(err, result);
+        });
     });
 };
 
-var GetMeataData = function (logKey, company, tenant, mclass, type, category, callback) {
+var GetMeataData = function (logKey, company, tenant, serverType, requestType, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start GetMeataData *************************', logKey);
 
-    var key = util.format('ReqMETA:%s:%s:%s:%s:%s', company, tenant, mclass, type, category);
+    var key = util.format('ReqMETA:%s:%s:%s:%s', company, tenant, serverType, requestType);
     redisHandler.GetObj(logKey, key, function (err, result) {
         infoLogger.DetailLogger.log('info', '%s Finished GetMeataData. Result: %s', logKey, result);
         callback(err, result);
@@ -228,10 +294,10 @@ var SearchMeataDataByTags = function (logKey, tags, callback) {
     }
 };
 
-var RemoveMeataData = function (logKey, company, tenant, mclass, type, category, callback) {
+var RemoveMeataData = function (logKey, company, tenant, serverType, requestType, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveMeataData *************************', logKey);
 
-    var key = util.format('ReqMETA:%s:%s:%s:%s:%s', company, tenant, mclass, type, category);
+    var key = util.format('ReqMETA:%s:%s:%s:%s', company, tenant, serverType, requestType);
 
     redisHandler.GetObj(logKey, key, function (err, obj) {
         if (err) {
@@ -239,17 +305,12 @@ var RemoveMeataData = function (logKey, company, tenant, mclass, type, category,
         }
         else {
             var metaDataObj = JSON.parse(obj);
-            var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "class_" + metaDataObj.Class, "type_" + metaDataObj.Type, "category_" + metaDataObj.Category, "objtype_ReqMETA"];
+            var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
 
             redisHandler.RemoveObj_T(logKey, key, tag, function (err, result) {
-                dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (reqMeta) {
+                dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (reqMeta) {
                     if (reqMeta) {
-                        dbConn.ArdsAttributeMetaData.destroy({ where: [{ RequestMetadataId: reqMeta.RequestMetadataId }] }).then(function (results) {
-                            if (results) {
-                            }
-                        }).error(function (err) {
-                        });
-                        reqMeta.destroy({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { Class: metaDataObj.Class }, { Type: metaDataObj.Type }, { Category: metaDataObj.Category }] }).then(function (results) {
+                        reqMeta.destroy({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (results) {
                             if (results) {
 
                                 infoLogger.DetailLogger.log('info', '%s Finished RemoveMeataData. Result: %s', logKey, result);
@@ -269,28 +330,25 @@ var RemoveMeataData = function (logKey, company, tenant, mclass, type, category,
 };
 
 
-var ReloadMetaData = function (company, tenant, mclass, type, category) {
+var ReloadMetaData = function (company, tenant, serverType, requestType) {
     dbConn.ArdsRequestMetaData.find({
-        where: [{ Tenant: tenant }, { Company: company }, { Class: mclass }, { Type: type }, { Category: category }], include: [{ model: dbConn.ArdsAttributeMetaData, as: "ArdsAttributeMetaData", include: [{ model: dbConn.ArdsAttributeInfo, as: "ArdsAttributeInfo" }] }]
+        where: [{ Tenant: tenant }, { Company: company }, { ServerType: serverType }, { RequestType: requestType }]
     }).then(function (reqMeta) {
         if (reqMeta) {
-            var ddd = JSON.stringify(reqMeta);
-            var attMetaData = [];
+            var accessToken = util.format('%d#%d', reqMeta.Company,reqMeta.Tenant);
+            var attributeGroups = JSON.parse(reqMeta.AttributeGroups);
+            var tempAttributeGroupInfo = [];
+            var sagi = SetAttributeGroupInfo(accessToken, attributeGroups);
 
-            for (var i in reqMeta.ArdsAttributeMetadata) {
-                var objattMeta = reqMeta.ArdsAttributeMetadata[i];
-                var attData = [];
-                for (var j in objattMeta.ArdsAttributeinfo) {
-                    var objatt = objattMeta.ArdsAttributeinfo[j];
-                    attData.push(objatt.Attribute);
-                }
-                tempattMeta = { AttributeClass: objattMeta.AttributeClass, AttributeType: objattMeta.AttributeType, AttributeCategory: objattMeta.AttributeCategory, WeightPrecentage: objattMeta.WeightPrecentage, AttributeCode: attData };
-                attMetaData.push(tempattMeta);
-            }
-
-            var metaDataObj = { Company: reqMeta.Company, Tenant: reqMeta.Tenant, Class: reqMeta.Class, Type: reqMeta.Type, Category: reqMeta.Category, ServingAlgo: reqMeta.ServingAlgo, HandlingAlgo: reqMeta.HandlingAlgo, SelectionAlgo: reqMeta.SelectionAlgo, MaxReservedTime: reqMeta.MaxReservedTime, MaxRejectCount: reqMeta.MaxRejectCount, ReqHandlingAlgo: reqMeta.ReqHandlingAlgo, ReqSelectionAlgo: reqMeta.ReqSelectionAlgo, AttributeMeta: attMetaData };
-            ReaddMetaData(metaDataObj, function () { });
-            return metaDataObj;
+            sagi.on('groupInfo', function(obj){
+                tempAttributeGroupInfo.push(obj);
+            });
+            sagi.on('endgroupInfo', function() {
+                var metaDataObj = { Company: reqMeta.Company, Tenant: reqMeta.Tenant, ServerType: reqMeta.ServerType, RequestType: reqMeta.RequestType, ServingAlgo: reqMeta.ServingAlgo, HandlingAlgo: reqMeta.HandlingAlgo, SelectionAlgo: reqMeta.SelectionAlgo, MaxReservedTime: reqMeta.MaxReservedTime, MaxRejectCount: reqMeta.MaxRejectCount, ReqHandlingAlgo: reqMeta.ReqHandlingAlgo, ReqSelectionAlgo: reqMeta.ReqSelectionAlgo, MaxAfterWorkTime: reqMeta.MaxAfterWorkTime };
+                metaDataObj.AttributeMeta = tempAttributeGroupInfo;
+                ReaddMetaData(metaDataObj, function () { });
+                return metaDataObj;
+            });
         }
     }).error(function (err) {
         return null;

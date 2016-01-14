@@ -9,7 +9,7 @@ var AddRequestServer = function (logKey, reqServerObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestServer *************************', logKey);
 
     var key = util.format('ReqServer:%s:%s:%s', "*", "*", reqServerObj.ServerID);
-    var tag = ["company_*", "tenant_*", "class_" + reqServerObj.Class, "type_" + reqServerObj.Type, "category_" + reqServerObj.Category, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
+    var tag = ["company_*", "tenant_*", "serverType_" + reqServerObj.ServerType, "requestType_" + reqServerObj.RequestType, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
     
     var obj = JSON.stringify(reqServerObj);
     
@@ -23,7 +23,7 @@ var SetRequestServer = function (logKey, reqServerObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetRequestServer *************************', logKey);
 
     var key = util.format('ReqServer:%s:%s:%s', "*", "*", reqServerObj.ServerID);
-    var tag = ["company_*", "tenant_*", "class_" + reqServerObj.Class, "type_" + reqServerObj.Type, "category_" + reqServerObj.Category, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
+    var tag = ["company_*", "tenant_*", "serverType_" + reqServerObj.ServerType, "requestType_" + reqServerObj.RequestType, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
     
     var obj = JSON.stringify(reqServerObj);
     
@@ -78,7 +78,7 @@ var RemoveRequestServer = function (logKey, company, tenant, serverId, callback)
                 callback(err, res);
             }
             else {
-                var tag = ["company_*", "tenant_*", "class_" + reqServerObj.Class, "type_" + reqServerObj.Type, "category_" + reqServerObj.Category, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
+                var tag = ["company_*", "tenant_*", "serverType_" + reqServerObj.ServerType, "requestType_" + reqServerObj.RequestType, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
                 
                 redisHandler.RemoveObj_T(logKey, key, tag, function (err, result) {
                     infoLogger.DetailLogger.log('info', '%s Finished RemoveRequestServer. Result: %s', logKey, result);

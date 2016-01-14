@@ -5,6 +5,119 @@ var sortArray = require('./SortArray.js');
 var restClientHandler = require('./RestClient.js');
 var infoLogger = require('./InformationLogger.js');
 var config = require('config');
+var validator = require('validator');
+var resourceService = require('./services/resourceService');
+
+var PreProcessTaskData = function(accessToken, taskInfos){
+    var e = new EventEmitter();
+    process.nextTick(function () {
+        if (Array.isArray(taskInfos)) {
+            var count = 0;
+            for (var i in taskInfos) {
+                var taskInfo = taskInfos[i];
+                count++;
+                var task = {HandlingType:taskInfos.ResTask.ResTaskInfo.TaskType, NoOfSlots:taskInfos.Concurrency, RefInfo:taskInfos.RefInfo};
+                var attributes = [];
+                resourceService.GetResourceAttributeDetails(accessToken,taskInfos.ResTaskId, function(resAttErr, resAttRes, resAttObj){
+                   if(resAttErr) {
+                       consile.log(resAttErr);
+                       e.emit('taskInfo', task, attributes);
+                       if (groupIds.length === count) {
+                           e.emit('endTaskInfo');
+                       }
+                   }else{
+                       var ppad = PreProcessAttributeData(task.HandlingType,resAttObj.Result);
+                       ppad.on('attributeInfo', function(attribute){
+                           attributes.push(attribute);
+                       });
+                       ppad.on('endAttributeInfo', function(){
+                           e.emit('taskInfo', task, attributes);
+                           if (groupIds.length === count) {
+                               e.emit('endTaskInfo');
+                           }
+                       });
+                   }
+                });
+            }
+        }
+        else {
+            e.emit('endTaskInfo');
+        }
+    });
+
+    return (e);
+};
+
+var PreProcessAttributeData = function(handlingType, attributeInfos){
+    var e = new EventEmitter();
+    process.nextTick(function () {
+        if (Array.isArray(attributeInfos)) {
+            var count = 0;
+            for (var i in attributeInfos) {
+                var attributeInfo = attributeInfos[i];
+                count++;
+                var attribute = {Attribute:attributeInfo.AttributeId, HandlingType:handlingType, Percentage:attributeInfo.Percentage};
+                e.emit('attributeInfo', attribute);
+
+                if (groupIds.length === count) {
+                    e.emit('endAttributeInfo');
+                }
+            }
+        }
+        else {
+            e.emit('endAttributeInfo');
+        }
+    });
+
+    return (e);
+};
+
+var PreProcessResourceData = function(logKey, accessToken, resourceId, callback){
+    var preResourceData = {};
+    resourceService.GetResourceDetails(accessToken,resourceId,function(resErr, resRes, resObj){
+        if(resErr){
+            callback(resErr, resRes, preResourceData);
+        }else{
+            if(resObj.IsSuccess) {
+                preResourceData = {
+                    Company: resObj.Result.CompanyId,
+                    Tenant: resObj.Result.TenantId,
+                    Class: resObj.Result.ResClass,
+                    Type: resObj.Result.ResType,
+                    Category: resObj.Result.ResCategory,
+                    ResourceId: resObj.Result.ResourceId,
+                    OtherInfo: resObj.Result.OtherData,
+                    ConcurrencyInfo: [],
+                    ResourceAttributeInfo: []
+                };
+
+                resourceService.GetResourceTaskDetails(accessToken,resourceId,function(taskErr, taskRes, taskObj){
+                    if(taskErr){
+                        callback(taskErr, taskRes, preResourceData);
+                    }else{
+                        if(taskObj.IsSuccess){
+                            var pptd = PreProcessTaskData(accessToken, taskObj.Result);
+                            pptd.on('taskInfo', function(taskInfo, attributeInfo){
+                                preResourceData.ConcurrencyInfo.push(taskInfo);
+                                for(var i in attributeInfo){
+                                    var attrInfo = attributeInfo[i];
+                                    ResourceAttributeInfo.push(attrInfo);
+                                }
+                            });
+                            pptd.on('endTaskInfo', function(){
+                                callback(null, "", preResourceData);
+                            });
+                        }else{
+                            callback(taskObj.Exception, taskObj.CustomMessage, preResourceData);
+                        }
+                    }
+                });
+            }else{
+                callback(resObj.Exception, resObj.CustomMessage, preResourceData);
+            }
+        }
+    });
+};
 
 var SetConcurrencyInfo = function (data) {
     var e = new EventEmitter();
@@ -60,65 +173,72 @@ var RemoveResourceState = function (logKey, company, tenant, resourceid, callbac
 
 var AddResource = function (logKey, basicData, callback)  {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddResource *************************', logKey);
+    var accessToken = util.format('%d#%d', basicData.Tenant,basicData.Company);
+    PreProcessResourceData(logKey,accessToken,basicData.ResourceId,function(err, msg, basicData){
+        if(err){
+            callback(err, msg, null);
+        }else{
+            var concurrencyInfo = [];
+            var sci = SetConcurrencyInfo(basicData.ConcurrencyInfo);
 
-    var concurrencyInfo = [];
-    var sci = SetConcurrencyInfo(basicData.ConcurrencyInfo);
-    
-    sci.on('concurrencyInfo', function (obj) {
-        var concurrencySlotInfo = [];
-        for (var i = 0; i < obj.NoOfSlots; i++) {
-            var slotInfokey = util.format('CSlotInfo:%d:%d:%s:%s:%d', basicData.Company, basicData.Tenant, basicData.ResourceId, obj.Category, i);
-            var slotInfo = { Company: basicData.Company, Tenant: basicData.Tenant, Category: obj.Category, State: "Available", HandlingRequest: "", LastReservedTime: "", MaxReservedTime:0, ResourceId: basicData.ResourceId, SlotId: i, ObjKey: slotInfokey, OtherInfo: "" };
-            var slotInfoTags = ["company_" + slotInfo.Company, "tenant_" + slotInfo.Tenant, "category_" + slotInfo.Category, "state_" + slotInfo.State, "resourceid_" + basicData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
-            concurrencyInfo.push(slotInfokey);
+            sci.on('concurrencyInfo', function (obj) {
+                var concurrencySlotInfo = [];
+                for (var i = 0; i < obj.NoOfSlots; i++) {
+                    var slotInfokey = util.format('CSlotInfo:%d:%d:%s:%s:%d', basicData.Company, basicData.Tenant, basicData.ResourceId, obj.HandlingType, i);
+                    var slotInfo = { Company: basicData.Company, Tenant: basicData.Tenant, HandlingType: obj.HandlingType, State: "Available", HandlingRequest: "", LastReservedTime: "", MaxReservedTime:0, ResourceId: basicData.ResourceId, SlotId: i, ObjKey: slotInfokey, OtherInfo: "" };
+                    var slotInfoTags = ["company_" + slotInfo.Company, "tenant_" + slotInfo.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + basicData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
+                    concurrencyInfo.push(slotInfokey);
 
-            var jsonSlotObj = JSON.stringify(slotInfo);
-            redisHandler.AddObj_V_T(logKey, slotInfokey, jsonSlotObj, slotInfoTags, function (err, reply, vid) {
-                if (err) {
-                    console.log(err);
+                    var jsonSlotObj = JSON.stringify(slotInfo);
+                    redisHandler.AddObj_V_T(logKey, slotInfokey, jsonSlotObj, slotInfoTags, function (err, reply, vid) {
+                        if (err) {
+                            console.log(err);
+                        }
+                    });
                 }
+                var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', basicData.Company, basicData.Tenant, basicData.ResourceId, obj.HandlingType);
+                tempRefInfoObj = JSON.parse(obj.RefInfo);
+                tempRefInfoObj.ResourceId = basicData.ResourceId;
+                tempRefInfoObjStr = JSON.stringify(tempRefInfoObj);
+                var concurrencyObj = { Company: basicData.Company, Tenant: basicData.Tenant, HandlingType: obj.HandlingType, LastConnectedTime: "", RejectCount: 0, ResourceId: basicData.ResourceId, ObjKey: cObjkey, RefInfo: tempRefInfoObjStr};
+                var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + basicData.ResourceId, "objtype_ConcurrencyInfo"];
+                concurrencyInfo.push(cObjkey);
+
+                var jsonConObj = JSON.stringify(concurrencyObj);
+                redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
+                    if (err) {
+                        console.log(err);
+                    }
+                });
+            });
+
+            sci.on('endconcurrencyInfo', function () {
+                var resourceObj = { Company: basicData.Company, Tenant: basicData.Tenant, Class: basicData.Class, Type: basicData.Type, Category: basicData.Category, ResourceId: basicData.ResourceId, ResourceAttributeInfo: basicData.ResourceAttributeInfo, ConcurrencyInfo: concurrencyInfo, OtherInfo: basicData.OtherInfo };
+
+                var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
+                var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "resourceid_" + resourceObj.ResourceId, "objtype_Resource"];
+
+                var tempAttributeList = [];
+                for (var i in resourceObj.ResourceAttributeInfo) {
+                    tempAttributeList.push(resourceObj.ResourceAttributeInfo[i].Attribute);
+                }
+                var sortedAttributes = sortArray.sortData(tempAttributeList);
+                for (var k in sortedAttributes) {
+                    tag.push("attribute_" + sortedAttributes[k]);
+                }
+                var jsonObj = JSON.stringify(resourceObj);
+
+                redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
+                    var StateKey = util.format('ResourceState:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
+                    redisHandler.SetObj(logKey, StateKey, "Available", function (err, result) {
+                    });
+                    infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
+                    callback(err, reply, vid);
+                });
             });
         }
-        var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', basicData.Company, basicData.Tenant, basicData.ResourceId, obj.Category);
-        tempRefInfoObj = JSON.parse(obj.RefInfo);
-        tempRefInfoObj.ResourceId = basicData.ResourceId;
-        tempRefInfoObjStr = JSON.stringify(tempRefInfoObj);
-        var concurrencyObj = { Company: basicData.Company, Tenant: basicData.Tenant, Category: obj.Category, LastConnectedTime: "", RejectCount: 0, ResourceId: basicData.ResourceId, ObjKey: cObjkey, RefInfo: tempRefInfoObjStr};
-        var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "category_" + concurrencyObj.Category, "resourceid_" + basicData.ResourceId, "objtype_ConcurrencyInfo"];
-        concurrencyInfo.push(cObjkey);
-
-        var jsonConObj = JSON.stringify(concurrencyObj);
-        redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
-            if (err) {
-                console.log(err);
-            }
-        });
     });
-    
-    sci.on('endconcurrencyInfo', function () {
-        var resourceObj = { Company: basicData.Company, Tenant: basicData.Tenant, Class: basicData.Class, Type: basicData.Type, Category: basicData.Category, ResourceId: basicData.ResourceId, ResourceAttributeInfo: basicData.ResourceAttributeInfo, ConcurrencyInfo: concurrencyInfo, OtherInfo: basicData.OtherInfo };
 
-        var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
-        var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "resourceid_" + resourceObj.ResourceId, "objtype_Resource"];
-        
-        var tempAttributeList = [];
-        for (var i in resourceObj.ResourceAttributeInfo) {
-            tempAttributeList.push(resourceObj.ResourceAttributeInfo[i].Attribute);
-        }
-        var sortedAttributes = sortArray.sortData(tempAttributeList);
-        for (var k in sortedAttributes) {
-            tag.push("attribute_" + sortedAttributes[k]);
-        }
-        var jsonObj = JSON.stringify(resourceObj);
-
-        redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
-            var StateKey = util.format('ResourceState:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
-            redisHandler.SetObj(logKey, StateKey, "Available", function (err, result) {
-            });
-            infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
-            callback(err, reply, vid);
-        });
-    });
 };
 
 var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
@@ -230,10 +350,10 @@ var SearchResourcebyTags = function (logKey, tags, callback) {
     }
 };
 
-var UpdateLastConnectedTime = function (logKey, company, tenant, category, resourceid, callback) {
+var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, resourceid, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateLastConnectedTime *************************', logKey);
 
-    var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', company, tenant, resourceid, category);
+    var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', company, tenant, resourceid, handlingType);
     var date = new Date();
 
     redisHandler.GetObj_V(logKey, cObjkey, function (err, obj, vid) {
@@ -245,7 +365,7 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, category, resou
             cObj.LastConnectedTime = date.toISOString();
             cObj.RejectCount = 0;
             var jCObj = JSON.stringify(cObj);
-            var cObjTags = ["company_" + cObj.Company, "tenant_" + cObj.Tenant, "category_" + cObj.Category, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
+            var cObjTags = ["company_" + cObj.Company, "tenant_" + cObj.Tenant, "handlingType_" + cObj.HandlingType, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
         
             redisHandler.SetObj_V_T(logKey, cObjkey, jCObj, cObjTags, vid, function () {
                 infoLogger.DetailLogger.log('info', '%s Finished UpdateLastConnectedTime. Result: %s', logKey, result);
@@ -255,10 +375,10 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, category, resou
     });
 };
 
-var UpdateRejectCount = function (logKey, company, tenant, category, resourceid, callback) {
+var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourceid, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateRejectCount *************************', logKey);
 
-    var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', company, tenant, resourceid, category);
+    var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', company, tenant, resourceid, handlingType);
     var date = new Date();
     
     redisHandler.GetObj_V(logKey, cObjkey, function (err, obj, vid) {
@@ -269,7 +389,7 @@ var UpdateRejectCount = function (logKey, company, tenant, category, resourceid,
             var cObj = JSON.parse(obj);
             cObj.RejectCount = cObj.RejectCount + 1;
             var jCObj = JSON.stringify(cObj);
-            var cObjTags = ["company_" + cObj.Company, "tenant_" + cObj.Tenant, "category_" + cObj.Category, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
+            var cObjTags = ["company_" + cObj.Company, "tenant_" + cObj.Tenant, "handlingType_" + cObj.HandlingType, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
 
             //todo
             //if RejectCount > max reject count, update notification service
@@ -282,10 +402,10 @@ var UpdateRejectCount = function (logKey, company, tenant, category, resourceid,
     });
 };
 
-var UpdateSlotStateAvailable = function (logKey, company, tenant, category, resourceid, slotid, otherInfo, callback) {
+var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, resourceid, slotid, otherInfo, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateAvailable *************************', logKey);
 
-    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, category, slotid);
+    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
     redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
         if (err) {
             console.log(err);
@@ -294,13 +414,13 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, category, reso
         else {
             var tempObj = JSON.parse(obj);
             if (otherInfo == "Reject") {
-                UpdateRejectCount(logKey, tempObj.Company, tempObj.Tenant, tempObj.Category, tempObj.ResourceId, function () { });
+                UpdateRejectCount(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, tempObj.ResourceId, function () { });
             }
             tempObj.State = "Available";
             tempObj.HandlingRequest = "";
             tempObj.OtherInfo = "";
             tempObj.MaxReservedTime = 0;
-            var slotInfoTags = ["company_" + tempObj.Company, "tenant_" + tempObj.Tenant, "category_" + tempObj.Category, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
+            var slotInfoTags = ["company_" + tempObj.Company, "tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
             var jsonObj = JSON.stringify(tempObj);
             redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
                 infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateAvailable. Result: %s', logKey, reply);
@@ -310,10 +430,10 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, category, reso
     });
 };
 
-var UpdateSlotStateReserved = function (logKey, company, tenant, category, resourceid, slotid, sessionid, maxReservedTime, otherInfo, callback) {
+var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, otherInfo, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateReserved *************************', logKey);
 
-    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, category, slotid);
+    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
     redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
         if (err) {
             console.log(err);
@@ -327,7 +447,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, category, resou
             tempObj.LastReservedTime = date.toISOString();
             tempObj.OtherInfo = otherInfo;
             tempObj.MaxReservedTime = maxReservedTime;
-            var slotInfoTags = ["company_" + tempObj.Company, "tenant_" + tempObj.Tenant, "category_" + tempObj.Category, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
+            var slotInfoTags = ["company_" + tempObj.Company, "tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
             var jsonObj = JSON.stringify(tempObj);
             redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
                 infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateReserved. Result: %s', logKey, reply);
@@ -337,10 +457,10 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, category, resou
     });
 };
 
-var UpdateSlotStateConnected = function (logKey, company, tenant, category, resourceid, slotid, sessionid, otherInfo, callback) {
+var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateConnected *************************', logKey);
 
-    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, category, slotid);
+    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
     redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
         if (err) {
             console.log(err);
@@ -351,11 +471,11 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, category, reso
             tempObj.State = "Connected";
             tempObj.HandlingRequest = sessionid;
             tempObj.OtherInfo = otherInfo;
-            var slotInfoTags = ["company_" + tempObj.Company, "tenant_" + tempObj.Tenant, "category_" + tempObj.Category, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
+            var slotInfoTags = ["company_" + tempObj.Company, "tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
             var jsonObj = JSON.stringify(tempObj);
             redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
                 if (!err) {
-                    UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.Category, resourceid, function () { });
+                    UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, function () { });
                 }
                 infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateConnected. Result: %s', logKey, reply);
                 callback(err, reply);
@@ -364,14 +484,14 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, category, reso
     });
 };
 
-var UpdateSlotStateBySessionId = function (logKey, company, tenant, category, resourceid, sessionid, state, otherInfo, callback) {
+var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, otherInfo, callback) {
     var slotInfoTags = [];
 
     if (resourceid == "") {
-        slotInfoTags = ["company_" + company, "tenant_" + tenant, "category_" + category, "handlingrequest_" + sessionid];
+        slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "handlingrequest_" + sessionid];
     }
     else {
-        slotInfoTags = ["company_" + company, "tenant_" + tenant, "category_" + category, "resourceid_" + resourceid, "handlingrequest_" + sessionid];
+        slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "resourceid_" + resourceid, "handlingrequest_" + sessionid];
     }
 
     SearchCSlotByTags(logKey, slotInfoTags, function (err, cslots) {
@@ -386,19 +506,19 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, category, re
                     if (cs.HandlingRequest == sessionid) {
                         switch (state) {
                             case "Available":
-                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.Category, cs.ResourceId, cs.SlotId, otherInfo, function (err, result) {
+                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, otherInfo, function (err, result) {
                                     callback(err, result);
                                 });
                                 break;
 
                             case "Connected":
-                                UpdateSlotStateConnected(logKey, cs.Company, cs.Tenant, cs.Category, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result) {
+                                UpdateSlotStateConnected(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result) {
                                     callback(err, result);
                                 });
                                 break;
 
                             case "Completed":
-                                setTimeout(UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.Category, cs.ResourceId, cs.SlotId, otherInfo, function (err, result) {
+                                setTimeout(UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, otherInfo, function (err, result) {
 
                                 }), 10000);
                                 callback(err, "OK");
@@ -452,7 +572,7 @@ var SearchConcurrencyInfoByTags = function (logKey, tags, callback) {
     }
 };
 
-var DoResourceSelection = function (company, tenant,resourceCount, sessionId, reqclass, reqtype, reqcategory, selectionAlgo, handlingAlgo, otherInfo, callback) {
+var DoResourceSelection = function (company, tenant,resourceCount, sessionId, serverType, requestType, selectionAlgo, handlingAlgo, otherInfo, callback) {
 
 
     var rUrl = util.format('http://%s',config.Services.routingServiceHost)
@@ -460,7 +580,7 @@ var DoResourceSelection = function (company, tenant,resourceCount, sessionId, re
     if(validator.isIP(config.Services.routingServiceHost)) {
         rUrl = util.format('http://%s:%s', config.Services.routingServiceHost, config.Services.routingServicePort)
     }
-    var params = util.format('/resourceselection/getresource/%d/%d/%d/%s/%s/%s/%s/%s/%s/%s', company, tenant, resourceCount, sessionId, reqclass, reqtype, reqcategory, selectionAlgo, handlingAlgo, otherInfo);
+    var params = util.format('/resourceselection/getresource/%d/%d/%d/%s/%s/%s/%s/%s/%s', company, tenant, resourceCount, sessionId, serverType, requestType, selectionAlgo, handlingAlgo, otherInfo);
     restClientHandler.DoGet(rUrl, params, function (err, res, obj) {
         callback(err, res, obj);
     });
