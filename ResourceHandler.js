@@ -15,28 +15,29 @@ var PreProcessTaskData = function(accessToken, taskInfos){
             var count = 0;
             for (var i in taskInfos) {
                 var taskInfo = taskInfos[i];
-                count++;
-                var task = {HandlingType:taskInfos.ResTask.ResTaskInfo.TaskType, NoOfSlots:taskInfos.Concurrency, RefInfo:taskInfos.RefInfo};
+                var task = {HandlingType:taskInfo.ResTask.ResTaskInfo.TaskType, NoOfSlots:taskInfo.Concurrency, RefInfo:taskInfo.RefInfo};
                 var attributes = [];
-                resourceService.GetResourceAttributeDetails(accessToken,taskInfos.ResTaskId, function(resAttErr, resAttRes, resAttObj){
-                   if(resAttErr) {
-                       consile.log(resAttErr);
-                       e.emit('taskInfo', task, attributes);
-                       if (groupIds.length === count) {
-                           e.emit('endTaskInfo');
-                       }
-                   }else{
-                       var ppad = PreProcessAttributeData(task.HandlingType,resAttObj.Result);
-                       ppad.on('attributeInfo', function(attribute){
-                           attributes.push(attribute);
-                       });
-                       ppad.on('endAttributeInfo', function(){
-                           e.emit('taskInfo', task, attributes);
-                           if (groupIds.length === count) {
-                               e.emit('endTaskInfo');
-                           }
-                       });
-                   }
+                resourceService.GetResourceAttributeDetails(accessToken,taskInfo.ResTaskId, function(resAttErr, resAttRes, resAttObj){
+                    if(resAttErr) {
+                        count++;
+                        consile.log(resAttErr);
+                        e.emit('taskInfo', task, attributes);
+                        if (taskInfos.length === count) {
+                            e.emit('endTaskInfo');
+                        }
+                    }else{
+                        var ppad = PreProcessAttributeData(task.HandlingType,resAttObj.Result.ResResourceAttributeTask);
+                        ppad.on('attributeInfo', function(attribute){
+                            attributes.push(attribute);
+                        });
+                        ppad.on('endAttributeInfo', function(){
+                            count++;
+                            e.emit('taskInfo', task, attributes);
+                            if (taskInfos.length === count) {
+                                e.emit('endTaskInfo');
+                            }
+                        });
+                    }
                 });
             }
         }
@@ -56,10 +57,10 @@ var PreProcessAttributeData = function(handlingType, attributeInfos){
             for (var i in attributeInfos) {
                 var attributeInfo = attributeInfos[i];
                 count++;
-                var attribute = {Attribute:attributeInfo.AttributeId, HandlingType:handlingType, Percentage:attributeInfo.Percentage};
+                var attribute = {Attribute:attributeInfo.AttributeId.toString(), HandlingType:handlingType, Percentage:attributeInfo.Percentage};
                 e.emit('attributeInfo', attribute);
 
-                if (groupIds.length === count) {
+                if (attributeInfos.length === count) {
                     e.emit('endAttributeInfo');
                 }
             }
@@ -85,7 +86,7 @@ var PreProcessResourceData = function(logKey, accessToken, resourceId, callback)
                     Class: resObj.Result.ResClass,
                     Type: resObj.Result.ResType,
                     Category: resObj.Result.ResCategory,
-                    ResourceId: resObj.Result.ResourceId,
+                    ResourceId: resObj.Result.ResourceId.toString(),
                     OtherInfo: resObj.Result.OtherData,
                     ConcurrencyInfo: [],
                     ResourceAttributeInfo: []
@@ -101,7 +102,7 @@ var PreProcessResourceData = function(logKey, accessToken, resourceId, callback)
                                 preResourceData.ConcurrencyInfo.push(taskInfo);
                                 for(var i in attributeInfo){
                                     var attrInfo = attributeInfo[i];
-                                    ResourceAttributeInfo.push(attrInfo);
+                                    preResourceData.ResourceAttributeInfo.push(attrInfo);
                                 }
                             });
                             pptd.on('endTaskInfo', function(){
@@ -129,7 +130,7 @@ var SetConcurrencyInfo = function (data) {
 
                 e.emit('concurrencyInfo', val);
                 count++;
-                
+
                 if (data.length === count) {
                     e.emit('endconcurrencyInfo');
                 }
@@ -197,9 +198,12 @@ var AddResource = function (logKey, basicData, callback)  {
                     });
                 }
                 var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', basicData.Company, basicData.Tenant, basicData.ResourceId, obj.HandlingType);
-                tempRefInfoObj = JSON.parse(obj.RefInfo);
-                tempRefInfoObj.ResourceId = basicData.ResourceId;
-                tempRefInfoObjStr = JSON.stringify(tempRefInfoObj);
+
+                var tempRefInfoObj = JSON.parse(obj.RefInfo);
+                if(obj.RefInfo) {
+                    tempRefInfoObj.ResourceId = basicData.ResourceId;
+                }
+                var tempRefInfoObjStr = JSON.stringify(tempRefInfoObj);
                 var concurrencyObj = { Company: basicData.Company, Tenant: basicData.Tenant, HandlingType: obj.HandlingType, LastConnectedTime: "", RejectCount: 0, ResourceId: basicData.ResourceId, ObjKey: cObjkey, RefInfo: tempRefInfoObjStr};
                 var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + basicData.ResourceId, "objtype_ConcurrencyInfo"];
                 concurrencyInfo.push(cObjkey);
@@ -250,7 +254,7 @@ var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
             callback(err, "false");
         }
         else {
-            
+
             var resourceObj = JSON.parse(obj);
             RemoveConcurrencyInfo(logKey, resourceObj.ConcurrencyInfo, function () {
             });
@@ -284,7 +288,7 @@ var SetResource = function (logKey, basicObj, cVid, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetResource *************************', logKey);
 
     var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
-    
+
     redisHandler.GetObj(logKey, key, function (err, jobj) {
         if (err) {
             console.log(err);
@@ -292,7 +296,7 @@ var SetResource = function (logKey, basicObj, cVid, callback) {
         else {
             var obj = JSON.parse(jobj);
             var resourceObj = { Company: basicData.Company, Tenant: basicData.Tenant, Class: basicData.Class, Type: basicData.Type, Category: basicData.Category, ResourceId: basicData.ResourceId, ResourceAttributeInfo: basicData.ResourceAttributeInfo, ConcurrencyInfo: obj.ConcurrencyInfo, State: obj.State };
-            
+
             var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "objtype_Resource", "resourceid_" + resourceObj.ResourceId];
             var tempAttributeList = [];
             for (var i in resourceObj.ResourceAttributeInfo) {
@@ -303,7 +307,7 @@ var SetResource = function (logKey, basicObj, cVid, callback) {
                 tag.push("attribute_" + sortedAttributes[k]);
             }
             var jsonObj = JSON.stringify(resourceObj);
-            
+
             redisHandler.SetObj_V_T(logKey, key, jsonObj, tag, cVid, function (err, reply, vid) {
                 infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
                 callback(err, reply, vid);
@@ -366,7 +370,7 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, r
             cObj.RejectCount = 0;
             var jCObj = JSON.stringify(cObj);
             var cObjTags = ["company_" + cObj.Company, "tenant_" + cObj.Tenant, "handlingType_" + cObj.HandlingType, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
-        
+
             redisHandler.SetObj_V_T(logKey, cObjkey, jCObj, cObjTags, vid, function () {
                 infoLogger.DetailLogger.log('info', '%s Finished UpdateLastConnectedTime. Result: %s', logKey, result);
                 callback(err, result, vid);
@@ -380,7 +384,7 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
 
     var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', company, tenant, resourceid, handlingType);
     var date = new Date();
-    
+
     redisHandler.GetObj_V(logKey, cObjkey, function (err, obj, vid) {
         if (err) {
             console.log(err);

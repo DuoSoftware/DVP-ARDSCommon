@@ -3,9 +3,10 @@
  */
 //-------------ResourceService Integration------------------------------------------
 
-var restClientHandler = require('./RestClient.js');
+var restClientHandler = require('../RestClient.js');
 var config = require('config');
 var validator = require('validator');
+var util = require('util');
 
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
     var rUrl = util.format('http://%s',config.Services.resourceServiceHost);

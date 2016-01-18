@@ -13,7 +13,7 @@ var execute = function (logKey, data, callback) {
     var srs = SetRequestServer(logKey, data);
     var key = util.format('ReqMETA:%d:%d:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType);
     var date = new Date();
-    
+
     srs.on('server', function (url) {
         redisHandler.GetObj(logKey, key, function (err, result) {
             if (err) {
@@ -22,26 +22,26 @@ var execute = function (logKey, data, callback) {
             else if (result == null) {
                 result = reqMetaDataHandler.ReloadMetaData(data.Company, data.Tenant, data.ServerType, data.RequestType);
             }
-                if (result == null) {
-                    callback(null, null);
-                } else {
-                    var metaObj = JSON.parse(result);
-                    
-                    var attributeInfo = [];
-                    var sortedAttributes = sort.sortData(data.Attributes);
-                    for (var i in sortedAttributes) {
-                        var val = sortedAttributes[i];
-                        attributeInfo = AppendAttributeInfo(attributeInfo, metaObj.AttributeMeta, val);
-                    }
-                    
-                    var attributeDataString = util.format('attribute_%s', sortedAttributes.join(":attribute_"));
-                    var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority.toUpperCase());
-                    var date = new Date();
-                    var requestObj = { Company: data.Company, Tenant: data.Tenant, ServerType: data.ServerType, RequestType: data.RequestType, SessionId: data.SessionId, AttributeInfo: attributeInfo, RequestServerId: data.RequestServerId, Priority: data.Priority.toUpperCase(), ArriveTime: date.toISOString(), OtherInfo: data.OtherInfo, ResourceCount: data.ResourceCount, ServingAlgo: metaObj.ServingAlgo, HandlingAlgo: metaObj.HandlingAlgo, SelectionAlgo: metaObj.SelectionAlgo, RequestServerUrl: url, QueueId: queueId, ReqHandlingAlgo: metaObj.ReqHandlingAlgo, ReqSelectionAlgo: metaObj.ReqSelectionAlgo, LbIp: config.Host.LBIP, LbPort:config.Host.LBPort};
-                    infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
-                    infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
-                    callback(null, requestObj);
+            if (result == null) {
+                callback(null, null);
+            } else {
+                var metaObj = JSON.parse(result);
+
+                var attributeInfo = [];
+                var sortedAttributes = sort.sortData(data.Attributes);
+                for (var i in sortedAttributes) {
+                    var val = sortedAttributes[i];
+                    attributeInfo = AppendAttributeInfo(attributeInfo, metaObj.AttributeMeta, val);
                 }
+
+                var attributeDataString = util.format('attribute_%s', sortedAttributes.join(":attribute_"));
+                var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority.toUpperCase());
+                var date = new Date();
+                var requestObj = { Company: data.Company, Tenant: data.Tenant, ServerType: data.ServerType, RequestType: data.RequestType, SessionId: data.SessionId, AttributeInfo: attributeInfo, RequestServerId: data.RequestServerId, Priority: data.Priority.toUpperCase(), ArriveTime: date.toISOString(), OtherInfo: data.OtherInfo, ResourceCount: data.ResourceCount, ServingAlgo: metaObj.ServingAlgo, HandlingAlgo: metaObj.HandlingAlgo, SelectionAlgo: metaObj.SelectionAlgo, RequestServerUrl: url, QueueId: queueId, ReqHandlingAlgo: metaObj.ReqHandlingAlgo, ReqSelectionAlgo: metaObj.ReqSelectionAlgo, LbIp: config.Host.LBIP, LbPort:config.Host.LBPort};
+                infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
+                infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
+                callback(null, requestObj);
+            }
         });
     });
 };
@@ -108,7 +108,7 @@ var SetRequestServer = function (logKey, data) {
             });
         }
     });
-    
+
     return (e);
 };
 

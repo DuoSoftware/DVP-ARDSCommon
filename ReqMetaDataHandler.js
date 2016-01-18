@@ -204,6 +204,8 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
                             });
                     }
                 });
+            }else{
+                callback(err, "Metadata Already Exsist.");
             }
         });
     });
@@ -227,6 +229,7 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
     var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
 
     var tempAttributeGroupInfo = [];
+    var accessToken = util.format('%d#%d',metaDataObj.Tenant,metaDataObj.Company);
     var sagi = SetAttributeGroupInfo(accessToken, metaDataObj.AttributeGroups);
 
     sagi.on('groupInfo', function(obj){
