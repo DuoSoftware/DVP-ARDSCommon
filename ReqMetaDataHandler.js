@@ -117,34 +117,38 @@ var SetAttributeGroupInfo = function (accessToken,groupIds) {
     process.nextTick(function () {
         if (Array.isArray(groupIds)) {
             var count = 0;
-            for (var i in groupIds) {
-                var val = groupIds[i];
-                resourceService.GetAttributeGroupWithDetails(accessToken,val,function(err, res, obj){
-                    count++;
-                    if(err){
-                        console.log(err);
-                    }else {
-                        if(obj.IsSuccess) {
-                            var data = obj.Result;
-                            var attIdList = [];
-                            for (var j in data.ResAttributeGroups) {
-                                var attInfo = data.ResAttributeGroups[j];
-                                attIdList.push(attInfo.AttributeId.toString());
+            if(groupIds.length == 0){
+                e.emit('endgroupInfo');
+            }else {
+                for (var i in groupIds) {
+                    var val = groupIds[i];
+                    resourceService.GetAttributeGroupWithDetails(accessToken, val, function (err, res, obj) {
+                        count++;
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            if (obj.IsSuccess) {
+                                var data = obj.Result;
+                                var attIdList = [];
+                                for (var j in data.ResAttributeGroups) {
+                                    var attInfo = data.ResAttributeGroups[j];
+                                    attIdList.push(attInfo.AttributeId.toString());
+                                }
+                                var tmpGroupInfo = {
+                                    AttributeGroupName: data.GroupName,
+                                    HandlingType: data.GroupType,
+                                    WeightPrecentage: data.Percentage.toString(),
+                                    AttributeCode: attIdList
+                                };
+                                e.emit('groupInfo', tmpGroupInfo);
                             }
-                            var tmpGroupInfo = {
-                                AttributeGroupName: data.GroupName,
-                                HandlingType: data.GroupType,
-                                WeightPrecentage: data.Percentage.toString(),
-                                AttributeCode: attIdList
-                            };
-                            e.emit('groupInfo', tmpGroupInfo);
                         }
-                    }
-                    if (groupIds.length === count) {
-                        e.emit('endgroupInfo');
-                    }
-                });
+                        if (groupIds.length === count) {
+                            e.emit('endgroupInfo');
+                        }
+                    });
 
+                }
             }
         }
         else {
@@ -331,7 +335,6 @@ var RemoveMeataData = function (logKey, company, tenant, serverType, requestType
         }
     });
 };
-
 
 var ReloadMetaData = function (company, tenant, serverType, requestType) {
     dbConn.ArdsRequestMetaData.find({
