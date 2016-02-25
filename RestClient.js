@@ -2,6 +2,7 @@
 var restify = require('restify');
 var request = require('request');
 var util = require('util');
+var config = require('config');
 
 var client = function (url) {
     return restify.createJsonClient({
@@ -11,10 +12,22 @@ var client = function (url) {
 };
 
 var DoGet = function (url, params, callback) {
-    client(url).get(params, function (err, req, res, obj) {
-        assert.ifError(err);
-        console.log('Server returned: %j', obj);
-        callback(err, res, obj);
+    var httpUrl = util.format('%s%s', url, params);
+    var accessToken = util.format('Bearer %s',config.Services.accessToken);
+    console.log('DoGet:: %s', httpUrl);
+    var options = {
+        url: httpUrl,
+        headers: {
+            'content-type': 'text/plain',
+            'authorization': accessToken
+        }
+    };
+    request(options, function optionalCallback(err, httpResponse, body) {
+        if (err) {
+            console.log('upload failed:', err);
+        }
+        console.log('Server returned: %j', body);
+        callback(err, httpResponse, body);
     });
 };
 
