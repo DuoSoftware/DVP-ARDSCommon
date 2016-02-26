@@ -172,46 +172,50 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
     });
 
     sagi.on('endgroupInfo', function() {
-        metaDataObj.AttributeMeta = tempAttributeGroupInfo;
-        var obj = JSON.stringify(metaDataObj);
-        redisHandler.CheckObjExists(logKey,key,function (err, result) {
-            if (err) {
-                console.log(err);
-                callback(err, "Failed");
-            }
-            else if (result == "0") {
-                redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
-                    if (err) {
-                        callback(err, "Failed");
-                    } else {
-                        infoLogger.DetailLogger.log('info', '%s Finished AddMeataData- Redis. Result: %s', logKey, result);
-                        dbConn.ArdsRequestMetaData.create(
-                            {
-                                Tenant: metaDataObj.Tenant,
-                                Company: metaDataObj.Company,
-                                ServerType: metaDataObj.ServerType,
-                                RequestType: metaDataObj.RequestType,
-                                AttributeGroups: JSON.stringify(metaDataObj.AttributeGroups),
-                                ServingAlgo: metaDataObj.ServingAlgo,
-                                HandlingAlgo: metaDataObj.HandlingAlgo,
-                                SelectionAlgo: metaDataObj.SelectionAlgo,
-                                ReqHandlingAlgo: metaDataObj.ReqHandlingAlgo,
-                                ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
-                                MaxReservedTime: metaDataObj.MaxReservedTime,
-                                MaxRejectCount: metaDataObj.MaxRejectCount,
-                                MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime
-                            }
-                        ).then(function (results) {
-                                callback(null, "OK");
-                            }).error(function (err) {
-                                callback(err, "Failed");
-                            });
-                    }
-                });
-            }else{
-                callback(err, "Metadata Already Exsist.");
-            }
-        });
+        if(tempAttributeGroupInfo.length > 0) {
+            metaDataObj.AttributeMeta = tempAttributeGroupInfo;
+            var obj = JSON.stringify(metaDataObj);
+            redisHandler.CheckObjExists(logKey, key, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    callback(err, "Failed");
+                }
+                else if (result == "0") {
+                    redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
+                        if (err) {
+                            callback(err, "Failed");
+                        } else {
+                            infoLogger.DetailLogger.log('info', '%s Finished AddMeataData- Redis. Result: %s', logKey, result);
+                            dbConn.ArdsRequestMetaData.create(
+                                {
+                                    Tenant: metaDataObj.Tenant,
+                                    Company: metaDataObj.Company,
+                                    ServerType: metaDataObj.ServerType,
+                                    RequestType: metaDataObj.RequestType,
+                                    AttributeGroups: JSON.stringify(metaDataObj.AttributeGroups),
+                                    ServingAlgo: metaDataObj.ServingAlgo,
+                                    HandlingAlgo: metaDataObj.HandlingAlgo,
+                                    SelectionAlgo: metaDataObj.SelectionAlgo,
+                                    ReqHandlingAlgo: metaDataObj.ReqHandlingAlgo,
+                                    ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
+                                    MaxReservedTime: metaDataObj.MaxReservedTime,
+                                    MaxRejectCount: metaDataObj.MaxRejectCount,
+                                    MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime
+                                }
+                            ).then(function (results) {
+                                    callback(null, "OK");
+                                }).error(function (err) {
+                                    callback(err, "Failed");
+                                });
+                        }
+                    });
+                } else {
+                    callback(err, "Metadata Already Exsist.");
+                }
+            });
+        }else{
+            callback(err, "No Attribute Group info found.");
+        }
     });
 };
 

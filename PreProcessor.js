@@ -14,7 +14,7 @@ var execute = function (logKey, data, callback) {
     var key = util.format('ReqMETA:%d:%d:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType);
     var date = new Date();
 
-    srs.on('server', function (url) {
+    srs.on('server', function (url, option) {
         redisHandler.GetObj(logKey, key, function (err, result) {
             if (err) {
                 result = reqMetaDataHandler.ReloadMetaData(data.Company, data.Tenant, data.ServerType, data.RequestType);
@@ -37,7 +37,7 @@ var execute = function (logKey, data, callback) {
                 var attributeDataString = util.format('attribute_%s', sortedAttributes.join(":attribute_"));
                 var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority.toUpperCase());
                 var date = new Date();
-                var requestObj = { Company: data.Company, Tenant: data.Tenant, ServerType: data.ServerType, RequestType: data.RequestType, SessionId: data.SessionId, AttributeInfo: attributeInfo, RequestServerId: data.RequestServerId, Priority: data.Priority.toUpperCase(), ArriveTime: date.toISOString(), OtherInfo: data.OtherInfo, ResourceCount: data.ResourceCount, ServingAlgo: metaObj.ServingAlgo, HandlingAlgo: metaObj.HandlingAlgo, SelectionAlgo: metaObj.SelectionAlgo, RequestServerUrl: url, QueueId: queueId, ReqHandlingAlgo: metaObj.ReqHandlingAlgo, ReqSelectionAlgo: metaObj.ReqSelectionAlgo, LbIp: config.Host.LBIP, LbPort:config.Host.LBPort};
+                var requestObj = { Company: data.Company, Tenant: data.Tenant, ServerType: data.ServerType, RequestType: data.RequestType, SessionId: data.SessionId, AttributeInfo: attributeInfo, RequestServerId: data.RequestServerId, Priority: data.Priority.toUpperCase(), ArriveTime: date.toISOString(), OtherInfo: data.OtherInfo, ResourceCount: data.ResourceCount, ServingAlgo: metaObj.ServingAlgo, HandlingAlgo: metaObj.HandlingAlgo, SelectionAlgo: metaObj.SelectionAlgo, RequestServerUrl: url, CallbackOption: option, QueueId: queueId, ReqHandlingAlgo: metaObj.ReqHandlingAlgo, ReqSelectionAlgo: metaObj.ReqSelectionAlgo, LbIp: config.Host.LBIP, LbPort:config.Host.LBPort};
                 infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
                 infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
                 callback(null, requestObj);
@@ -88,22 +88,22 @@ var SetRequestServer = function (logKey, data) {
             var tags = ["company_"+data.Company, "tenant_" + data.Tenant, "serverType_" + data.ServerType, "requestType_" + data.RequestType];
             reqServerHandler.SearchReqServerByTags(logKey, tags, function (err, result) {
                 if (err) {
-                    e.emit('server', "");
+                    e.emit('server', "", "");
                 }
                 else {
                     var randServer = result[Math.floor(Math.random() * result.length)];
-                    e.emit('server', randServer.CallbackUrl);
+                    e.emit('server', randServer.CallbackUrl, randServer.CallbackOption);
                 }
             });
         }
         else {
             reqServerHandler.GetRequestServer(logKey, data.Company, data.Tenant, data.RequestServerId, function (err, reqServerResult) {
                 if (err) {
-                    e.emit('server', "");
+                    e.emit('server', "", "");
                 }
                 else {
-                    var cUrl = JSON.parse(reqServerResult).CallbackUrl;
-                    e.emit('server', cUrl);
+                    var reqServerObj = JSON.parse(reqServerResult);
+                    e.emit('server', reqServerObj.CallbackUrl, reqServerObj.CallbackOption);
                 }
             });
         }

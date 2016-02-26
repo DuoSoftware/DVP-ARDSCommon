@@ -10,9 +10,9 @@ var AddRequestServer = function (logKey, reqServerObj, callback) {
 
     var key = util.format('ReqServer:%s:%s:%s', "*", "*", reqServerObj.ServerID);
     var tag = ["company_*", "tenant_*", "serverType_" + reqServerObj.ServerType, "requestType_" + reqServerObj.RequestType, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
-    
+
     var obj = JSON.stringify(reqServerObj);
-    
+
     redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
         infoLogger.DetailLogger.log('info', '%s Finished AddRequestServer. Result: %s', logKey, result);
         callback(err, result);
@@ -24,9 +24,9 @@ var SetRequestServer = function (logKey, reqServerObj, callback) {
 
     var key = util.format('ReqServer:%s:%s:%s', "*", "*", reqServerObj.ServerID);
     var tag = ["company_*", "tenant_*", "serverType_" + reqServerObj.ServerType, "requestType_" + reqServerObj.RequestType, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
-    
+
     var obj = JSON.stringify(reqServerObj);
-    
+
     redisHandler.SetObj_T(logKey, key, obj, tag, function (err, result) {
         infoLogger.DetailLogger.log('info', '%s Finished SetRequestServer. Result: %s', logKey, result);
         callback(err, result);
@@ -65,7 +65,7 @@ var RemoveRequestServer = function (logKey, company, tenant, serverId, callback)
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequestServer *************************', logKey);
 
     var key = util.format('ReqServer:%s:%s:%s', "*", "*", serverId);
-    
+
     redisHandler.GetObj(logKey, key, function (err, obj) {
         if (err) {
             callback(err, "false");
@@ -79,7 +79,7 @@ var RemoveRequestServer = function (logKey, company, tenant, serverId, callback)
             }
             else {
                 var tag = ["company_*", "tenant_*", "serverType_" + reqServerObj.ServerType, "requestType_" + reqServerObj.RequestType, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
-                
+
                 redisHandler.RemoveObj_T(logKey, key, tag, function (err, result) {
                     infoLogger.DetailLogger.log('info', '%s Finished RemoveRequestServer. Result: %s', logKey, result);
                     callback(err, result);
@@ -89,33 +89,58 @@ var RemoveRequestServer = function (logKey, company, tenant, serverId, callback)
     });
 };
 
-var SendCallBack = function (logKey, serverurl, resultToSend, callback) {
+var SendCallBack = function (logKey, serverurl, callbackOption, resultToSend, callback) {
     infoLogger.DetailLogger.log('info', '%s +++++++++++++++++++++++++ Start SendCallBack Server +++++++++++++++++++++++++', logKey);
     infoLogger.DetailLogger.log('info', '%s SendCallBack Server Url: %s :: ResultToSend: %s', logKey, serverurl, resultToSend);
 
     //var surl = util.format('%s//%s', url.parse(serverurl).protocol, url.parse(serverurl).host);
-    restClientHandler.DoGetDirect(serverurl, resultToSend, function (err, res, result) {
-        if (err) {
-            infoLogger.DetailLogger.log('error', '%s Finished SendCallBack. Error: %s', logKey, err);
-            console.log(err);
-            callback(false, "error");
-        }
-        else {
-            if (res.statusCode == "503") {
-                infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
-                console.log(result);
-                callback(true, "readdRequired");
-            }
-            else if (res.statusCode == "200") {
-                infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "setNext");
-                callback(true, "setNext");
-            }
-            else {
-                infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "error");
+    if(callbackOption == "GET") {
+        restClientHandler.DoGetDirect(serverurl, resultToSend, function (err, res, result) {
+            if (err) {
+                infoLogger.DetailLogger.log('error', '%s Finished SendCallBack. Error: %s', logKey, err);
+                console.log(err);
                 callback(false, "error");
             }
-        }
-    });
+            else {
+                if (res.statusCode == "503") {
+                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
+                    console.log(result);
+                    callback(true, "readdRequired");
+                }
+                else if (res.statusCode == "200") {
+                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "setNext");
+                    callback(true, "setNext");
+                }
+                else {
+                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "error");
+                    callback(false, "error");
+                }
+            }
+        });
+    }else{
+        restClientHandler.DoPostDirect(serverurl, resultToSend, function (err, res, result) {
+            if (err) {
+                infoLogger.DetailLogger.log('error', '%s Finished SendCallBack. Error: %s', logKey, err);
+                console.log(err);
+                callback(false, "error");
+            }
+            else {
+                if (res.statusCode == "503") {
+                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
+                    console.log(result);
+                    callback(true, "readdRequired");
+                }
+                else if (res.statusCode == "200") {
+                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "setNext");
+                    callback(true, "setNext");
+                }
+                else {
+                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "error");
+                    callback(false, "error");
+                }
+            }
+        });
+    }
 };
 
 module.exports.AddRequestServer = AddRequestServer;

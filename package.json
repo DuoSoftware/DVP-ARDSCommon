@@ -1,6 +1,6 @@
 {
   "name": "dvp-ardscommon",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "",
   "main": "Authorization.js",
   "dependencies": {

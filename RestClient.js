@@ -18,7 +18,7 @@ var DoGet = function (url, params, callback) {
     var options = {
         url: httpUrl,
         headers: {
-            'content-type': 'text/plain',
+            'Content-Type': 'application/json',
             'authorization': accessToken
         }
     };
@@ -26,8 +26,9 @@ var DoGet = function (url, params, callback) {
         if (err) {
             console.log('upload failed:', err);
         }
-        console.log('Server returned: %j', body);
-        callback(err, httpResponse, body);
+        var jBody = JSON.parse(body);
+        console.log('Server returned: %j', jBody);
+        callback(err, httpResponse, jBody);
     });
 };
 

@@ -7,10 +7,10 @@ var infoLogger = require('./InformationLogger.js');
 
 var AddRequest = function (logKey, requestObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequest *************************', logKey);
-            
+
     var key = util.format('Request:%d:%d:%s', requestObj.Company, requestObj.Tenant, requestObj.SessionId);
     var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "serverType_" + requestObj.ServerType, "requestType_" + requestObj.RequestType, "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo_" + requestObj.HandlingAlgo, "selectionalgo_" + requestObj.SelectionAlgo, "objtype_Request"];
-    
+
     var tempAttributeList = [];
     for (var i in requestObj.AttributeInfo) {
         var atts = requestObj.AttributeInfo[i].AttributeCode;
@@ -26,9 +26,9 @@ var AddRequest = function (logKey, requestObj, callback) {
     if (requestObj.ResourceCount == null){
         requestObj.ResourceCount = 1;
     }
-    
+
     var jsonObj = JSON.stringify(requestObj);
-    
+
     redisHandler.AddObj_V_T(key, jsonObj, tag, function (err, reply, vid) {
         if (err) {
             console.log(err);
@@ -66,13 +66,13 @@ var SetRequest = function (logKey, requestObj, cVid, callback) {
                 requestObj.ResourceCount = 1;
             }
             var jsonObj = JSON.stringify(requestObj);
-            
+
             redisHandler.SetObj_V_T(logKey, key, jsonObj, tag, cVid, function (err, reply, vid) {
                 infoLogger.DetailLogger.log('info', '%s Finished SetRequest. Result: %s', logKey, reply);
                 callback(err, reply, vid);
             });
         }
-        else {            
+        else {
             infoLogger.DetailLogger.log('info', '%s Finished SetRequest. Result: %s', logKey, "Set Failed- No Existing Obj");
             callback(null, "Set Failed- No Existing Obj", 0);
         }
@@ -86,6 +86,8 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, callback) {
     redisHandler.GetObj(logKey, key, function (err, obj) {
         if (err) {
             callback(err, "false");
+        }else if(obj == null){
+            callback("Error", "No Request found");
         }
         else {
             var requestObj = JSON.parse(obj);
@@ -101,7 +103,7 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, callback) {
             for (var k in sortedAttributes) {
                 tag.push("attribute_" + sortedAttributes[k]);
             }
-            
+
             if (requestObj.ReqHandlingAlgo === "QUEUE") {
                 reqQueueHandler.RemoveRequestFromQueue(logKey, requestObj.QueueId, requestObj.SessionId, function (err, result) {
                     if (err) {
@@ -135,7 +137,7 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
         else {
             var requestObj = JSON.parse(obj);
             var stags = ["company_"+company+"", "tenant_"+tenant+ "", "requestType_"+ requestObj.RequestType+ "", "handlingrequest_"+sessionId+ "", "objtype_CSlotInfo"];
-            
+
             redisHandler.SearchObj_T(logKey, stags, function (err, result) {
                 if (err) {
                     console.log(err);
@@ -215,7 +217,7 @@ var AddProcessingRequest = function (logKey, requestObj, callback) {
         tag.push("attribute_" + requestObj.AttributeInfo[i].AttributeCode);
     }
     var jsonObj = JSON.stringify(requestObj);
-    
+
     redisHandler.AddObj_T(logKey, key, jsonObj, tag, function (err, reply) {
         infoLogger.DetailLogger.log('info', '%s Finished AddProcessingRequest. Result: %s', logKey, reply);
         callback(err, reply);
@@ -246,7 +248,7 @@ var RemoveProcessingRequest = function (logKey, company, tenant, sessionId, call
             for (var i in requestObj.AttributeInfo) {
                 tag.push("attribute_" + requestObj.AttributeInfo[i].AttributeCode);
             }
-            
+
             redisHandler.RemoveObj_T(logKey, key, tag, function (err, result) {
                 if (err) {
                     callback(err, "false");
@@ -292,7 +294,7 @@ var SetRequestState = function (logKey, company, tenant, sessionId, state, callb
 
 var GetRequestState = function (logKey, company, tenant, sessionId, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start GetRequestState *************************', logKey);
-    
+
     var key = util.format('RequestState:%d:%d:%s', company, tenant, sessionId);
     redisHandler.GetObj(logKey, key, function (err, result) {
         if (err) {
