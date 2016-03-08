@@ -52,9 +52,24 @@ var GetResourceAttributeDetails = function(accessToken, taskId, callback){
     });
 };
 
+var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, status, reason, otherData, callback){
+    var jObject = {StatusType:statusType, Status:status, Reason:reason, OtherData: otherData};
+
+    var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
+    if(validator.isIP(config.Services.resourceServiceHost)) {
+        rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+    }
+
+    var serverUrl = util.format('%s/DVP/API/%s/ResourceManager/Resource/%s/Status', rUrl, config.Services.resourceServiceVersion,resourceId);
+    restClientHandler.DoPost(serverUrl,jObject,function(err, res, obj){
+        callback(err,res,obj);
+    });
+};
+
 module.exports.GetAttributeGroupWithDetails = GetAttributeGroupWithDetails;
 module.exports.GetResourceDetails = GetResourceDetails;
 module.exports.GetResourceTaskDetails = GetResourceTaskDetails;
 module.exports.GetResourceAttributeDetails = GetResourceAttributeDetails;
+module.exports.AddResourceStatusChangeInfo = AddResourceStatusChangeInfo;
 
 //-------------End ResourceService Integration--------------------------------------

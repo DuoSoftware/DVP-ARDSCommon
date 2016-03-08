@@ -32,11 +32,24 @@ var DoGet = function (url, params, callback) {
     });
 };
 
-var DoPost = function (url, method, postData, callback) {
-    client(url).post(method, postData, function (err, req, res, obj) {
-        assert.ifError(err);
-        console.log('Server returned: %j', obj);
-        callback(err, res, obj);
+var DoPost = function (serviceurl, postData, callback) {
+    var jsonStr = JSON.stringify(postData);
+    var accessToken = util.format('Bearer %s',config.Services.accessToken);
+    var options = {
+        url: serviceurl,
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json',
+            'authorization': accessToken
+        },
+        body: jsonStr
+    };
+    request.post(options, function optionalCallback(err, httpResponse, body) {
+        if (err) {
+            console.log('upload failed:', err);
+        }
+        console.log('Server returned: %j', body);
+        callback(err, httpResponse, body);
     });
 };
 
