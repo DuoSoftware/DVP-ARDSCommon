@@ -406,7 +406,7 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
     });
 };
 
-var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, resourceid, slotid, otherInfo, callback) {
+var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, resourceid, slotid, reason, otherInfo, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateAvailable *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -419,6 +419,8 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
             var tempObj = JSON.parse(obj);
             if (otherInfo == "Reject") {
                 UpdateRejectCount(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, tempObj.ResourceId, function () { });
+                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REJECT", reason, tempObj.ResourceId, sessionId);
+                redisHandler.Publish(logKey, "events", pubMessage, function(){});
             }
             var handledRequest = tempObj.HandlingRequest;
             tempObj.State = "Available";
@@ -548,7 +550,7 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
     callback(err, "OK");
 };
 
-var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, otherInfo, callback) {
+var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, reason, otherInfo, callback) {
     var slotInfoTags = [];
 
     if (resourceid == "") {
@@ -570,7 +572,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                     if (cs.HandlingRequest == sessionid) {
                         switch (state) {
                             case "Available":
-                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, otherInfo, function (err, result) {
+                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, function (err, result) {
                                     callback(err, result);
                                 });
                                 break;

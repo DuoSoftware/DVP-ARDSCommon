@@ -23,6 +23,8 @@ var AddRequestToQueue = function (logKey, request, callback) {
                         requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
                             console.log("set Request State QUEUED");
                         });
+                        var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", request.QueueId, "", request.SessionId);
+                        redisHandler.Publish(logKey, "events", pubMessage, function(){});
                         callback(err, "OK");
                     }
                     else {
@@ -41,6 +43,8 @@ var AddRequestToQueue = function (logKey, request, callback) {
                     requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
                         console.log("set Request State QUEUED");
                     });
+                    var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", request.QueueId, "", request.SessionId);
+                    redisHandler.Publish(logKey, "events", pubMessage, function(){});
                     callback(err, "OK");
                 }
 
@@ -92,12 +96,15 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
     });
 };
 
-var RemoveRequestFromQueue = function (logKey, queueId, sessionId, callback) {
+var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, sessionId, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequestFromQueue *************************', logKey);
 
     redisHandler.RemoveItemFromList(logKey, queueId, sessionId, function (err, result) {
         if (err) {
             console.log(err);
+        }else{
+            var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "QUEUE", "REMOVED", queueId, reason, sessionId);
+            redisHandler.Publish(logKey, "events", pubMessage, function(){});
         }
         callback(err, result);
     });

@@ -34,6 +34,8 @@ var AddRequest = function (logKey, requestObj, callback) {
             console.log(err);
         }
         SetRequestState(requestObj.Company, requestObj.Tenant, requestObj.SessionId, "N/A", function (err, result) {
+            var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "ADDED", "", "", requestObj.SessionId);
+            redisHandler.Publish(logKey, "events", pubMessage, function(){});
         });
         callback(err, reply, vid);
     });
@@ -79,7 +81,7 @@ var SetRequest = function (logKey, requestObj, cVid, callback) {
     });
 };
 
-var RemoveRequest = function (logKey, company, tenant, sessionId, callback) {
+var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequest *************************', logKey);
 
     var key = util.format('Request:%s:%s:%s', company, tenant, sessionId);
@@ -105,7 +107,7 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, callback) {
             }
 
             if (requestObj.ReqHandlingAlgo === "QUEUE") {
-                reqQueueHandler.RemoveRequestFromQueue(logKey, requestObj.QueueId, requestObj.SessionId, function (err, result) {
+                reqQueueHandler.RemoveRequestFromQueue(logKey, company, tenant, requestObj.QueueId, requestObj.SessionId, reason, function (err, result) {
                     if (err) {
                         console.log(err);
                     }
@@ -116,6 +118,8 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, callback) {
                     callback(err, "false");
                 }
                 else {
+                    var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId);
+                    redisHandler.Publish(logKey, "events", pubMessage, function(){});
                     var reqStateKey = util.format('RequestState:%d:%d:%s', company, tenant, sessionId);
                     redisHandler.RemoveObj(logKey, reqStateKey, function () { });
                     callback(null, result);
@@ -127,57 +131,62 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, callback) {
 
 var RejectRequest = function (logKey, company, tenant, sessionId, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RejectRequest *************************', logKey);
-
     console.log("reject method hit :: SessionID: " + sessionId + " :: Reason: " + reason);
-    var key = util.format('Request:%s:%s:%s', company, tenant, sessionId);
-    redisHandler.GetObj(logKey, key, function (err, obj) {
-        if (err) {
-            callback(err, "false");
-        }
-        else {
-            var requestObj = JSON.parse(obj);
-            var stags = ["company_"+company+"", "tenant_"+tenant+ "", "requestType_"+ requestObj.RequestType+ "", "handlingrequest_"+sessionId+ "", "objtype_CSlotInfo"];
+    if (reason == "NoSession" || reason == "ClientRejected") {
+        RemoveRequest(logKey,company,tenant,sessionId, reason,function(err, result){
+            callback(err, result);
+        });
+    }else {
+        var key = util.format('Request:%s:%s:%s', company, tenant, sessionId);
+        redisHandler.GetObj(logKey, key, function (err, obj) {
+            if (err) {
+                callback(err, "false");
+            }
+            else {
+                var requestObj = JSON.parse(obj);
+                var stags = ["company_" + company + "", "tenant_" + tenant + "", "requestType_" + requestObj.RequestType + "", "handlingrequest_" + sessionId + "", "objtype_CSlotInfo"];
 
-            redisHandler.SearchObj_T(logKey, stags, function (err, result) {
-                if (err) {
-                    console.log(err);
-                }
-                else {
-                    if (result.length == 1) {
-                        var csObj = result[0];
-                        resourceHandler.UpdateSlotStateAvailable(logKey, company, tenant, csObj.RequestType, csObj.ResourceId, csObj.SlotId, "Reject", function (err, reply) {
+                redisHandler.SearchObj_T(logKey, stags, function (err, result) {
+                    if (err) {
+                        console.log(err);
+                    }
+                    else {
+                        if (result.length == 1) {
+                            var csObj = result[0];
+                            resourceHandler.UpdateSlotStateAvailable(logKey, company, tenant, csObj.RequestType, csObj.ResourceId, csObj.SlotId, reason, "Reject", function (err, reply) {
+                                if (err) {
+                                    console.log(err);
+                                }
+                            });
+                        }
+                    }
+                });
+
+                SetRequestState(logKey, requestObj.Company, requestObj.Tenant, requestObj.SessionId, "QUEUED", function (err, result) {
+                    if (err) {
+                        console.log(err);
+                        callback(err, "false");
+                    }
+                    else {
+                        reqQueueHandler.ReAddRequestToQueue(logKey, requestObj, function (err, result) {
                             if (err) {
                                 console.log(err);
+                                callback(err, "false");
+                            }
+                            else if (result == "OK") {
+                                console.log("Request Readded to Queue Success");
+                                callback(err, "true");
+                            }
+                            else {
+                                console.log("Request Readded to Queue Failed");
+                                callback(err, "false");
                             }
                         });
                     }
-                }
-            });
-
-            SetRequestState(logKey, requestObj.Company, requestObj.Tenant, requestObj.SessionId, "QUEUED", function (err, result) {
-                if (err) {
-                    console.log(err);
-                    callback(err, "false");
-                }
-                else {
-                    reqQueueHandler.ReAddRequestToQueue(logKey, requestObj, function (err, result) {
-                        if (err) {
-                            console.log(err);
-                            callback(err, "false");
-                        }
-                        else if (result == "OK") {
-                            console.log("Request Readded to Queue Success");
-                            callback(err, "true");
-                        }
-                        else {
-                            console.log("Request Readded to Queue Failed");
-                            callback(err, "false");
-                        }
-                    });
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    }
 };
 
 var GetRequest = function (logKey, company, tenant, sessionId, callback) {

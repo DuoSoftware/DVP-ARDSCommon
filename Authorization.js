@@ -14,8 +14,8 @@ var ValidateAuthToken = function (req, callback) {
             }
             callback(null, companyId, tenantId);
         }else if(req.user.company && req.user.tenant){
-            tenantId = req.user.company;
-            companyId = req.user.tenant;
+            tenantId = req.user.tenant;
+            companyId = req.user.company;
             callback(null, companyId, tenantId);
         }else {
             callback(new Error("Invalid company or tenant"), companyId, tenantId);

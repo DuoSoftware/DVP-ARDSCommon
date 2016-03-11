@@ -843,6 +843,23 @@ var GetAllHashValue = function (logKey, hashkey, callback) {
     });
 };
 
+
+var Publish = function(logKey, pattern, message, callback){
+    infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
+    infoLogger.DetailLogger.log('info', '%s Redis Publish - pattern: %s - message: %s', logKey, pattern, message);
+
+    client.publish(pattern, message, function (err, result) {
+        if (err) {
+            infoLogger.DetailLogger.log('error', '%s Redis Publish Error - pattern: %s :: Error: %s', logKey, pattern, err);
+            console.log(err);
+            callback(err, null);
+        } else {
+            infoLogger.DetailLogger.log('info', '%s Redis Publish - pattern: %s :: Reply: %s', logKey, pattern, result);
+            callback(null, result);
+        }
+    });
+};
+
 module.exports.SetObj = SetObj;
 module.exports.RemoveObj = RemoveObj;
 module.exports.GetObj = GetObj;
@@ -875,3 +892,5 @@ module.exports.CheckHashFieldExists = CheckHashFieldExists;
 module.exports.GetHashValue = GetHashValue;
 module.exports.GetAllHashValue = GetAllHashValue;
 module.exports.RemoveHash = RemoveHash;
+
+module.exports.Publish = Publish;
