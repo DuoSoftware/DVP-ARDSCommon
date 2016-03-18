@@ -8,6 +8,7 @@ var config = require('config');
 var validator = require('validator');
 var resourceService = require('./services/resourceService');
 var resourceStateMapper = require('./ResourceStateMapper');
+var deepcopy = require("deepcopy");
 
 var PreProcessTaskData = function(accessToken, taskInfos){
     var e = new EventEmitter();
@@ -176,7 +177,7 @@ var AddResource = function (logKey, basicData, callback)  {
                     if(err){
                         callback(err, msg, null);
                     }else{
-                        //var concurrencyInfo = [];
+                        var concurrencyInfo = [];
                         var sci = SetConcurrencyInfo(preProcessResData.ConcurrencyInfo);
 
                         sci.on('concurrencyInfo', function (obj) {
@@ -199,7 +200,7 @@ var AddResource = function (logKey, basicData, callback)  {
                                         OtherInfo: ""
                                     };
                                     var slotInfoTags = ["company_" + slotInfo.Company, "tenant_" + slotInfo.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + preProcessResData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
-                                    preResourceData.ConcurrencyInfo.push(slotInfokey);
+                                    concurrencyInfo.push(slotInfokey);
 
                                     var jsonSlotObj = JSON.stringify(slotInfo);
                                     redisHandler.AddObj_V_T(logKey, slotInfokey, jsonSlotObj, slotInfoTags, function (err, reply, vid) {
@@ -226,7 +227,7 @@ var AddResource = function (logKey, basicData, callback)  {
                                     RefInfo: tempRefInfoObjStr
                                 };
                                 var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
-                                preResourceData.ConcurrencyInfo.push(cObjkey);
+                                concurrencyInfo.push(cObjkey);
 
                                 var jsonConObj = JSON.stringify(concurrencyObj);
                                 redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
@@ -282,11 +283,11 @@ var ShareResource = function(logKey, basicData, callback){
         else {
             var preResourceData = strObj[0].Obj;
             var cVid = strObj[0].Vid;
+            var concurrencyInfo = deepcopy(preResourceData.ConcurrencyInfo);
             PreProcessResourceData(logKey,accessToken,preResourceData,function(err, msg, preProcessResData){
                 if(err){
                     callback(err, msg, null);
                 }else{
-                    //var concurrencyInfo = [];
                     var sci = SetConcurrencyInfo(preProcessResData.ConcurrencyInfo);
 
                     sci.on('concurrencyInfo', function (obj) {
@@ -302,21 +303,21 @@ var ShareResource = function(logKey, basicData, callback){
 
                                 var tempRefInfoObj = JSON.parse(obj.RefInfo);
                                 if (obj.RefInfo) {
-                                        tempRefInfoObj.ResourceId = preProcessResData.ResourceId;
-                                    }
+                                    tempRefInfoObj.ResourceId = preProcessResData.ResourceId;
+                                }
                                 var tempRefInfoObjStr = JSON.stringify(tempRefInfoObj);
                                 var concurrencyObj = {
-                                        Company: preProcessResData.Company,
-                                        Tenant: preProcessResData.Tenant,
-                                        HandlingType: obj.HandlingType,
-                                        LastConnectedTime: "",
-                                        RejectCount: 0,
-                                        ResourceId: preProcessResData.ResourceId,
-                                        ObjKey: cObjkey,
-                                        RefInfo: tempRefInfoObjStr
-                                    };
+                                    Company: preProcessResData.Company,
+                                    Tenant: preProcessResData.Tenant,
+                                    HandlingType: obj.HandlingType,
+                                    LastConnectedTime: "",
+                                    RejectCount: 0,
+                                    ResourceId: preProcessResData.ResourceId,
+                                    ObjKey: cObjkey,
+                                    RefInfo: tempRefInfoObjStr
+                                };
                                 var cObjTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
-                                preResourceData.ConcurrencyInfo.push(cObjkey);
+                                concurrencyInfo.push(cObjkey);
 
                                 var jsonConObj = JSON.stringify(concurrencyObj);
                                 if (isExists) {
@@ -351,7 +352,7 @@ var ShareResource = function(logKey, basicData, callback){
                                         OtherInfo: ""
                                     };
                                     var slotInfoTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + preProcessResData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
-                                    preResourceData.ConcurrencyInfo.push(slotInfokey);
+                                    concurrencyInfo.push(slotInfokey);
 
                                     var jsonSlotObj = JSON.stringify(slotInfo);
                                     if (isExists) {
