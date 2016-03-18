@@ -104,6 +104,20 @@ var SetTags = function (logKey, tagKey, objKey, callback) {
     });
 };
 
+var RemoveTags = function(tags, objKey){
+    if (Array.isArray(tags)) {
+        var tagMeta = util.format('tagMeta:%s', objKey);
+        client.get(tagMeta, function (err, result) {
+            if (err) {
+                console.log(err);
+            } else {
+                client.del(result, function (err, reply) { });
+                client.del(tagMeta, function (err, reply) { });
+            }
+        });
+    }
+};
+
 var SetObj = function (logKey, key, obj, callback) {
     lock(key, 500, function (done) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
@@ -863,6 +877,8 @@ var Publish = function(logKey, pattern, message, callback){
 module.exports.SetObj = SetObj;
 module.exports.RemoveObj = RemoveObj;
 module.exports.GetObj = GetObj;
+module.exports.SetTags = SetTags;
+module.exports.RemoveTags = RemoveTags;
 
 module.exports.AddObj_T = AddObj_T;
 module.exports.SetObj_T = SetObj_T;

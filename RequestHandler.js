@@ -1,6 +1,6 @@
 ﻿var util = require('util');
 var redisHandler = require('./RedisHandler.js');
-var sortArray = require('./SortArray.js');
+var sortArray = require('./CommonMethods.js');
 var reqQueueHandler = require('./ReqQueueHandler.js');
 var resourceHandler = require('./ResourceHandler.js');
 var infoLogger = require('./InformationLogger.js');
