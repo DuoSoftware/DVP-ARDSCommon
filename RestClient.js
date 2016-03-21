@@ -11,7 +11,7 @@ var client = function (url) {
     });
 };
 
-var DoGet = function (url, params, callback) {
+var DoGet = function (url, params, internalAccessToken, callback) {
     var httpUrl = util.format('%s%s', url, params);
     var accessToken = util.format('Bearer %s',config.Services.accessToken);
     console.log('DoGet:: %s', httpUrl);
@@ -19,7 +19,8 @@ var DoGet = function (url, params, callback) {
         url: httpUrl,
         headers: {
             'Content-Type': 'application/json',
-            'authorization': accessToken
+            'authorization': accessToken,
+            'companyinfo': internalAccessToken
         }
     };
     request(options, function optionalCallback(err, httpResponse, body) {
@@ -32,7 +33,7 @@ var DoGet = function (url, params, callback) {
     });
 };
 
-var DoPost = function (serviceurl, postData, callback) {
+var DoPost = function (serviceurl, postData, internalAccessToken, callback) {
     var jsonStr = JSON.stringify(postData);
     var accessToken = util.format('Bearer %s',config.Services.accessToken);
     var options = {
@@ -40,7 +41,8 @@ var DoPost = function (serviceurl, postData, callback) {
         method: 'POST',
         headers: {
             'content-type': 'application/json',
-            'authorization': accessToken
+            'authorization': accessToken,
+            'companyinfo': internalAccessToken
         },
         body: jsonStr
     };

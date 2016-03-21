@@ -9,6 +9,7 @@ var validator = require('validator');
 var resourceService = require('./services/resourceService');
 var resourceStateMapper = require('./ResourceStateMapper');
 var deepcopy = require("deepcopy");
+var commonMethods = require('./CommonMethods');
 
 var PreProcessTaskData = function(accessToken, taskInfos){
     var e = new EventEmitter();
@@ -272,7 +273,7 @@ var AddResource = function (logKey, basicData, callback)  {
 
 var ShareResource = function(logKey, basicData, callback){
     infoLogger.DetailLogger.log('info', '%s ************************* Start ShareResource *************************', logKey);
-    var accessToken = util.format('%d#%d', basicData.Tenant,basicData.Company);
+    var accessToken = util.format('%d:%d', basicData.Tenant,basicData.Company);
     var searchTag = ["resourceid_" + basicData.ResourceId, "objtype_Resource"];
 
     redisHandler.SearchObj_V_T(logKey, searchTag, function (err, strObj) {
@@ -317,22 +318,29 @@ var ShareResource = function(logKey, basicData, callback){
                                     RefInfo: tempRefInfoObjStr
                                 };
                                 var cObjTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
-                                concurrencyInfo.push(cObjkey);
 
                                 var jsonConObj = JSON.stringify(concurrencyObj);
-                                if (isExists) {
+                                if (isExists == 0) {
+                                    concurrencyInfo.push(cObjkey);
                                     redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
                                         if (err) {
                                             console.log(err);
                                         }
                                     });
                                 }else{
-                                    var cObjTagkey = util.format('tag:%s', cObjTags.join(":"));
-                                    redisHandler.SetTags(logKey, cObjTagkey,cObjkey,function(err, reply){
-                                        if (err) {
-                                            console.log(err);
+                                    var tagMetaKey = util.format('tagMeta:%s', cObjkey);
+                                    redisHandler.GetObj(logKey,tagMetaKey,function(err, ceTags){
+                                        if(ceTags){
+                                            var newCompany = util.format('company_%s',basicData.Company);
+                                            commonMethods.AppendCompanyTag(ceTags, newCompany, function(newTags){
+                                                redisHandler.SetTags(logKey, newTags,cObjkey,function(err, reply){
+                                                    if (err) {
+                                                        console.log(err);
+                                                    }
+                                                } );
+                                            });
                                         }
-                                    } );
+                                    });
                                 }
 
 
@@ -352,22 +360,29 @@ var ShareResource = function(logKey, basicData, callback){
                                         OtherInfo: ""
                                     };
                                     var slotInfoTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + preProcessResData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
-                                    concurrencyInfo.push(slotInfokey);
 
                                     var jsonSlotObj = JSON.stringify(slotInfo);
-                                    if (isExists) {
+                                    if (isExists == 0) {
+                                        concurrencyInfo.push(slotInfokey);
                                         redisHandler.AddObj_V_T(logKey, slotInfokey, jsonSlotObj, slotInfoTags, function (err, reply, vid) {
                                             if (err) {
                                                 console.log(err);
                                             }
                                         });
                                     }else{
-                                        var slotInfoTagkey = util.format('tag:%s', slotInfoTags.join(":"));
-                                        redisHandler.SetTags(logKey, slotInfoTagkey,slotInfokey,function(err, reply){
-                                            if (err) {
-                                                console.log(err);
+                                        var slotTagMetaKey = util.format('tagMeta:%s', slotInfokey);
+                                        redisHandler.GetObj(logKey,slotTagMetaKey,function(err, seTags){
+                                            if(seTags){
+                                                var newCompany = util.format('company_%s',basicData.Company);
+                                                commonMethods.AppendCompanyTag(seTags, newCompany, function(newsTags){
+                                                    redisHandler.SetTags(logKey, newsTags,slotInfokey,function(err, reply){
+                                                        if (err) {
+                                                            console.log(err);
+                                                        }
+                                                    } );
+                                                });
                                             }
-                                        } );
+                                        });
                                     }
                                 }
                             });
@@ -390,9 +405,7 @@ var ShareResource = function(logKey, basicData, callback){
                         }
                         var jsonObj = JSON.stringify(resourceObj);
 
-                        redisHandler.SetObj_V_T(logKey, key, jsonObj, tag, cVid, function (err, reply, vid) {
-                            resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Registering",function(err,result){
-                            });
+                        redisHandler.SetObj_V_T(logKey, key, jsonObj, tag, cVid.toString(), function (err, reply, vid) {
                             infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
                             callback(err, reply, vid);
                         });
