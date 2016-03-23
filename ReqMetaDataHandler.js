@@ -161,7 +161,7 @@ var SetAttributeGroupInfo = function (accessToken,groupIds) {
 
 var AddMeataData = function (logKey, metaDataObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddMeataData *************************', logKey);
-    var accessToken = util.format('%d#%d',metaDataObj.Tenant,metaDataObj.Company);
+    var accessToken = util.format('%d:%d',metaDataObj.Tenant,metaDataObj.Company);
     var key = util.format('ReqMETA:%d:%d:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.ServerType, metaDataObj.RequestType);
     var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
     var tempAttributeGroupInfo = [];
@@ -237,7 +237,7 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
     var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
 
     var tempAttributeGroupInfo = [];
-    var accessToken = util.format('%d#%d',metaDataObj.Tenant,metaDataObj.Company);
+    var accessToken = util.format('%d:%d',metaDataObj.Tenant,metaDataObj.Company);
     var sagi = SetAttributeGroupInfo(accessToken, metaDataObj.AttributeGroups);
 
     sagi.on('groupInfo', function(obj){
@@ -345,7 +345,7 @@ var ReloadMetaData = function (company, tenant, serverType, requestType) {
         where: [{ Tenant: tenant }, { Company: company }, { ServerType: serverType }, { RequestType: requestType }]
     }).then(function (reqMeta) {
         if (reqMeta) {
-            var accessToken = util.format('%d#%d', reqMeta.Company,reqMeta.Tenant);
+            var accessToken = util.format('%d:%d', reqMeta.Company,reqMeta.Tenant);
             var attributeGroups = JSON.parse(reqMeta.AttributeGroups);
             var tempAttributeGroupInfo = [];
             var sagi = SetAttributeGroupInfo(accessToken, attributeGroups);
