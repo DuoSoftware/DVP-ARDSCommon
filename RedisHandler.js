@@ -5,6 +5,7 @@ var config = require('config');
 var infoLogger = require('./InformationLogger.js');
 
 client = redis.createClient(config.Redis.redisport, config.Redis.redisip);
+client.auth(config.Redis.password);
 client.select(config.Redis.redisdb, redis.print);
 //client.select(config.Redis.redisdb, function () { /* ... */ });
 client.on("error", function (err) {

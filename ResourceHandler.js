@@ -468,16 +468,17 @@ var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
             //for (var k in sortedAttributes) {
             //    tag.push("attribute_" + sortedAttributes[k]);
             //}
-
-            redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
-                if (err) {
-                    infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, "false");
-                    callback(err, "false");
-                }
-                else {
-                    infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, result);
-                    callback(null, result);
-                }
+            resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"NotAvailable","UnRegistering",function(err,result){
+                redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
+                    if (err) {
+                        infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, "false");
+                        callback(err, "false");
+                    }
+                    else {
+                        infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, result);
+                        callback(null, result);
+                    }
+                });
             });
         }
     });
@@ -906,23 +907,18 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
 };
 
 var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback){
-    setTimeout(UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, otherInfo, function (err, result) {
+    setTimeout(UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {
 
     }), 10000);
-    if (err != null) {
-        console.log(err);
-    }
-    else {
-        var internalAccessToken = util.format('%s:%s', tenant,company);
-        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", otherInfo, sessionid, function(err, result, obj){
-            if(err){
-                console.log("AddResourceStatusChangeInfo Failed.", err);
-            }else{
-                console.log("AddResourceStatusChangeInfo Success.", obj);
-            }
-        });
-    }
-    callback(err, "OK");
+    var internalAccessToken = util.format('%s:%s', tenant,company);
+    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", sessionid, function(err, result, obj){
+        if(err){
+            console.log("AddResourceStatusChangeInfo Failed.", err);
+        }else{
+            console.log("AddResourceStatusChangeInfo Success.", obj);
+        }
+    });
+    callback(null, "OK");
 };
 
 var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, reason, otherInfo, callback) {

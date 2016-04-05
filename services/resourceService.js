@@ -7,6 +7,7 @@ var restClientHandler = require('../RestClient.js');
 var config = require('config');
 var validator = require('validator');
 var util = require('util');
+var redisHandler = require('../RedisHandler.js');
 
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
     var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
@@ -54,6 +55,13 @@ var GetResourceAttributeDetails = function(accessToken, taskId, callback){
 
 var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, status, reason, otherData, callback){
     var jObject = {StatusType:statusType, Status:status, Reason:reason, OtherData: otherData};
+
+    var splitData = accessToken.split(':');
+    if(splitData.length == 2) {
+        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", splitData[0], splitData[1], statusType, status, reason, resourceId, "param2", resourceId);
+        redisHandler.Publish("DashBoardEvent", "events", pubMessage, function () {
+        });
+    }
 
     var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
     if(validator.isIP(config.Services.resourceServiceHost)) {
