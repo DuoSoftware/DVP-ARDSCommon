@@ -937,7 +937,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
             callback(err, null);
         }
         else {
-            if (cslots.length > 0) {
+            if (cslots != null && cslots.length > 0) {
                 for (var i in cslots) {
                     var cs = cslots[i].Obj;
                     if (cs.HandlingRequest == sessionid) {
@@ -966,7 +966,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                 }
             }
             else {
-                callback(err, "No Recerved Resource CSlot found for sessionId: " + sessionid);
+                callback(new Error("No Recerved Resource CSlot found for sessionId: " + sessionid), "Invalied Request");
             }
         }
     });

@@ -205,16 +205,21 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
                             ).then(function (results) {
                                     callback(null, "OK");
                                 }).error(function (err) {
-                                    callback(err, "Failed");
+                                    if(err.name == "SequelizeUniqueConstraintError"){
+                                        callback(null, "OK");
+                                    }else {
+                                        redisHandler.RemoveObj_T(logKey,key,tag,function(){});
+                                        callback(err, "Failed");
+                                    }
                                 });
                         }
                     });
                 } else {
-                    callback(err, "Metadata Already Exsist.");
+                    callback(new Error("Metadata Already Exsist."), "OK");
                 }
             });
         }else{
-            callback(err, "No Attribute Group info found.");
+            callback(new Error("No Attribute Group info found."), "Failed");
         }
     });
 };
