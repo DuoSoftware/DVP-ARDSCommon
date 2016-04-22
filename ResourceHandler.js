@@ -202,7 +202,7 @@ var AddResource = function (logKey, basicData, callback)  {
                                         State: "Available",
                                         HandlingRequest: "",
                                         LastReservedTime: "",
-                                        MaxReservedTime: 0,
+                                        MaxReservedTime: 10,
                                         ResourceId: preProcessResData.ResourceId,
                                         SlotId: i,
                                         ObjKey: slotInfokey,
