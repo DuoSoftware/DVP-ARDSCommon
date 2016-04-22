@@ -955,19 +955,18 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                     callback(err, result);
                                 });
                                 break;
-
-                            case "Reject":
-                                UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, function (err, result, vid) {
-                                    callback(err, result);
-                                });
-                                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
-                                redisHandler.Publish(logKey, "events", pubMessage, function(){});
-                                break;
                             default :
                                 callback(err, "Invalied Request");
                         }
                     }
                 }
+            }
+            else if(state == "Reject"){
+                UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, function (err, result, vid) {
+                    callback(err, result);
+                });
+                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
+                redisHandler.Publish(logKey, "events", pubMessage, function(){});
             }
             else {
                 callback(new Error("No Recerved Resource CSlot found for sessionId: " + sessionid), "Invalied Request");
