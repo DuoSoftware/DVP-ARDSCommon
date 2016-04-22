@@ -778,7 +778,6 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                                 console.log(err);
                             }
                             else {
-                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, function () { });
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, handledRequest, function(err, result, obj){
                                     if(err){
@@ -832,6 +831,8 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                                 console.log(err);
                             }
                             else {
+                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, function () { });
+
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, sessionid, function(err, result, obj){
                                     if(err){
