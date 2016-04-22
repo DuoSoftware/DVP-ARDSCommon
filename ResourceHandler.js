@@ -765,11 +765,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var tempObj = JSON.parse(obj);
                         var handledRequest = tempObj.HandlingRequest;
-                        if (otherInfo == "Reject") {
-                            UpdateRejectCount(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, tempObj.ResourceId, handledRequest, function () { });
-                            var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REJECT", reason, tempObj.ResourceId, sessionId);
-                            redisHandler.Publish(logKey, "events", pubMessage, function(){});
-                        }
+
                         tempObj.State = "Available";
                         tempObj.HandlingRequest = "";
                         tempObj.OtherInfo = "";
@@ -958,6 +954,14 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                 UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result){
                                     callback(err, result);
                                 });
+                                break;
+
+                            case "Reject":
+                                UpdateRejectCount(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, sessionid, function (err, result, vid) {
+                                    callback(err, result);
+                                });
+                                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REJECT", reason, cs.ResourceId, sessionid);
+                                redisHandler.Publish(logKey, "events", pubMessage, function(){});
                                 break;
                             default :
                                 callback(err, "Invalied Request");
