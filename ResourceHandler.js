@@ -230,6 +230,7 @@ var AddResource = function (logKey, basicData, callback)  {
                                     Tenant: preProcessResData.Tenant,
                                     HandlingType: obj.HandlingType,
                                     LastConnectedTime: "",
+                                    LastRejectedSession: "",
                                     RejectCount: 0,
                                     ResourceId: preProcessResData.ResourceId,
                                     ObjKey: cObjkey,
@@ -320,6 +321,7 @@ var ShareResource = function(logKey, basicData, callback){
                                     Tenant: preProcessResData.Tenant,
                                     HandlingType: obj.HandlingType,
                                     LastConnectedTime: "",
+                                    LastRejectedSession: "",
                                     RejectCount: 0,
                                     ResourceId: preProcessResData.ResourceId,
                                     ObjKey: cObjkey,
@@ -361,7 +363,7 @@ var ShareResource = function(logKey, basicData, callback){
                                         State: "Available",
                                         HandlingRequest: "",
                                         LastReservedTime: "",
-                                        MaxReservedTime: 0,
+                                        MaxReservedTime: 10,
                                         ResourceId: preProcessResData.ResourceId,
                                         SlotId: i,
                                         ObjKey: slotInfokey,
@@ -704,7 +706,7 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, r
     });
 };
 
-var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourceid, callback) {
+var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourceid, rejectedSession, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateRejectCount *************************', logKey);
 
     var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', company, tenant, resourceid, handlingType);
@@ -724,6 +726,7 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var cObj = JSON.parse(obj);
                         cObj.RejectCount = cObj.RejectCount + 1;
+                        cObj.LastRejectedSession = rejectedSession;
                         var jCObj = JSON.stringify(cObj);
                         var tags = ["tenant_" + cObj.Tenant, "handlingType_" + cObj.HandlingType, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
                         var cObjTags = companyTags.concat(tags);
@@ -761,12 +764,12 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                 if(ceTags){
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var tempObj = JSON.parse(obj);
+                        var handledRequest = tempObj.HandlingRequest;
                         if (otherInfo == "Reject") {
-                            UpdateRejectCount(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, tempObj.ResourceId, function () { });
+                            UpdateRejectCount(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, tempObj.ResourceId, handledRequest, function () { });
                             var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REJECT", reason, tempObj.ResourceId, sessionId);
                             redisHandler.Publish(logKey, "events", pubMessage, function(){});
                         }
-                        var handledRequest = tempObj.HandlingRequest;
                         tempObj.State = "Available";
                         tempObj.HandlingRequest = "";
                         tempObj.OtherInfo = "";
