@@ -770,7 +770,6 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                         tempObj.State = "Available";
                         tempObj.HandlingRequest = "";
                         tempObj.OtherInfo = "";
-                        tempObj.MaxReservedTime = 0;
                         var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
                         var slotInfoTags = companyTags.concat(tags);
                         var jsonObj = JSON.stringify(tempObj);
