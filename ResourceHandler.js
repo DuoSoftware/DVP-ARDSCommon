@@ -782,6 +782,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                                 console.log(err);
                             }
                             else {
+                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, function () { });
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, handledRequest, function(err, result, obj){
                                     if(err){
@@ -880,9 +881,6 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                         var slotInfoTags = companyTags.concat(tags);
                         var jsonObj = JSON.stringify(tempObj);
                         redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
-                            if (!err) {
-                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, function () { });
-                            }
                             infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateConnected. Result: %s', logKey, reply);
                             if (err != null) {
                                 console.log(err);
