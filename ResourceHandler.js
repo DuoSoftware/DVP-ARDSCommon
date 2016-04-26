@@ -904,9 +904,9 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
 };
 
 var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback){
-    setTimeout(UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {
-
-    }), 10000);
+    setTimeout(function(){
+        UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {});
+    }, 10000);
     var internalAccessToken = util.format('%s:%s', tenant,company);
     resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", sessionid, function(err, result, obj){
         if(err){
