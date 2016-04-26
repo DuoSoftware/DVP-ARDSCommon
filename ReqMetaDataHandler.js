@@ -130,15 +130,18 @@ var SetAttributeGroupInfo = function (accessToken,groupIds) {
                             if (obj.IsSuccess) {
                                 var data = obj.Result;
                                 var attIdList = [];
+                                var attDetailList = [];
                                 for (var j in data.ResAttributeGroups) {
                                     var attInfo = data.ResAttributeGroups[j];
                                     attIdList.push(attInfo.AttributeId.toString());
+                                    attDetailList.push({Id:attInfo.AttributeId.toString(), Name:attInfo.ResAttribute.Attribute});
                                 }
                                 var tmpGroupInfo = {
                                     AttributeGroupName: data.GroupName,
                                     HandlingType: data.GroupType,
                                     WeightPrecentage: data.Percentage.toString(),
-                                    AttributeCode: attIdList
+                                    AttributeCode: attIdList,
+                                    AttributeDetails: attDetailList
                                 };
                                 e.emit('groupInfo', tmpGroupInfo);
                             }

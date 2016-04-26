@@ -52,12 +52,19 @@ var AppendAttributeInfo = function (attInfo, attMetaData, att) {
         for (var j in attMetaData) {
             var attMeta = attMetaData[j];
             if (attMeta.AttributeCode.indexOf(att) >= 0) {
+                var attName = sort.FilterByID(attMeta.AttributeDetails,'Id', att);
                 if (info.AttributeGroupName == attMeta.AttributeGroupName && info.HandlingType == attMeta.HandlingType) {
                     info.AttributeCode.push(att);
+                    if(attName != null){
+                        info.AttributeNames.push(attName.Name);
+                    }
                     return attInfo;
                 }
                 else {
                     var tempObj = { AttributeGroupName: attMeta.AttributeGroupName, HandlingType: attMeta.HandlingType, AttributeCode: [att], WeightPrecentage: attMeta.WeightPrecentage };
+                    if(attName != null){
+                        tempObj.AttributeNames=  [attName.Name];
+                    }
                     attInfo.push(tempObj);
                     return attInfo;
                 }
@@ -70,6 +77,10 @@ var AppendAttributeInfo = function (attInfo, attMetaData, att) {
         var attMeta = attMetaData[j];
         if (attMeta.AttributeCode.indexOf(att) >= 0) {
             var tempObj = { AttributeGroupName: attMeta.AttributeGroupName, HandlingType: attMeta.HandlingType, AttributeCode: [att], WeightPrecentage: attMeta.WeightPrecentage };
+            var attName = sort.FilterByID(attMeta.AttributeDetails,'Id', att);
+            if(attName != null){
+                tempObj.AttributeNames=  [attName.Name];
+            }
             attInfo.push(tempObj);
             return attInfo;
         }

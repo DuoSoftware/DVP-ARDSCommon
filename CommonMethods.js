@@ -192,6 +192,17 @@ var RemoveItemFromObjectArray = function(array, field, value) {
     return array;
 };
 
+var FilterByID = function(array,field, value) {
+    for (var i=array.length-1; i>=0; i--) {
+        if (array[i].hasOwnProperty(field)) {
+            if (array[i][field] == value) {
+                return array[i];
+            }
+        }
+    }
+    return null;
+};
+
 
 module.exports.sortData = sortData;
 module.exports.sortIntArray = sortIntArray;
@@ -204,3 +215,4 @@ module.exports.RemoveTagsFromTagArray = RemoveTagsFromTagArray;
 module.exports.RemoveItemFromObjectArray = RemoveItemFromObjectArray;
 module.exports.UniqueObjectArray = UniqueObjectArray;
 module.exports.UniqueArray = UniqueArray;
+module.exports.FilterByID = FilterByID;
