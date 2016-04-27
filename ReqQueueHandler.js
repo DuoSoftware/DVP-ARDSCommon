@@ -2,6 +2,7 @@
 var redisHandler = require('./RedisHandler.js');
 var requestHandler = require('./RequestHandler.js');
 var infoLogger = require('./InformationLogger.js');
+var rabbitMqHandler = require('./RabbitMQHandler.js');
 
 var AddRequestToQueue = function (logKey, request, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestToQueue *************************', logKey);
@@ -42,6 +43,7 @@ var AddRequestToQueue = function (logKey, request, callback) {
                 else {
                     requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
                         console.log("set Request State QUEUED");
+                        rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
                     });
                     var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", request.QueueId, "", request.SessionId);
                     redisHandler.Publish(logKey, "events", pubMessage, function(){});
@@ -88,6 +90,7 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
                 }
                 else {
                      requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
+                         rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
                     });
                     callback(err, "OK");
                 }
