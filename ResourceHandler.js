@@ -668,7 +668,7 @@ var SearchResourcebyTags = function (logKey, tags, callback) {
     }
 };
 
-var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, resourceid, callback) {
+var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, resourceid, event, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateLastConnectedTime *************************', logKey);
 
     var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', company, tenant, resourceid, handlingType);
@@ -687,8 +687,13 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, r
                 if(ceTags){
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var cObj = JSON.parse(obj);
-                        cObj.LastConnectedTime = date.toISOString();
-                        cObj.RejectCount = 0;
+                        if(event == "reserved") {
+                            cObj.LastConnectedTime = date.toISOString();
+                        }else if(event == "connected") {
+                            cObj.RejectCount = 0;
+                        }else{
+                            callback(new Error("Invalied event"), null, null);
+                        }
                         var jCObj = JSON.stringify(cObj);
                         var tags = ["tenant_" + cObj.Tenant, "handlingType_" + cObj.HandlingType, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
                         var cObjTags = companyTags.concat(tags);
@@ -831,7 +836,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                                 console.log(err);
                             }
                             else {
-                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, function () { });
+                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "reserved", function () { });
 
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, sessionid, function(err, result, obj){
@@ -883,6 +888,8 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                                 console.log(err);
                             }
                             else {
+                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "connected", function () { });
+
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, sessionid, function(err, result, obj){
                                     if(err){
