@@ -934,7 +934,15 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
             callback(err, null);
         }
         else {
-            if (cslots != null && cslots.length > 0) {
+            if(state == "Reject") {
+                UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, function (err, result, vid) {
+                    callback(err, result);
+                });
+                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
+                redisHandler.Publish(logKey, "events", pubMessage, function () {
+                });
+            }
+            else if (cslots != null && cslots.length > 0) {
                 for (var i in cslots) {
                     var cs = cslots[i].Obj;
                     if (cs.HandlingRequest == sessionid) {
@@ -961,13 +969,6 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                         }
                     }
                 }
-            }
-            else if(state == "Reject"){
-                UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, function (err, result, vid) {
-                    callback(err, result);
-                });
-                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
-                redisHandler.Publish(logKey, "events", pubMessage, function(){});
             }
             else {
                 callback(new Error("No Recerved Resource CSlot found for sessionId: " + sessionid), "Invalied Request");
