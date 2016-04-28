@@ -60,17 +60,19 @@ var AppendAttributeInfo = function (attInfo, attMetaData, att) {
                     }
                     return attInfo;
                 }
-                else {
-                    var tempObj = { AttributeGroupName: attMeta.AttributeGroupName, HandlingType: attMeta.HandlingType, AttributeCode: [att], WeightPrecentage: attMeta.WeightPrecentage };
-                    if(attName != null){
-                        tempObj.AttributeNames=  [attName.Name];
-                    }
-                    attInfo.push(tempObj);
-                    return attInfo;
-                }
+                //else {
+                //    var tempObj = { AttributeGroupName: attMeta.AttributeGroupName, HandlingType: attMeta.HandlingType, AttributeCode: [att], WeightPrecentage: attMeta.WeightPrecentage };
+                //    if(attName != null){
+                //        tempObj.AttributeNames=  [attName.Name];
+                //    }
+                //    attInfo.push(tempObj);
+                //    return attInfo;
+                //}
             }
         }
-        return attInfo;
+        //if(attInfo.length == i) {
+        //    return attInfo;
+        //}
     }
 
     for (var j in attMetaData) {
@@ -84,12 +86,8 @@ var AppendAttributeInfo = function (attInfo, attMetaData, att) {
             attInfo.push(tempObj);
             return attInfo;
         }
-        else {
-            return attInfo;
-        }
     }
-
-
+    return attInfo;
 };
 
 var SetRequestServer = function (logKey, data) {

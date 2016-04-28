@@ -5,6 +5,7 @@ var amqp = require('amqplib');
 var when = require('when');
 var config = require('config');
 var util = require('util');
+var infoLogger = require('./InformationLogger.js');
 
 var Publish = function(logKey, queue, message){
     try {
