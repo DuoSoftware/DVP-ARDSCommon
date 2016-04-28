@@ -22,7 +22,7 @@ var lock = require("redis-lock")(client);
 
 var SetTags = function (logKey, tagKey, objKey, callback) {
     var tagMeta = util.format('tagMeta:%s', objKey);
-    
+
     //infoLogger.DetailLogger.log('info', '..................................................');
     infoLogger.DetailLogger.log('info', '%s SetTags - objkey: %s :: tagkey: %s :: tagMetakey: %s', logKey, objKey, tagKey, tagMeta);
 
@@ -42,7 +42,7 @@ var SetTags = function (logKey, tagKey, objKey, callback) {
                     }
                     else {
                         infoLogger.DetailLogger.log('info', '%s SetTags Set new tag success. - Result: %s', logKey, reply);
-                                
+
                         client.set(tagMeta, tagKey, function (err, reply) {
                             if (err) {
                                 infoLogger.DetailLogger.log('error', '%s SetTags Set tag meta - Error: %s', logKey, err);
@@ -67,7 +67,7 @@ var SetTags = function (logKey, tagKey, objKey, callback) {
                     }
                     else if (reply === 1) {
                         infoLogger.DetailLogger.log('debug', '%s SetTags Delete old tag success.', logKey);
-                                
+
                         client.set(tagKey, objKey, function (err, reply) {
                             if (err) {
                                 infoLogger.DetailLogger.log('error', '%s SetTags Set new tag - Error: %s', logKey, err);
@@ -75,19 +75,19 @@ var SetTags = function (logKey, tagKey, objKey, callback) {
                             }
                             else {
                                 infoLogger.DetailLogger.log('info', '%s SetTags Set new tag success. - Result: %s', logKey, reply);
-                        
+
                                 client.set(tagMeta, tagKey, function (err, reply) {
                                     if (err) {
                                         infoLogger.DetailLogger.log('error', '%s SetTags Set tag meta - Error: %s', logKey, err);
-                                
+
                                         client.del(tagKey, function (err, reply) {
                                         });
-                                        
+
                                         callback(err, reply);
                                     }
                                     else {
                                         infoLogger.DetailLogger.log('debug', '%s SetTags Set tag meta success.', logKey);
-                                
+
                                         callback(err, reply);
                                     }
                                 });
@@ -100,7 +100,7 @@ var SetTags = function (logKey, tagKey, objKey, callback) {
                         callback(null, "Failed");
                     }
                 });
-            }            
+            }
         }
     });
 };
@@ -188,7 +188,7 @@ var AddObj_T = function (logKey, key, obj, tags, callback) {
         var vid = 1;
         if (Array.isArray(tags)) {
             var tagkey = util.format('tag:%s', tags.join(":"));
-            
+
             SetTags(logKey,tagkey, key, function (err, reply) {
                 if (err) {
                     done();
@@ -265,9 +265,9 @@ var RemoveObj_T = function (logKey, key, tags, callback) {
                     infoLogger.DetailLogger.log('info', '%s RemoveObj_T Remove tag success - key: %s :: tagkey: %s', logKey, key, result);
                 }
             });
-        
+
         }
-        
+
         client.del(key, function (err, reply) {
             done();
             if (err) {
@@ -294,13 +294,13 @@ var GetObjByTagKey_T = function (logKey, tagKeys) {
         //console.log("    " + i + ": " + val);
         client.get(val, function (err, key) {
             console.log("Key: " + key);
-            
+
             GetObj(logKey, key, function (err, obj) {
                 e.emit('result', err, obj);
                 count++;
-                
+
                 console.log("res", count);
-                
+
                 if (tagKeys.length === count) {
                     console.log("end", count);
                     e.emit('end');
@@ -314,7 +314,7 @@ var GetObjByTagKey_T = function (logKey, tagKeys) {
 var SearchObj_T = function (logKey, tags, callback) {
     var result = [];
     var searchKey = util.format('tag:*%s*', tags.join("*"));
-    
+
     client.keys(searchKey, function (err, replies) {
         if (err) {
             callback(err, result);
@@ -350,7 +350,7 @@ var AddObj_V = function (logKey, key, obj, callback) {
         client.set(versionkey, vid, function (err, reply) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s AddObj_V SetVersion Error - key: %s :: Error: %s', logKey, key, err);
-                            
+
                 done();
                 console.log(error);
                 callback(err, "SetVersion Failed", vid);
@@ -364,7 +364,7 @@ var AddObj_V = function (logKey, key, obj, callback) {
                         });
                         client.del(versionkey, function (err, reply) {
                         });
-                        
+
                         infoLogger.DetailLogger.log('error', '%s AddObj_V Error - key: %s :: Error: %s', logKey, key, error);
                         callback(error, "AddObj_V Failed", vid);
                     }
@@ -375,7 +375,7 @@ var AddObj_V = function (logKey, key, obj, callback) {
                 });
             }
         });
-    });    
+    });
 };
 
 var SetObj_V = function (logKey, key, obj, cvid, callback) {
@@ -436,7 +436,7 @@ var RemoveObj_V = function (logKey, key, callback) {
 
         var versionkey = util.format('version:%s', key);
         client.del(versionkey, function (err, reply) { });
-        
+
         client.del(key, function (err, reply) {
             done();
             if (err) {
@@ -606,10 +606,10 @@ var RemoveObj_V_T = function (logKey, key, tags, callback) {
                 }
             });
         }
-        
+
         var versionkey = util.format('version:%s', key);
         client.del(versionkey, function (err, reply) { });
-        
+
         client.del(key, function (err, reply) {
             done();
             if (err) {
@@ -637,13 +637,13 @@ var GetObjByTagKey_V_T = function (logKey, tagKeys) {
         console.log("    " + i + ": " + val);
         client.get(val, function (err, key) {
             console.log("Key: " + key);
-            
+
             GetObj_V(logKey, key, function (err, obj, vid) {
                 e.emit('result', err, obj, vid);
                 count++;
-                
+
                 console.log("res", count);
-                
+
                 if (tagKeys.length === count) {
                     console.log("end", count);
                     e.emit('end');
@@ -657,17 +657,17 @@ var GetObjByTagKey_V_T = function (logKey, tagKeys) {
 var SearchObj_V_T = function (logKey, tags, callback) {
     var result = [];
     var searchKey = util.format('tag:*%s*', tags.join("*"));
-    
+
     client.keys(searchKey, function (err, replies) {
         console.log(replies.length + " replies:");
         if (replies.length > 0) {
             var gobtk = GetObjByTagKey_V_T(logKey, replies);
-            
+
             gobtk.on('result', function (err, obj, vid) {
                 var obj = { Obj: JSON.parse(obj), Vid: JSON.parse(vid) };
                 result.push(obj);
             });
-            
+
             gobtk.on('end', function () {
                 callback(null, result);
             });
@@ -813,15 +813,26 @@ var RemoveHash = function (logKey, hashKey, callback) {
 var CheckHashFieldExists = function (logKey, hashkey, field, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s CheckHashFieldExists - hashKey: %s :: field: %s', logKey, hashkey, field);
-
-    client.hexists(hashkey, field, function (err, result) {
+    CheckObjExists(logKey, hashkey, function (err, hresult) {
         if (err) {
-            infoLogger.DetailLogger.log('error', '%s CheckHashFieldExists Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashkey, field, err);
+            infoLogger.DetailLogger.log('error', '%s CheckHashExists Error - hashKey: %s:: Error: %s', logKey, hashkey, err);
             console.log(err);
-            callback(err, null);
-        } else {
-            infoLogger.DetailLogger.log('info', '%s CheckHashFieldExists - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashkey, field, result);
-            callback(null, result);
+            callback(err, null, null);
+        }
+        else if (hresult == "0") {
+            infoLogger.DetailLogger.log('info', '%s CheckHashExists - hashKey: %s:: Reply: %s', logKey, hashkey, hresult);
+            callback(null, hresult, hresult);
+        }else{
+            client.hexists(hashkey, field, function (err, result) {
+                if (err) {
+                    infoLogger.DetailLogger.log('error', '%s CheckHashFieldExists Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashkey, field, err);
+                    console.log(err);
+                    callback(err, null, null);
+                } else {
+                    infoLogger.DetailLogger.log('info', '%s CheckHashFieldExists - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashkey, field, result);
+                    callback(null, hresult, result);
+                }
+            });
         }
     });
 };

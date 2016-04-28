@@ -8,7 +8,7 @@ var AddRequestToQueue = function (logKey, request, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestToQueue *************************', logKey);
 
     var hashKey = util.format('ProcessingHash:%d:%d', request.Company, request.Tenant);
-    redisHandler.CheckHashFieldExists(logKey, hashKey, request.QueueId, function (err, result) {
+    redisHandler.CheckHashFieldExists(logKey, hashKey, request.QueueId, function (err, hresult, result) {
         if (err) {
             console.log(err);
             callback(err, "Failed");
@@ -43,7 +43,9 @@ var AddRequestToQueue = function (logKey, request, callback) {
                 else {
                     requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
                         console.log("set Request State QUEUED");
-                        rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                        if(hresult == "0") {
+                            rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                        }
                     });
                     var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", request.QueueId, "", request.SessionId);
                     redisHandler.Publish(logKey, "events", pubMessage, function(){});
@@ -59,7 +61,7 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start ReAddRequestToQueue *************************', logKey);
 
     var hashKey = util.format('ProcessingHash:%d:%d', request.Company, request.Tenant);
-    redisHandler.CheckHashFieldExists(logKey, hashKey, request.QueueId, function (err, result) {
+    redisHandler.CheckHashFieldExists(logKey, hashKey, request.QueueId, function (err, hresult, result) {
         if (err) {
             console.log(err);
             callback(err, "Failed");
@@ -89,8 +91,10 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
                     callback(err, "Failed");
                 }
                 else {
-                     requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
-                         rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                    requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
+                        if(hresult == "0") {
+                            rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                        }
                     });
                     callback(err, "OK");
                 }
