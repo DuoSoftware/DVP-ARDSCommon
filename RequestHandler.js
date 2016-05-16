@@ -120,7 +120,7 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
                 else {
                     var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId);
                     redisHandler.Publish(logKey, "events", pubMessage, function(){});
-                    var reqStateKey = util.format('RequestState:%d:%d:%s', company, tenant, sessionId);
+                    var reqStateKey = util.format('RequestState:%s:%s:%s', company, tenant, sessionId);
                     redisHandler.RemoveObj(logKey, reqStateKey, function () { });
                     callback(null, result);
                 }
@@ -132,36 +132,36 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
 var RejectRequest = function (logKey, company, tenant, sessionId, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RejectRequest *************************', logKey);
     console.log("reject method hit :: SessionID: " + sessionId + " :: Reason: " + reason);
-    if (reason == "NoSession" || reason == "ClientRejected") {
-        RemoveRequest(logKey,company,tenant,sessionId, reason,function(err, result){
-            callback(err, result);
-        });
-    }else {
-        var key = util.format('Request:%s:%s:%s', company, tenant, sessionId);
-        redisHandler.GetObj(logKey, key, function (err, obj) {
-            if (err) {
-                callback(err, "false");
-            }
-            else {
-                var requestObj = JSON.parse(obj);
-                var stags = ["company_" + company + "", "tenant_" + tenant + "", "requestType_" + requestObj.RequestType + "", "handlingrequest_" + sessionId + "", "objtype_CSlotInfo"];
 
-                redisHandler.SearchObj_T(logKey, stags, function (err, result) {
-                    if (err) {
-                        console.log(err);
+    var key = util.format('Request:%s:%s:%s', company, tenant, sessionId);
+    redisHandler.GetObj(logKey, key, function (err, obj) {
+        if (err) {
+            callback(err, "false");
+        }
+        else {
+            var requestObj = JSON.parse(obj);
+            var stags = ["company_" + company + "", "tenant_" + tenant + "", "requestType_" + requestObj.RequestType + "", "handlingrequest_" + sessionId + "", "objtype_CSlotInfo"];
+
+            redisHandler.SearchObj_T(logKey, stags, function (err, result) {
+                if (err) {
+                    console.log(err);
+                }
+                else {
+                    if (result.length == 1) {
+                        var csObj = result[0];
+                        resourceHandler.UpdateSlotStateAvailable(logKey, company, tenant, csObj.RequestType, csObj.ResourceId, csObj.SlotId, reason, "Reject", function (err, reply) {
+                            if (err) {
+                                console.log(err);
+                            }
+                        });
                     }
-                    else {
-                        if (result.length == 1) {
-                            var csObj = result[0];
-                            resourceHandler.UpdateSlotStateAvailable(logKey, company, tenant, csObj.RequestType, csObj.ResourceId, csObj.SlotId, reason, "Reject", function (err, reply) {
-                                if (err) {
-                                    console.log(err);
-                                }
-                            });
-                        }
-                    }
+                }
+            });
+            if (reason == "NoSession" || reason == "ClientRejected") {
+                RemoveRequest(logKey, company, tenant, sessionId, reason, function (err, result) {
+                    callback(err, result);
                 });
-
+            } else {
                 SetRequestState(logKey, requestObj.Company, requestObj.Tenant, requestObj.SessionId, "QUEUED", function (err, result) {
                     if (err) {
                         console.log(err);
@@ -185,8 +185,8 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
                     }
                 });
             }
-        });
-    }
+        }
+    });
 };
 
 var GetRequest = function (logKey, company, tenant, sessionId, callback) {
