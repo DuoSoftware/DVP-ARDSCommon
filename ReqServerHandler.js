@@ -8,6 +8,17 @@ var infoLogger = require('./InformationLogger.js');
 var AddRequestServer = function (logKey, reqServerObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestServer *************************', logKey);
 
+    if(!reqServerObj.QueuePositionCallbackUrl){
+        reqServerObj.QueuePositionCallbackUrl = "";
+        reqServerObj.QueuePositionCallbackOption = "";
+        reqServerObj.ReceiveQueuePosition = false;
+    }else if(!reqServerObj.QueuePositionCallbackOption){
+        reqServerObj.QueuePositionCallbackOption = "POST";
+    }
+    if(!reqServerObj.ReceiveQueuePosition){
+        reqServerObj.ReceiveQueuePosition = false;
+    }
+
     var key = util.format('ReqServer:%s:%s:%s', "*", "*", reqServerObj.ServerID);
     var tag = ["company_*", "tenant_*", "serverType_" + reqServerObj.ServerType, "requestType_" + reqServerObj.RequestType, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
 
@@ -21,6 +32,17 @@ var AddRequestServer = function (logKey, reqServerObj, callback) {
 
 var SetRequestServer = function (logKey, reqServerObj, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetRequestServer *************************', logKey);
+
+    if(!reqServerObj.QueuePositionCallbackUrl){
+        reqServerObj.QueuePositionCallbackUrl = "";
+        reqServerObj.QueuePositionCallbackOption = "";
+        reqServerObj.ReceiveQueuePosition = false;
+    }else if(!reqServerObj.QueuePositionCallbackOption){
+        reqServerObj.QueuePositionCallbackOption = "POST";
+    }
+    if(!reqServerObj.ReceiveQueuePosition){
+        reqServerObj.ReceiveQueuePosition = false;
+    }
 
     var key = util.format('ReqServer:%s:%s:%s', "*", "*", reqServerObj.ServerID);
     var tag = ["company_*", "tenant_*", "serverType_" + reqServerObj.ServerType, "requestType_" + reqServerObj.RequestType, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];

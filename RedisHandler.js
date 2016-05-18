@@ -745,6 +745,22 @@ var GetItemFromList = function (logKey, key, callback) {
     });
 };
 
+var GetRangeFromList = function (logKey, key, callback) {
+    infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
+    infoLogger.DetailLogger.log('info', '%s GetRangeFromList - key: %s', logKey, key);
+
+    client.lrange(key, 0, -1, function (err, result) {
+        if (err) {
+            infoLogger.DetailLogger.log('error', '%s GetRangeFromList Error - key: %s :: Error: %s', logKey, key, error);
+            console.log(err);
+            callback(err, null);
+        } else {
+            infoLogger.DetailLogger.log('info', '%s GetRangeFromList - key: %s :: Reply: %s', logKey, key, result);
+            callback(null, result);
+        }
+    });
+};
+
 var RemoveItemFromList = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveItemFromList - key: %s :: obj: %s', logKey, key, obj);
@@ -912,6 +928,7 @@ module.exports.CheckObjExists = CheckObjExists;
 module.exports.AddItemToListR = AddItemToListR;
 module.exports.AddItemToListL = AddItemToListL;
 module.exports.GetItemFromList = GetItemFromList;
+module.exports.GetRangeFromList = GetRangeFromList;
 module.exports.RemoveItemFromList = RemoveItemFromList;
 
 module.exports.AddItemToHash = AddItemToHash;

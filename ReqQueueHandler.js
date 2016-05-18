@@ -3,6 +3,7 @@ var redisHandler = require('./RedisHandler.js');
 var requestHandler = require('./RequestHandler.js');
 var infoLogger = require('./InformationLogger.js');
 var rabbitMqHandler = require('./RabbitMQHandler.js');
+var restClientHandler = require('./RestClient.js');
 
 var AddRequestToQueue = function (logKey, request, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestToQueue *************************', logKey);
@@ -67,7 +68,8 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
             callback(err, "Failed");
         }
         else if (result == "1") {
-            redisHandler.AddItemToListL(logKey, request.QueueId, request.SessionId, function (err, result) {
+            var newQueueId = GetRejectedQueueId(request.QueueId);
+            redisHandler.AddItemToListR(logKey, newQueueId, request.SessionId, function (err, result) {
                 if (err) {
                     console.log(err);
                     callback(err, "Failed");
@@ -110,49 +112,101 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
         if (err) {
             console.log(err);
         }else{
-            var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "QUEUE", "REMOVED", queueId, reason, sessionId);
-            redisHandler.Publish(logKey, "events", pubMessage, function(){});
+            if(result >0) {
+                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", queueId, reason, sessionId);
+                redisHandler.Publish(logKey, "events", pubMessage, function () {
+                });
+
+                callback(err, result);
+            }else{
+                var rejectedQueueId = GetRejectedQueueId(queueId);
+                redisHandler.RemoveItemFromList(logKey, rejectedQueueId, sessionId, function (err, result) {
+                    if (err) {
+                        console.log(err);
+                    }else{
+                        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", queueId, reason, sessionId);
+                        redisHandler.Publish(logKey, "events", pubMessage, function () {
+                        });
+
+                        callback(err, result);
+                    }
+                });
+            }
         }
-        callback(err, result);
     });
 };
 
 var GetNextRequestToProcess = function (logKey, queueId, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start GetNextRequestToProcess *************************', logKey);
+    var rejectedQueueId = GetRejectedQueueId(queueId);
 
-    redisHandler.GetItemFromList(logKey, queueId, function (err, result) {
+    redisHandler.GetItemFromList(logKey, rejectedQueueId, function (err, rejectListResult) {
         if (err) {
             console.log(err);
+        }else{
+            if(rejectListResult == ""){
+                redisHandler.GetItemFromList(logKey, queueId, function (err, result) {
+                    if (err) {
+                        console.log(err);
+                    }
+                    callback(err, result);
+                });
+            }else{
+                callback(err, rejectListResult);
+            }
         }
-        callback(err, result);
     });
 };
 
 var SetNextProcessingItem = function (logKey, queueId, processingHashId) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetNextProcessingItem *************************', logKey);
+    var rejectedQueueId = GetRejectedQueueId(queueId);
 
-    redisHandler.GetItemFromList(logKey, queueId, function (err, nextQueueItem) {
+    redisHandler.GetItemFromList(logKey, rejectedQueueId, function (err, nextRejectQueueItem) {
         if (err) {
             console.log(err);
         }
         else {
-            if (nextQueueItem == "") {
-                redisHandler.RemoveItemFromHash(logKey, processingHashId, queueId, function (err, result) {
+            if(nextRejectQueueItem == "" || nextRejectQueueItem == null){
+                redisHandler.GetItemFromList(logKey, queueId, function (err, nextQueueItem) {
                     if (err) {
                         console.log(err);
                     }
                     else {
-                        if (result == "1") {
-                            console.log("Remove HashField Success.." + _processingHash + "::" + _queueId);
+                        if (nextQueueItem == "" || nextQueueItem == null) {
+                            redisHandler.RemoveItemFromHash(logKey, processingHashId, queueId, function (err, result) {
+                                if (err) {
+                                    console.log(err);
+                                }
+                                else {
+                                    if (result == "1") {
+                                        console.log("Remove HashField Success.." + _processingHash + "::" + _queueId);
+                                    }
+                                    else {
+                                        console.log("Remove HashField Failed.." + _processingHash + "::" + _queueId);
+                                    }
+                                }
+                            });
                         }
                         else {
-                            console.log("Remove HashField Failed.." + _processingHash + "::" + _queueId);
+                            redisHandler.AddItemToHash(logKey, processingHashId,queueId, nextQueueItem,function(err,result){
+                                if (err) {
+                                    console.log(err);
+                                }
+                                else {
+                                    if (result == "1") {
+                                        console.log("Set HashField Success.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
+                                    }
+                                    else {
+                                        console.log("Set HashField Failed.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
+                                    }
+                                }
+                            });
                         }
                     }
                 });
-            }
-            else {
-                redisHandler.AddItemToHash(logKey, processingHashId,queueId, nextQueueItem,function(err,result){
+            }else {
+                redisHandler.AddItemToHash(logKey, processingHashId, queueId, nextRejectQueueItem, function (err, result) {
                     if (err) {
                         console.log(err);
                     }
@@ -170,8 +224,39 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId) {
     });
 };
 
+var GetRejectedQueueId = function(queueId){
+    var splitQueueId = queueId.split(":");
+    var tempSplitQueueId = splitQueueId.splice(-1, 1);
+    return util.format("%s:%s", tempSplitQueueId.join(":"), "REJECTED");
+};
+
+var SendQueuePositionInfo = function(logKey, url, queueId, callback){
+    infoLogger.DetailLogger.log('info', '%s:Queue: %s ************************* Start SendQueuePositionInfo *************************', logKey, queueId);
+    redisHandler.GetRangeFromList(logKey, queueId, function(err, result){
+        if(err){
+            console.log(err);
+        }else{
+            for (var i=0; i< result.length; i++) {
+                var item = result[i];
+                if(item){
+                    var body = {SessionId: item, QueueId: queueId, QueuePosition: i+1};
+                    restClientHandler.DoPostDirect(url, body, function (err, res, result){
+                        if(err){
+                            console.log(err);
+                        }else{
+                            console.log("SendQueuePositionInfo: %s: %s", item, result);
+                        }
+                    });
+                }
+            }
+        }
+    });
+    callback("done");
+};
+
 module.exports.AddRequestToQueue = AddRequestToQueue;
 module.exports.ReAddRequestToQueue = ReAddRequestToQueue;
 module.exports.RemoveRequestFromQueue = RemoveRequestFromQueue;
 module.exports.GetNextRequestToProcess = GetNextRequestToProcess;
 module.exports.SetNextProcessingItem = SetNextProcessingItem;
+module.exports.SendQueuePositionInfo = SendQueuePositionInfo;
