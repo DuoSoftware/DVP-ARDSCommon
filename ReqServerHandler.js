@@ -10,10 +10,7 @@ var AddRequestServer = function (logKey, reqServerObj, callback) {
 
     if(!reqServerObj.QueuePositionCallbackUrl){
         reqServerObj.QueuePositionCallbackUrl = "";
-        reqServerObj.QueuePositionCallbackOption = "";
         reqServerObj.ReceiveQueuePosition = false;
-    }else if(!reqServerObj.QueuePositionCallbackOption){
-        reqServerObj.QueuePositionCallbackOption = "POST";
     }
     if(!reqServerObj.ReceiveQueuePosition){
         reqServerObj.ReceiveQueuePosition = false;
@@ -35,10 +32,7 @@ var SetRequestServer = function (logKey, reqServerObj, callback) {
 
     if(!reqServerObj.QueuePositionCallbackUrl){
         reqServerObj.QueuePositionCallbackUrl = "";
-        reqServerObj.QueuePositionCallbackOption = "";
         reqServerObj.ReceiveQueuePosition = false;
-    }else if(!reqServerObj.QueuePositionCallbackOption){
-        reqServerObj.QueuePositionCallbackOption = "POST";
     }
     if(!reqServerObj.ReceiveQueuePosition){
         reqServerObj.ReceiveQueuePosition = false;

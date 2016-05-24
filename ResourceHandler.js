@@ -891,6 +891,9 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                                 UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "connected", function () { });
 
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
+                                if(otherInfo == "" || otherInfo == null){
+                                    otherInfo = "Connected";
+                                }
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, sessionid, function(err, result, obj){
                                     if(err){
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
@@ -915,12 +918,20 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
         UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {});
     }, 10000);
     var internalAccessToken = util.format('%s:%s', tenant,company);
-    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", sessionid, function(err, result, obj){
+    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "Connected", sessionid, function(err, result, obj){
         if(err){
             console.log("AddResourceStatusChangeInfo Failed.", err);
         }else{
             console.log("AddResourceStatusChangeInfo Success.", obj);
         }
+
+        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", sessionid, function(err, result, obj){
+            if(err){
+                console.log("AddResourceStatusChangeInfo Failed.", err);
+            }else{
+                console.log("AddResourceStatusChangeInfo Success.", obj);
+            }
+        });
     });
     callback(null, "OK");
 };
