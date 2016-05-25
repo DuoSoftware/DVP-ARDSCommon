@@ -25,7 +25,8 @@ var AddRequestToQueue = function (logKey, request, callback) {
                         requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
                             console.log("set Request State QUEUED");
                         });
-                        var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", request.QueueId, "", request.SessionId);
+                        var pubQueueId = request.QueueId.replace(":", "-");
+                        var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
                         redisHandler.Publish(logKey, "events", pubMessage, function(){});
                         callback(err, "OK");
                     }
@@ -48,7 +49,8 @@ var AddRequestToQueue = function (logKey, request, callback) {
                             rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
                         }
                     });
-                    var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", request.QueueId, "", request.SessionId);
+                    var pubQueueId = request.QueueId.replace(":", "-");
+                    var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
                     redisHandler.Publish(logKey, "events", pubMessage, function(){});
                     callback(err, "OK");
                 }
@@ -113,7 +115,8 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
             console.log(err);
         }else{
             if(result >0) {
-                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", queueId, reason, sessionId);
+                var pubQueueId = queueId.replace(":", "-");
+                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, reason, sessionId);
                 redisHandler.Publish(logKey, "events", pubMessage, function () {
                 });
 
@@ -124,7 +127,8 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                     if (err) {
                         console.log(err);
                     }else{
-                        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", queueId, reason, sessionId);
+                        var pubQueueId = queueId.replace(":", "-");
+                        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, reason, sessionId);
                         redisHandler.Publish(logKey, "events", pubMessage, function () {
                         });
 
