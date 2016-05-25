@@ -956,7 +956,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                 UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, function (err, result, vid) {
                     callback(err, result);
                 });
-                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
+                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
                 redisHandler.Publish(logKey, "events", pubMessage, function () {
                 });
             }

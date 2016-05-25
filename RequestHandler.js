@@ -34,7 +34,7 @@ var AddRequest = function (logKey, requestObj, callback) {
             console.log(err);
         }
         SetRequestState(requestObj.Company, requestObj.Tenant, requestObj.SessionId, "N/A", function (err, result) {
-            var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "ADDED", "", "", requestObj.SessionId);
+            var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", requestObj.Tenant, requestObj.Company, "ARDS", "REQUEST", "ADDED", "", "", requestObj.SessionId);
             redisHandler.Publish(logKey, "events", pubMessage, function(){});
         });
         callback(err, reply, vid);
@@ -107,6 +107,8 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
             }
 
             if (requestObj.ReqHandlingAlgo === "QUEUE") {
+                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "ANSWERED", requestObj.QueueId, "", requestObj.SessionId);
+                redisHandler.Publish(logKey, "events", pubMessage, function(){});
                 reqQueueHandler.RemoveRequestFromQueue(logKey, company, tenant, requestObj.QueueId, requestObj.SessionId, reason, function (err, result) {
                     if (err) {
                         console.log(err);
@@ -118,7 +120,7 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
                     callback(err, "false");
                 }
                 else {
-                    var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", company, tenant, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId);
+                    var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId);
                     redisHandler.Publish(logKey, "events", pubMessage, function(){});
                     var reqStateKey = util.format('RequestState:%s:%s:%s', company, tenant, sessionId);
                     redisHandler.RemoveObj(logKey, reqStateKey, function () { });
@@ -158,6 +160,8 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
                 }
             });
             if (reason == "NoSession" || reason == "ClientRejected") {
+                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "DROPPED", requestObj.QueueId, "", requestObj.SessionId);
+                redisHandler.Publish(logKey, "events", pubMessage, function(){});
                 RemoveRequest(logKey, company, tenant, sessionId, reason, function (err, result) {
                     callback(err, result);
                 });
