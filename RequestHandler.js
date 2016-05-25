@@ -107,8 +107,10 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
             }
 
             if (requestObj.ReqHandlingAlgo === "QUEUE") {
-                var pubQueueId = requestObj.QueueId.replace(/:/g, "-");
-                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "ANSWERED", pubQueueId, "", requestObj.SessionId);
+                if(reason == "NONE") {
+                    var pubQueueId = requestObj.QueueId.replace(/:/g, "-");
+                    var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "ANSWERED", pubQueueId, "", requestObj.SessionId);
+                }
                 redisHandler.Publish(logKey, "events", pubMessage, function(){});
                 reqQueueHandler.RemoveRequestFromQueue(logKey, company, tenant, requestObj.QueueId, requestObj.SessionId, reason, function (err, result) {
                     if (err) {
