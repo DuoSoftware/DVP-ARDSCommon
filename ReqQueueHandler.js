@@ -115,7 +115,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
             console.log(err);
         }else{
             if(result >0) {
-                var pubQueueId = request.QueueId.replace(/:/g, "-");
+                var pubQueueId = queueId.replace(/:/g, "-");
                 var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, reason, sessionId);
                 redisHandler.Publish(logKey, "events", pubMessage, function () {
                 });
@@ -127,7 +127,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                     if (err) {
                         console.log(err);
                     }else{
-                        var pubQueueId = request.QueueId.replace(/:/g, "-");
+                        var pubQueueId = queueId.replace(/:/g, "-");
                         var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, reason, sessionId);
                         redisHandler.Publish(logKey, "events", pubMessage, function () {
                         });
