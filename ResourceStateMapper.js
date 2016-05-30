@@ -12,6 +12,7 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
         }
         else {
             var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
+            resultObj.StateChangeTime = date.toISOString();
             var strObj = JSON.stringify(resultObj);
             redisHandler.SetObj(logKey, StateKey, strObj, function (err, result) {
                 if (err != null) {
