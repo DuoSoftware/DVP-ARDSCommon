@@ -769,6 +769,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                 }
                 if(ceTags){
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
+                        var date = new Date();
                         var tempObj = JSON.parse(obj);
                         var handledRequest = tempObj.HandlingRequest;
 
@@ -878,6 +879,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                 }
                 if(ceTags){
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
+                        var date = new Date();
                         var tempObj = JSON.parse(obj);
                         tempObj.State = "Connected";
                         tempObj.StateChangeTime = date.toISOString();

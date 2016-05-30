@@ -11,6 +11,7 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
             console.log(err);
         }
         else {
+            var date = new Date();
             var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
             resultObj.StateChangeTime = date.toISOString();
             var strObj = JSON.stringify(resultObj);
