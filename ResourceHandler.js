@@ -922,7 +922,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
 var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback){
     setTimeout(function(){
         UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {});
-    }, 10000);
+    }, 3000);
     var internalAccessToken = util.format('%s:%s', tenant,company);
     resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "Connected", sessionid, function(err, result, obj){
         if(err){
