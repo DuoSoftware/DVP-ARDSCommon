@@ -226,6 +226,7 @@ var AddResource = function (logKey, basicData, callback)  {
                                 var tempRefInfoObj = validateHandlingType.Contact;//JSON.parse(obj.RefInfo);
                                 if (tempRefInfoObj) {
                                     tempRefInfoObj.ResourceId = preProcessResData.ResourceId;
+                                    tempRefInfoObj.ResourceName = preProcessResData.ResourceName;
                                 }
                                 var tempRefInfoObjStr = JSON.stringify(tempRefInfoObj);
                                 var concurrencyObj = {
