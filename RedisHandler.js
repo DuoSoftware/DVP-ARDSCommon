@@ -857,7 +857,7 @@ var GetHashValue = function(logKey, hashkey, field, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%S GetHashValue - hashKey: %s :: field: %s', logKey, hashKey, field);
 
-    client.hexists(hashKey, field, function (err, result) {
+    client.hget(hashKey, field, function (err, result) {
         if (err) {
             infoLogger.DetailLogger.log('error', '%s GetHashValue Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
             console.log(err);

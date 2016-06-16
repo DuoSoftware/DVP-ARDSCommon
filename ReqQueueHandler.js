@@ -119,7 +119,12 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                 var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
                 redisHandler.Publish(logKey, "events", pubMessage, function () {
                 });
-
+                var hashKey = util.format('ProcessingHash:%s:%s', company, tenant);
+                redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
+                    if(eSession && eSession == sessionId){
+                        redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
+                    }
+                });
                 callback(err, result);
             }else{
                 var rejectedQueueId = GetRejectedQueueId(queueId);
@@ -131,7 +136,12 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                         var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
                         redisHandler.Publish(logKey, "events", pubMessage, function () {
                         });
-
+                        var hashKey = util.format('ProcessingHash:%s:%s', company, tenant);
+                        redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
+                            if(eSession && eSession == sessionId){
+                                redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
+                            }
+                        });
                         callback(err, result);
                     }
                 });
