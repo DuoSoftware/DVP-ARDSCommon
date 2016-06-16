@@ -141,7 +141,7 @@ var SendCallBack = function (logKey, serverurl, callbackOption, resultToSend, ca
                 callback(false, "error");
             }
             else {
-                if (res.statusCode == "503") {
+                if (res.statusCode == "503" || result == "-ERR") {
                     infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
                     console.log(result);
                     callback(true, "readdRequired");
