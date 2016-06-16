@@ -861,10 +861,10 @@ var GetHashValue = function(logKey, hashKey, field, callback) {
         if (err) {
             infoLogger.DetailLogger.log('error', '%s GetHashValue Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
             console.log(err);
-            callback(err, null);
+            callback(err, null, field);
         } else {
             infoLogger.DetailLogger.log('info', '%s GetHashValue - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
-            callback(null, result);
+            callback(null, result, field);
         }
     });
 };
