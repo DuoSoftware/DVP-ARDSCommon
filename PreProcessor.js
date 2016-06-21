@@ -41,9 +41,9 @@ var execute = function (logKey, data, callback) {
                     attributeInfo = AppendAttributeInfo(attributeInfo, metaObj.AttributeMeta, val);
                 }
                 var reqSkills = [];
-                for (var k=request.AttributeInfo.length-1; k>=0; k--) {
-                    for (var l=request.AttributeInfo[k].AttributeNames.length-1; l>=0; l--) {
-                        reqSkills.push(request.AttributeInfo[k].AttributeNames[l]);
+                for (var k=attributeInfo.length-1; k>=0; k--) {
+                    for (var l=attributeInfo[k].AttributeNames.length-1; l>=0; l--) {
+                        reqSkills.push(attributeInfo[k].AttributeNames[l]);
                     }
                 }
 
