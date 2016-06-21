@@ -885,6 +885,22 @@ var GetAllHashValue = function (logKey, hashkey, callback) {
     });
 };
 
+var AddItemToHashNX = function (logKey, hashKey, field, obj, callback) {
+    infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
+    infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s :: obj: %s', logKey, hashKey, field, obj);
+
+    client.hsetnx(hashKey, field, obj, function (err, result) {
+        if (err) {
+            infoLogger.DetailLogger.log('error', '%s AddItemToHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
+            console.log(err);
+            callback(err, null);
+        } else {
+            infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
+            callback(null, result);
+        }
+    });
+};
+
 
 var Publish = function(logKey, pattern, message, callback){
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
@@ -937,5 +953,6 @@ module.exports.CheckHashFieldExists = CheckHashFieldExists;
 module.exports.GetHashValue = GetHashValue;
 module.exports.GetAllHashValue = GetAllHashValue;
 module.exports.RemoveHash = RemoveHash;
+module.exports.AddItemToHashNX = AddItemToHashNX;
 
 module.exports.Publish = Publish;
