@@ -17,7 +17,7 @@ var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, call
     }
     var params = util.format('/DVP/API/%s/ResourceManager/Group/%d/Attribute/Details', config.Services.resourceServiceVersion, attributeGroupId);
     restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetAttributeGroupWithDetails Result:: ', res);
+        infoLogger.DetailLogger.log('info', 'GetAttributeGroupWithDetails Result:: ', obj);
         callback(err, res, obj);
     });
 };
@@ -29,7 +29,7 @@ var GetResourceDetails = function(accessToken, resourceId, callback){
     }
     var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s', config.Services.resourceServiceVersion, resourceId);
     restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetResourceDetails Result:: ', res);
+        infoLogger.DetailLogger.log('info', 'GetResourceDetails Result:: ', obj);
         callback(err, res, obj);
     });
 };
@@ -41,7 +41,7 @@ var GetResourceTaskDetails = function(accessToken, resourceId, callback){
     }
     var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s/Tasks', config.Services.resourceServiceVersion, resourceId);
     restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetResourceTaskDetails Result:: ', res);
+        infoLogger.DetailLogger.log('info', 'GetResourceTaskDetails Result:: ', obj);
         callback(err, res, obj);
     });
 };
@@ -53,7 +53,7 @@ var GetResourceAttributeDetails = function(accessToken, taskId, callback){
     }
     var params = util.format('/DVP/API/%s/ResourceManager/ResourceTask/%d/Attributes', config.Services.resourceServiceVersion, taskId);
     restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetResourceAttributeDetails Result:: ', res);
+        infoLogger.DetailLogger.log('info', 'GetResourceAttributeDetails Result:: ', obj);
         callback(err, res, obj);
     });
 };
@@ -86,7 +86,7 @@ var GetAttribute = function(accessToken, attId, callback){
     }
     var params = util.format('/DVP/API/%s/ResourceManager/Attribute/%s', config.Services.resourceServiceVersion, attId);
     restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetAttribute Result:: ', res);
+        infoLogger.DetailLogger.log('info', 'GetAttribute Result:: ', obj);
         callback(err, res, obj);
     });
 };
