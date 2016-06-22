@@ -267,12 +267,26 @@ var AddResource = function (logKey, basicData, callback)  {
                                 tag.push("attribute_" + sortedAttributes[k]);
                             }
                             var jsonObj = JSON.stringify(resourceObj);
-
-                            redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
-                                resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
-                                });
-                                infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
-                                callback(err, reply, vid);
+                            redisHandler.CheckObjExists(logKey,key, function(err, isExists){
+                                if (isExists == "0") {
+                                    redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
+                                        resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
+                                        });
+                                        infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
+                                        callback(err, reply, vid);
+                                    });
+                                }else{
+                                    var companyStr = parseInt(resourceObj.Company);
+                                    var tenantStr = parseInt(resourceObj.Company);
+                                    RemoveResource(logKey,companyStr,tenantStr,resourceObj.ResourceId,function(){
+                                        redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
+                                            resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
+                                            });
+                                            infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
+                                            callback(err, reply, vid);
+                                        });
+                                    });
+                                }
                             });
                         });
                     }
