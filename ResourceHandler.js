@@ -823,6 +823,60 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
     });
 };
 
+var UpdateSlotStateExceedRejectCount = function (logKey, company, tenant, handlingType, resourceid, slotid, reason, otherInfo, callback) {
+    infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateExceedRejectCount *************************', logKey);
+
+    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
+    redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
+        if (err) {
+            console.log(err);
+            callback(err, false);
+        }
+        else {
+            var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
+            redisHandler.GetObj(logKey,tagMetaKey,function(err, ceTags){
+                if(err){
+                    callback(err, null, null);
+                }
+                if(ceTags){
+                    commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
+                        var date = new Date();
+                        var tempObj = JSON.parse(obj);
+                        var handledRequest = tempObj.HandlingRequest;
+
+                        tempObj.State = "RejectCountExceeded";
+                        tempObj.StateChangeTime = date.toISOString();
+                        tempObj.HandlingRequest = "";
+                        tempObj.OtherInfo = "";
+                        var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
+                        var slotInfoTags = companyTags.concat(tags);
+                        var jsonObj = JSON.stringify(tempObj);
+                        redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
+                            infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateExceedRejectCount. Result: %s', logKey, reply);
+                            if (err != null) {
+                                console.log(err);
+                            }
+                            else {
+                                var internalAccessToken = util.format('%s:%s', tenant,company);
+                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, handledRequest, function(err, result, obj){
+                                    if(err){
+                                        console.log("AddResourceStatusChangeInfo Failed.", err);
+                                    }else{
+                                        console.log("AddResourceStatusChangeInfo Success.", obj);
+                                    }
+                                });
+                            }
+                            callback(err, reply);
+                        });
+                    });
+                }else{
+                    callback(new Error("Update Redis tags failed"), null, null);
+                }
+            });
+        }
+    });
+};
+
 var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, otherInfo, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateReserved *************************', logKey);
 
@@ -1079,6 +1133,7 @@ module.exports.SearchResourcebyTags = SearchResourcebyTags;
 
 module.exports.UpdateLastConnectedTime = UpdateLastConnectedTime;
 module.exports.UpdateSlotStateAvailable = UpdateSlotStateAvailable;
+module.exports.UpdateSlotStateExceedRejectCount = UpdateSlotStateExceedRejectCount;
 module.exports.UpdateSlotStateReserved = UpdateSlotStateReserved;
 module.exports.UpdateSlotStateConnected = UpdateSlotStateConnected;
 module.exports.UpdateSlotStateBySessionId = UpdateSlotStateBySessionId;
