@@ -8,7 +8,7 @@ var config = require('config');
 var validator = require('validator');
 var util = require('util');
 var redisHandler = require('../RedisHandler.js');
-var infoLogger = require('./InformationLogger.js');
+var infoLogger = require('../InformationLogger.js');
 
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
     var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
