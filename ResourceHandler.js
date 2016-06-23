@@ -276,9 +276,7 @@ var AddResource = function (logKey, basicData, callback)  {
                                         callback(err, reply, vid);
                                     });
                                 }else{
-                                    var companyStr = parseInt(resourceObj.Company);
-                                    var tenantStr = parseInt(resourceObj.Tenant);
-                                    RemoveResource(logKey,companyStr,tenantStr,resourceObj.ResourceId,function(){
+                                    resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"NotAvailable","UnRegister",function(err,result){
                                         redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
                                             resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
                                             });
