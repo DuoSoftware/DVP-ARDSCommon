@@ -845,7 +845,6 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                         tempObj.StateChangeTime = date.toISOString();
                         tempObj.HandlingRequest = sessionid;
                         tempObj.LastReservedTime = date.toISOString();
-                        tempObj.LastReservedMetaId =
                         tempObj.OtherInfo = otherInfo;
                         tempObj.MaxReservedTime = maxReservedTime;
                         tempObj.MaxAfterWorkTime = maxAfterWorkTime;
