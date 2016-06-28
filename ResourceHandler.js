@@ -206,6 +206,7 @@ var AddResource = function (logKey, basicData, callback)  {
                                         HandlingRequest: "",
                                         LastReservedTime: "",
                                         MaxReservedTime: 10,
+                                        MaxAfterWorkTime: 0,
                                         ResourceId: preProcessResData.ResourceId,
                                         SlotId: i,
                                         ObjKey: slotInfokey,
@@ -955,9 +956,10 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
         });
     });
     console.log("AfterWorkStart: "+ Date.now());
-    redisHandler.GetObj(logKey, slotInfokey, function(err, slotObj){
+    redisHandler.GetObj(logKey, slotInfokey, function(err, slotObjStr){
         console.log("GetObjSuccess: "+slotInfokey);
-        if(slotObj && slotObj.MaxAfterWorkTime>0){
+        if(slotObjStr){
+            var slotObj = JSON.parse(slotObjStr);
             console.log("MaxAfterWorkTime: "+ slotObj.MaxAfterWorkTime);
             var timeOut = slotObj.MaxAfterWorkTime * 1000;
             setTimeout(function(){
