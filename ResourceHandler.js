@@ -955,9 +955,11 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
             }
         });
     });
+    console.log("AfterWorkStart: "+ Date.now());
     redisHandler.GetObj(logKey, slotInfokey, function(err, slotObj){
         if(slotObj && slotObj.MaxAfterWorkTime>0){
             setTimeout(function(){
+                console.log("AfterWorkEnd: "+ Date.now());
                 UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {});
             }, slotObj.MaxAfterWorkTime * 1000);
         }
