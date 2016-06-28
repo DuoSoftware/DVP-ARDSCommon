@@ -791,6 +791,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                         tempObj.State = "Available";
                         tempObj.StateChangeTime = date.toISOString();
                         tempObj.HandlingRequest = "";
+                        tempObj.MaxAfterWorkTime = 0;
                         tempObj.OtherInfo = "";
                         var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
                         var slotInfoTags = companyTags.concat(tags);
@@ -821,7 +822,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
     });
 };
 
-var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, otherInfo, callback) {
+var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, maxAfterWorkTime, otherInfo, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateReserved *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -844,8 +845,10 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                         tempObj.StateChangeTime = date.toISOString();
                         tempObj.HandlingRequest = sessionid;
                         tempObj.LastReservedTime = date.toISOString();
+                        tempObj.LastReservedMetaId =
                         tempObj.OtherInfo = otherInfo;
                         tempObj.MaxReservedTime = maxReservedTime;
+                        tempObj.MaxAfterWorkTime = maxAfterWorkTime;
                         var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
                         var slotInfoTags = companyTags.concat(tags);
                         var jsonObj = JSON.stringify(tempObj);
@@ -935,9 +938,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
 };
 
 var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback){
-    setTimeout(function(){
-        UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {});
-    }, 3000);
+    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
     var internalAccessToken = util.format('%s:%s', tenant,company);
     resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "Connected", sessionid, function(err, result, obj){
         if(err){
@@ -953,6 +954,13 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
                 console.log("AddResourceStatusChangeInfo Success.", obj);
             }
         });
+    });
+    redisHandler.GetObj(logKey, slotInfokey, function(err, slotObj){
+        if(slotObj && slotObj.MaxAfterWorkTime>0){
+            setTimeout(function(){
+                UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {});
+            }, slotObj.MaxAfterWorkTime * 1000);
+        }
     });
     callback(null, "OK");
 };
