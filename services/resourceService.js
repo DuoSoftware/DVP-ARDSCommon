@@ -11,51 +11,83 @@ var redisHandler = require('../RedisHandler.js');
 var infoLogger = require('../InformationLogger.js');
 
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
-    var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
-    if(validator.isIP(config.Services.resourceServiceHost)) {
-        rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+    try {
+        var rUrl = util.format('http://%s', config.Services.resourceServiceHost);
+        if (validator.isIP(config.Services.resourceServiceHost)) {
+            rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+        }
+        var params = util.format('/DVP/API/%s/ResourceManager/Group/%d/Attribute/Details', config.Services.resourceServiceVersion, attributeGroupId);
+        restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
+            infoLogger.DetailLogger.log('info', 'GetAttributeGroupWithDetails Result:: ', obj);
+            if (res.statusCode == 200) {
+                callback(err, res, obj);
+            } else {
+                callback(new error(obj), res, obj);
+            }
+        });
+    }catch (ex2) {
+        callback(new error(ex2), null, null);
     }
-    var params = util.format('/DVP/API/%s/ResourceManager/Group/%d/Attribute/Details', config.Services.resourceServiceVersion, attributeGroupId);
-    restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetAttributeGroupWithDetails Result:: ', obj);
-        callback(err, res, obj);
-    });
 };
 
 var GetResourceDetails = function(accessToken, resourceId, callback){
-    var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
-    if(validator.isIP(config.Services.resourceServiceHost)) {
-        rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+    try {
+        var rUrl = util.format('http://%s', config.Services.resourceServiceHost);
+        if (validator.isIP(config.Services.resourceServiceHost)) {
+            rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+        }
+        var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s', config.Services.resourceServiceVersion, resourceId);
+        restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
+            infoLogger.DetailLogger.log('info', 'GetResourceDetails Result:: ', obj);
+            if (res.statusCode == 200) {
+                callback(err, res, obj);
+            } else {
+                callback(new error(obj), res, obj);
+            }
+        });
+    }catch (ex2) {
+        callback(new error(ex2), null, null);
     }
-    var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s', config.Services.resourceServiceVersion, resourceId);
-    restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetResourceDetails Result:: ', obj);
-        callback(err, res, obj);
-    });
 };
 
 var GetResourceTaskDetails = function(accessToken, resourceId, callback){
-    var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
-    if(validator.isIP(config.Services.resourceServiceHost)) {
-        rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+    try {
+        var rUrl = util.format('http://%s', config.Services.resourceServiceHost);
+        if (validator.isIP(config.Services.resourceServiceHost)) {
+            rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+        }
+        var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s/Tasks', config.Services.resourceServiceVersion, resourceId);
+        restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
+            infoLogger.DetailLogger.log('info', 'GetResourceTaskDetails Result:: ', obj);
+            if (res.statusCode == 200) {
+                callback(err, res, obj);
+            } else {
+                callback(new error(obj), res, obj);
+            }
+        });
+    }catch (ex2) {
+        callback(new error(ex2), null, null);
     }
-    var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s/Tasks', config.Services.resourceServiceVersion, resourceId);
-    restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetResourceTaskDetails Result:: ', obj);
-        callback(err, res, obj);
-    });
 };
 
-var GetResourceAttributeDetails = function(accessToken, taskId, callback){
-    var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
-    if(validator.isIP(config.Services.resourceServiceHost)) {
-        rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+var GetResourceAttributeDetails = function(accessToken, taskInfo, callback){
+    try {
+        var rUrl = util.format('http://%s', config.Services.resourceServiceHost);
+        if (validator.isIP(config.Services.resourceServiceHost)) {
+            rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+        }
+        var params = util.format('/DVP/API/%s/ResourceManager/ResourceTask/%d/Attributes', config.Services.resourceServiceVersion, taskInfo.ResTaskId);
+        restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
+            infoLogger.DetailLogger.log('info', 'GetResourceAttributeDetails Result:: ', obj);
+            if (res.statusCode == 200) {
+                callback(err, res, obj, taskInfo);
+            } else {
+                callback(new error(obj), res, obj, taskInfo);
+            }
+        });
+    }catch (ex2) {
+        callback(new error(ex2), null, null);
     }
-    var params = util.format('/DVP/API/%s/ResourceManager/ResourceTask/%d/Attributes', config.Services.resourceServiceVersion, taskId);
-    restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetResourceAttributeDetails Result:: ', obj);
-        callback(err, res, obj);
-    });
 };
 
 var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, status, reason, otherData, callback){
@@ -80,15 +112,19 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
 };
 
 var GetAttribute = function(accessToken, attId, callback){
-    var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
-    if(validator.isIP(config.Services.resourceServiceHost)) {
-        rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+    try {
+        var rUrl = util.format('http://%s', config.Services.resourceServiceHost);
+        if (validator.isIP(config.Services.resourceServiceHost)) {
+            rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+        }
+        var params = util.format('/DVP/API/%s/ResourceManager/Attribute/%s', config.Services.resourceServiceVersion, attId);
+        restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
+            infoLogger.DetailLogger.log('info', 'GetAttribute Result:: ', obj);
+            callback(err, res, obj);
+        });
+    }catch (ex2) {
+        callback(new error(ex2), null, null);
     }
-    var params = util.format('/DVP/API/%s/ResourceManager/Attribute/%s', config.Services.resourceServiceVersion, attId);
-    restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-        infoLogger.DetailLogger.log('info', 'GetAttribute Result:: ', obj);
-        callback(err, res, obj);
-    });
 };
 module.exports.GetAttributeGroupWithDetails = GetAttributeGroupWithDetails;
 module.exports.GetResourceDetails = GetResourceDetails;
