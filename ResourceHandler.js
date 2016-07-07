@@ -1050,7 +1050,8 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
 };
 
 var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback){
-    UpdateSlotStateAfterWork(logKey, company, tenant, handlingType, resourceid, slotid, "", "", function(){
+    UpdateSlotStateAfterWork(logKey, company, tenant, handlingType, resourceid, slotid, "", "", function(err, reply){
+        console.log(reply);
         var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
         console.log("AfterWorkStart: "+ Date.now());
         redisHandler.GetObj(logKey, slotInfokey, function(err, slotObjStr){
