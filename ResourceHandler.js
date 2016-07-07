@@ -183,7 +183,7 @@ var AddResource = function (logKey, basicData, callback)  {
         }
         else {
             if(strObj.length > 0) {
-                EditResource(logKey, accessToken, basicData, strObj[0], function(err, reply, vid){
+                EditResource(logKey, "addResource", accessToken, basicData, strObj[0], function(err, reply, vid){
                     callback(err, reply, vid);
                 });
             }else{
@@ -324,7 +324,7 @@ var AddResource = function (logKey, basicData, callback)  {
     });
 };
 
-var EditResource = function(logKey, accessToken, basicData, resourceData, callback){
+var EditResource = function(logKey, editType, accessToken, basicData, resourceData, callback){
     var preResourceData = resourceData.Obj;
     var cVid = resourceData.Vid;
     var concurrencyInfo = deepcopy(preResourceData.ConcurrencyInfo);
@@ -367,7 +367,7 @@ var EditResource = function(logKey, accessToken, basicData, resourceData, callba
                         var cObjTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
 
                         var jsonConObj = JSON.stringify(concurrencyObj);
-                        if (isExists == 0) {
+                        if (isExists == 0 || editType == "addResource") {
                             concurrencyInfo.push(cObjkey);
                             redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
                                 if (err) {
@@ -409,7 +409,7 @@ var EditResource = function(logKey, accessToken, basicData, resourceData, callba
                             var slotInfoTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + preProcessResData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
 
                             var jsonSlotObj = JSON.stringify(slotInfo);
-                            if (isExists == 0) {
+                            if (isExists == 0 || editType == "addResource") {
                                 concurrencyInfo.push(slotInfokey);
                                 redisHandler.AddObj_V_T(logKey, slotInfokey, jsonSlotObj, slotInfoTags, function (err, reply, vid) {
                                     if (err) {
@@ -493,7 +493,7 @@ var ShareResource = function(logKey, basicData, callback){
         }
         else {
             if(strObj.length > 0) {
-                EditResource(logKey, accessToken, basicData, strObj[0], function(err, reply, vid){
+                EditResource(logKey, "shareResource", accessToken, basicData, strObj[0], function(err, reply, vid){
                     callback(err, reply, vid);
                 });
             }else{
