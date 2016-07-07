@@ -1052,22 +1052,22 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
 var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback){
     UpdateSlotStateAfterWork(logKey, company, tenant, handlingType, resourceid, slotid, "", "", function(err, reply){
         console.log(reply);
-        var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-        console.log("AfterWorkStart: "+ Date.now());
-        redisHandler.GetObj(logKey, slotInfokey, function(err, slotObjStr){
-            console.log("GetObjSuccess: "+slotInfokey);
-            if(slotObjStr){
-                var slotObj = JSON.parse(slotObjStr);
-                console.log("MaxAfterWorkTime: "+ slotObj.MaxAfterWorkTime);
-                var timeOut = slotObj.MaxAfterWorkTime * 1000;
-                setTimeout(function(){
-                    console.log("AfterWorkEnd: "+ Date.now());
-                    UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {});
-                }, timeOut);
-            }
-        });
-        callback(null, "OK");
     });
+    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
+    console.log("AfterWorkStart: "+ Date.now());
+    redisHandler.GetObj(logKey, slotInfokey, function(err, slotObjStr){
+        console.log("GetObjSuccess: "+slotInfokey);
+        if(slotObjStr){
+            var slotObj = JSON.parse(slotObjStr);
+            console.log("MaxAfterWorkTime: "+ slotObj.MaxAfterWorkTime);
+            var timeOut = slotObj.MaxAfterWorkTime * 1000;
+            setTimeout(function(){
+                console.log("AfterWorkEnd: "+ Date.now());
+                UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {});
+            }, timeOut);
+        }
+    });
+    callback(null, "OK");
 };
 
 var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, reason, otherInfo, callback) {
