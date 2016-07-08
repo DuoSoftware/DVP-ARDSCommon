@@ -200,10 +200,8 @@ var RemoveResourceState = function (logKey, company, tenant, resourceid, callbac
     });
 };
 
-var AddResource = function (logKey, basicData, callback)  {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start AddResource *************************', logKey);
+var SetResourceLogin = function(logKey, basicData, callback){
     var accessToken = util.format('%d:%d', basicData.Tenant,basicData.Company);
-
     var preResourceData = {};
     resourceService.GetResourceDetails(accessToken,basicData.ResourceId,function(resErr, resRes, resObj){
         if(resErr){
@@ -308,25 +306,11 @@ var AddResource = function (logKey, basicData, callback)  {
                                 tag.push("attribute_" + sortedAttributes[k]);
                             }
                             var jsonObj = JSON.stringify(resourceObj);
-                            redisHandler.CheckObjExists(logKey,key, function(err, isExists){
-                                if (isExists == "0") {
-                                    redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
-                                        resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
-                                        });
-                                        infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
-                                        callback(err, reply, vid);
-                                    });
-                                }else{
-                                    RemoveResource(logKey, resourceObj.Company.toString(), resourceObj.Tenant.toString(), resourceObj.ResourceId, function(err, result){
-                                        //resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"NotAvailable","UnRegister",function(err,result){
-                                        redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
-                                            resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
-                                            });
-                                            infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
-                                            callback(err, reply, vid);
-                                        });
-                                    });
-                                }
+                            redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
+                                resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
+                                });
+                                infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
+                                callback(err, reply, vid);
                             });
                         });
                     }
@@ -334,6 +318,24 @@ var AddResource = function (logKey, basicData, callback)  {
             }else{
                 callback(resObj.Exception, resObj.CustomMessage, preResourceData);
             }
+        }
+    });
+};
+
+var AddResource = function (logKey, basicData, callback)  {
+    infoLogger.DetailLogger.log('info', '%s ************************* Start AddResource *************************', logKey);
+    var resourceKey = util.format('Resource:%d:%d:%s', basicData.Company, basicData.Tenant, basicData.ResourceId);
+    redisHandler.CheckObjExists(logKey,resourceKey, function(err, isExists){
+        if (isExists == "1") {
+            RemoveResource(logKey, basicData.Company.toString(), basicData.Tenant.toString(), basicData.ResourceId, function(err, result){
+                SetResourceLogin(logKey, basicData, function(err, reply, vid){
+                    callback(err, reply, vid);
+                });
+            });
+        }else{
+            SetResourceLogin(logKey, basicData, function(err, reply, vid){
+                callback(err, reply, vid);
+            });
         }
     });
 };
