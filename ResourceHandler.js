@@ -175,150 +175,135 @@ var RemoveResourceState = function (logKey, company, tenant, resourceid, callbac
 var AddResource = function (logKey, basicData, callback)  {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddResource *************************', logKey);
     var accessToken = util.format('%d:%d', basicData.Tenant,basicData.Company);
-    var searchTag = ["resourceid_" + basicData.ResourceId, "objtype_Resource"];
-    redisHandler.SearchObj_V_T(logKey, searchTag, function (err, strObj) {
-        if (err) {
-            console.log(err);
-            callback(err, null, null);
-        }
-        else {
-            if(strObj.length > 0) {
-                EditResource(logKey, "addResource", accessToken, basicData, strObj[0], function(err, reply, vid){
-                    callback(err, reply, vid);
-                });
-            }else{
-                var preResourceData = {};
-                resourceService.GetResourceDetails(accessToken,basicData.ResourceId,function(resErr, resRes, resObj){
-                    if(resErr){
-                        callback(resErr, resRes, preResourceData);
+
+    var preResourceData = {};
+    resourceService.GetResourceDetails(accessToken,basicData.ResourceId,function(resErr, resRes, resObj){
+        if(resErr){
+            callback(resErr, resRes, preResourceData);
+        }else{
+            if(resObj.IsSuccess) {
+                preResourceData = {
+                    Company: resObj.Result.CompanyId,
+                    Tenant: resObj.Result.TenantId,
+                    Class: resObj.Result.ResClass,
+                    Type: resObj.Result.ResType,
+                    Category: resObj.Result.ResCategory,
+                    ResourceId: resObj.Result.ResourceId.toString(),
+                    ResourceName: resObj.Result.ResourceName,
+                    OtherInfo: resObj.Result.OtherData,
+                    ConcurrencyInfo: [],
+                    ResourceAttributeInfo: []
+                };
+
+                PreProcessResourceData(logKey,accessToken,preResourceData,function(err, msg, preProcessResData){
+                    if(err){
+                        callback(err, msg, null);
                     }else{
-                        if(resObj.IsSuccess) {
-                            preResourceData = {
-                                Company: resObj.Result.CompanyId,
-                                Tenant: resObj.Result.TenantId,
-                                Class: resObj.Result.ResClass,
-                                Type: resObj.Result.ResType,
-                                Category: resObj.Result.ResCategory,
-                                ResourceId: resObj.Result.ResourceId.toString(),
-                                ResourceName: resObj.Result.ResourceName,
-                                OtherInfo: resObj.Result.OtherData,
-                                ConcurrencyInfo: [],
-                                ResourceAttributeInfo: []
-                            };
+                        var concurrencyInfo = [];
+                        var sci = SetConcurrencyInfo(preProcessResData.ConcurrencyInfo);
 
-                            PreProcessResourceData(logKey,accessToken,preResourceData, basicData.HandlingTypes,function(err, msg, preProcessResData){
-                                if(err){
-                                    callback(err, msg, null);
-                                }else{
-                                    var concurrencyInfo = [];
-                                    var sci = SetConcurrencyInfo(preProcessResData.ConcurrencyInfo);
+                        sci.on('concurrencyInfo', function (obj) {
+                            //Validate login request with handling type
+                            var validateHandlingType = commonMethods.FilterByID(basicData.HandlingTypes,"Type", obj.HandlingType);
+                            //if(basicData.HandlingTypes.indexOf(obj.HandlingType) > -1 ) {
+                            if(validateHandlingType) {
+                                //var concurrencySlotInfo = [];
+                                for (var i = 0; i < obj.NoOfSlots; i++) {
+                                    var slotInfokey = util.format('CSlotInfo:%d:%d:%s:%s:%d', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType, i);
+                                    var slotInfo = {
+                                        Company: preProcessResData.Company,
+                                        Tenant: preProcessResData.Tenant,
+                                        HandlingType: obj.HandlingType,
+                                        State: "Available",
+                                        HandlingRequest: "",
+                                        LastReservedTime: "",
+                                        MaxReservedTime: 10,
+                                        MaxAfterWorkTime: 0,
+                                        ResourceId: preProcessResData.ResourceId,
+                                        SlotId: i,
+                                        ObjKey: slotInfokey,
+                                        OtherInfo: ""
+                                    };
+                                    var slotInfoTags = ["company_" + slotInfo.Company, "tenant_" + slotInfo.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + preProcessResData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
+                                    concurrencyInfo.push(slotInfokey);
 
-                                    sci.on('concurrencyInfo', function (obj) {
-                                        //Validate login request with handling type
-                                        var validateHandlingType = commonMethods.FilterByID(basicData.HandlingTypes,"Type", obj.HandlingType);
-                                        //if(basicData.HandlingTypes.indexOf(obj.HandlingType) > -1 ) {
-                                        if(validateHandlingType) {
-                                            //var concurrencySlotInfo = [];
-                                            for (var i = 0; i < obj.NoOfSlots; i++) {
-                                                var slotInfokey = util.format('CSlotInfo:%d:%d:%s:%s:%d', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType, i);
-                                                var slotInfo = {
-                                                    Company: preProcessResData.Company,
-                                                    Tenant: preProcessResData.Tenant,
-                                                    HandlingType: obj.HandlingType,
-                                                    State: "Available",
-                                                    HandlingRequest: "",
-                                                    LastReservedTime: "",
-                                                    MaxReservedTime: 10,
-                                                    MaxAfterWorkTime: 0,
-                                                    ResourceId: preProcessResData.ResourceId,
-                                                    SlotId: i,
-                                                    ObjKey: slotInfokey,
-                                                    OtherInfo: ""
-                                                };
-                                                var slotInfoTags = ["company_" + slotInfo.Company, "tenant_" + slotInfo.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + preProcessResData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
-                                                concurrencyInfo.push(slotInfokey);
-
-                                                var jsonSlotObj = JSON.stringify(slotInfo);
-                                                redisHandler.AddObj_V_T(logKey, slotInfokey, jsonSlotObj, slotInfoTags, function (err, reply, vid) {
-                                                    if (err) {
-                                                        console.log(err);
-                                                    }
-                                                });
-                                            }
-                                            var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType);
-
-                                            var tempRefInfoObj = validateHandlingType.Contact;//JSON.parse(obj.RefInfo);
-                                            if (tempRefInfoObj) {
-                                                tempRefInfoObj.ResourceId = preProcessResData.ResourceId;
-                                                tempRefInfoObj.ResourceName = preProcessResData.ResourceName;
-                                            }
-                                            var tempRefInfoObjStr = JSON.stringify(tempRefInfoObj);
-                                            var concurrencyObj = {
-                                                Company: preProcessResData.Company,
-                                                Tenant: preProcessResData.Tenant,
-                                                HandlingType: obj.HandlingType,
-                                                LastConnectedTime: "",
-                                                LastRejectedSession: "",
-                                                RejectCount: 0,
-                                                ResourceId: preProcessResData.ResourceId,
-                                                ObjKey: cObjkey,
-                                                RefInfo: tempRefInfoObjStr
-                                            };
-                                            var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
-                                            concurrencyInfo.push(cObjkey);
-
-                                            var jsonConObj = JSON.stringify(concurrencyObj);
-                                            redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
-                                                if (err) {
-                                                    console.log(err);
-                                                }
-                                            });
+                                    var jsonSlotObj = JSON.stringify(slotInfo);
+                                    redisHandler.AddObj_V_T(logKey, slotInfokey, jsonSlotObj, slotInfoTags, function (err, reply, vid) {
+                                        if (err) {
+                                            console.log(err);
                                         }
                                     });
+                                }
+                                var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType);
 
-                                    sci.on('endconcurrencyInfo', function () {
+                                var tempRefInfoObj = validateHandlingType.Contact;//JSON.parse(obj.RefInfo);
+                                if (tempRefInfoObj) {
+                                    tempRefInfoObj.ResourceId = preProcessResData.ResourceId;
+                                    tempRefInfoObj.ResourceName = preProcessResData.ResourceName;
+                                }
+                                var tempRefInfoObjStr = JSON.stringify(tempRefInfoObj);
+                                var concurrencyObj = {
+                                    Company: preProcessResData.Company,
+                                    Tenant: preProcessResData.Tenant,
+                                    HandlingType: obj.HandlingType,
+                                    LastConnectedTime: "",
+                                    LastRejectedSession: "",
+                                    RejectCount: 0,
+                                    ResourceId: preProcessResData.ResourceId,
+                                    ObjKey: cObjkey,
+                                    RefInfo: tempRefInfoObjStr
+                                };
+                                var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
+                                concurrencyInfo.push(cObjkey);
 
-                                        var resourceObj = { Company: preProcessResData.Company, Tenant: preProcessResData.Tenant, Class: preProcessResData.Class, Type: preProcessResData.Type, Category: preProcessResData.Category, ResourceId: preProcessResData.ResourceId, ResourceName: preProcessResData.ResourceName, ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo, ConcurrencyInfo: concurrencyInfo, OtherInfo: preProcessResData.OtherInfo };
-                                        var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
+                                var jsonConObj = JSON.stringify(concurrencyObj);
+                                redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
+                                    if (err) {
+                                        console.log(err);
+                                    }
+                                });
+                            }
+                        });
 
-                                        var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "resourceid_" + resourceObj.ResourceId, "objtype_Resource"];
+                        sci.on('endconcurrencyInfo', function () {
+                            var resourceObj = { Company: preProcessResData.Company, Tenant: preProcessResData.Tenant, Class: preProcessResData.Class, Type: preProcessResData.Type, Category: preProcessResData.Category, ResourceId: preProcessResData.ResourceId, ResourceName: preProcessResData.ResourceName, ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo, ConcurrencyInfo: concurrencyInfo, OtherInfo: preProcessResData.OtherInfo };
 
-                                        var tempAttributeList = [];
-                                        for (var i in resourceObj.ResourceAttributeInfo) {
-                                            tempAttributeList.push(resourceObj.ResourceAttributeInfo[i].Attribute);
-                                        }
-                                        var sortedAttributes = sortArray.sortData(tempAttributeList);
-                                        for (var k in sortedAttributes) {
-                                            tag.push("attribute_" + sortedAttributes[k]);
-                                        }
-                                        var jsonObj = JSON.stringify(resourceObj);
-                                        //redisHandler.CheckObjExists(logKey,key, function(err, isExists){
-                                        //if (isExists == "0") {
+                            var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
+                            var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "resourceid_" + resourceObj.ResourceId, "objtype_Resource"];
+
+                            var tempAttributeList = [];
+                            for (var i in resourceObj.ResourceAttributeInfo) {
+                                tempAttributeList.push(resourceObj.ResourceAttributeInfo[i].Attribute);
+                            }
+                            var sortedAttributes = sortArray.sortData(tempAttributeList);
+                            for (var k in sortedAttributes) {
+                                tag.push("attribute_" + sortedAttributes[k]);
+                            }
+                            var jsonObj = JSON.stringify(resourceObj);
+                            redisHandler.CheckObjExists(logKey,key, function(err, isExists){
+                                if (isExists == "0") {
+                                    redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
+                                        resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
+                                        });
+                                        infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
+                                        callback(err, reply, vid);
+                                    });
+                                }else{
+                                    resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"NotAvailable","UnRegister",function(err,result){
                                         redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
                                             resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
                                             });
                                             infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
                                             callback(err, reply, vid);
                                         });
-                                        //}else{
-                                        //resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"NotAvailable","UnRegister",function(err,result){
-                                        //redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
-                                        //resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
-                                        //});
-                                        //infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
-                                        //callback(err, reply, vid);
-                                        //});
-                                        //});
-                                        //}
-                                        //});
                                     });
                                 }
                             });
-                        }else{
-                            callback(resObj.Exception, resObj.CustomMessage, preResourceData);
-                        }
+                        });
                     }
                 });
+            }else{
+                callback(resObj.Exception, resObj.CustomMessage, preResourceData);
             }
         }
     });
@@ -471,6 +456,9 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
 
                             redisHandler.SetObj_V_T(logKey, key, jsonObj, tag, cVid.toString(), function (err, reply, vid) {
                                 infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
+                                if (editType == "addResource") {
+                                    var statusObj = {State: state, Reason: reason};
+                                }
                                 callback(err, reply, vid);
                             });
                         });
@@ -887,7 +875,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
             var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
             redisHandler.GetObj(logKey,tagMetaKey,function(err, ceTags){
                 if(err){
-                    callback(err, null, null);
+                    callback(err, null);
                 }
                 if(ceTags){
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
@@ -928,7 +916,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                         });
                     });
                 }else{
-                    callback(new Error("Update Redis tags failed"), null, null);
+                    callback(new Error("Update Redis tags failed"), null);
                 }
             });
         }

@@ -6,13 +6,13 @@ var resourceService = require('./services/resourceService');
 var SetResourceState = function (logKey, company, tenant, resourceId, state, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetResourceState *************************', logKey);
 
-    processState(state, reason, function (err, resultObj) {
+    var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
+    processState(logKey, StateKey, state, reason, function (err, resultObj) {
         if (err != null) {
             console.log(err);
         }
         else {
             var date = new Date();
-            var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
             resultObj.StateChangeTime = date.toISOString();
             var strObj = JSON.stringify(resultObj);
             redisHandler.SetObj(logKey, StateKey, strObj, function (err, result) {
@@ -35,9 +35,22 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
     });
 };
 
-var processState = function (state, reason, callback) {
+var processState = function (logKey, stateKey, state, reason, callback) {
     var statusObj = {State: state, Reason: reason};
-    callback(null, statusObj);
+    if(state === "NotAvailable" && reason === "UnRegister") {
+        redisHandler.GetObj(logKey, stateKey, function (err, statusObjR) {
+            if (statusObjR && statusObjR.State === "NotAvailable") {
+                resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "EndBreak", "", function (err, result, obj) {
+                    callback(null, statusObj);
+                });
+            }else{
+                callback(null, statusObj);
+            }
+        });
+    }else{
+        callback(null, statusObj);
+    }
+
 };
 
 module.exports.SetResourceState = SetResourceState;
