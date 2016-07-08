@@ -140,28 +140,56 @@ var SetConcurrencyInfo = function (data) {
 };
 
 var RemoveConcurrencyInfo = function (logKey, data, callback) {
-    for (var i in data) {
-        redisHandler.GetObj(logKey, data[i], function (err, tempObj) {
-            var tagMetaKey = util.format('tagMeta:%s', data[i]);
-            redisHandler.GetObj(logKey,tagMetaKey,function(err, reTags){
-                if(reTags){
-                    commonMethods.ConvertTagStrToArray(reTags, function(slotInfoTags){
-                        var obj = JSON.parse(tempObj);
-                        //if (obj.ObjKey.search(/^(ConcurrencyInfo)[^\s]*/) != -1) {
-                        //    slotInfoTags = ["company_" + obj.Company, "tenant_" + obj.Tenant, "category_" + obj.Category, "resourceid_" + obj.ResourceId, "objtype_ConcurrencyInfo"];
-                        //}
-                        //else {
-                        //    slotInfoTags = ["company_" + obj.Company, "tenant_" + obj.Tenant, "category_" + obj.Category, "state_" + obj.State, "resourceid_" + obj.ResourceId, "objtype_CSlotInfo", "slotid_" + obj.SlotId];
-                        //}
-                        redisHandler.RemoveObj_V_T(logKey, obj.ObjKey, slotInfoTags, function (err, result) {
-                            if (err) {
-                                console.log(err);
+    if(data && data.length > 0) {
+        var count = 0;
+        for (var i in data) {
+            redisHandler.GetObj(logKey, data[i], function (err, tempObj) {
+                if(err){
+                    count++;
+                    if(count === data.length){
+                        callback();
+                    }
+                }else {
+                    var tagMetaKey = util.format('tagMeta:%s', data[i]);
+                    redisHandler.GetObj(logKey, tagMetaKey, function (err, reTags) {
+                        if(err){
+                            count++;
+                            if(count === data.length){
+                                callback();
                             }
-                        });
+                        }else {
+                            if (reTags) {
+                                commonMethods.ConvertTagStrToArray(reTags, function (slotInfoTags) {
+                                    var obj = JSON.parse(tempObj);
+                                    //if (obj.ObjKey.search(/^(ConcurrencyInfo)[^\s]*/) != -1) {
+                                    //    slotInfoTags = ["company_" + obj.Company, "tenant_" + obj.Tenant, "category_" + obj.Category, "resourceid_" + obj.ResourceId, "objtype_ConcurrencyInfo"];
+                                    //}
+                                    //else {
+                                    //    slotInfoTags = ["company_" + obj.Company, "tenant_" + obj.Tenant, "category_" + obj.Category, "state_" + obj.State, "resourceid_" + obj.ResourceId, "objtype_CSlotInfo", "slotid_" + obj.SlotId];
+                                    //}
+                                    redisHandler.RemoveObj_V_T(logKey, obj.ObjKey, slotInfoTags, function (err, result) {
+                                        count++;
+                                        if (err) {
+                                            console.log(err);
+                                        }
+                                        if(count === data.length){
+                                            callback();
+                                        }
+                                    });
+                                });
+                            }else{
+                                count++;
+                                if(count === data.length){
+                                    callback();
+                                }
+                            }
+                        }
                     });
                 }
             });
-        });
+        }
+    }else{
+        callback();
     }
 };
 
@@ -289,7 +317,8 @@ var AddResource = function (logKey, basicData, callback)  {
                                         callback(err, reply, vid);
                                     });
                                 }else{
-                                    resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"NotAvailable","UnRegister",function(err,result){
+                                    RemoveResource(logKey, resourceObj.Company.toString(), resourceObj.Tenant.toString(), resourceObj.ResourceId, function(err, result){
+                                        //resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"NotAvailable","UnRegister",function(err,result){
                                         redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
                                             resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
                                             });
@@ -503,40 +532,41 @@ var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
 
             var resourceObj = JSON.parse(obj);
             RemoveConcurrencyInfo(logKey, resourceObj.ConcurrencyInfo, function () {
-            });
-            RemoveResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, function () {
-            });
+                //RemoveResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, function () {
+                //});
 
-            var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "objtype_Resource", "resourceid_" + resourceObj.ResourceId];
-            var tagMetaKey = util.format('tagMeta:%s', key);
-            redisHandler.GetObj(logKey,tagMetaKey,function(err, reTags){
-                if(reTags){
-                    var newCompany = util.format('company_%s',company);
-                    commonMethods.AppendNewCompanyTagArray(reTags, newCompany, function(newTags){
-                        tag = newTags;
-                    });
-                }
-            });
-
-            //var tempAttributeList = [];
-            //for (var i in resourceObj.ResourceAttributeInfo) {
-            //    tempAttributeList.push(resourceObj.ResourceAttributeInfo[i].Attribute);
-            //}
-            //var sortedAttributes = sortArray.sortData(tempAttributeList);
-            //for (var k in sortedAttributes) {
-            //    tag.push("attribute_" + sortedAttributes[k]);
-            //}
-            resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"NotAvailable","UnRegister",function(err,result){
-                redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
-                    if (err) {
-                        infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, "false");
-                        callback(err, "false");
-                    }
-                    else {
-                        infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, result);
-                        callback(null, result);
+                var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "objtype_Resource", "resourceid_" + resourceObj.ResourceId];
+                var tagMetaKey = util.format('tagMeta:%s', key);
+                redisHandler.GetObj(logKey, tagMetaKey, function (err, reTags) {
+                    if (reTags) {
+                        var newCompany = util.format('company_%s', company);
+                        commonMethods.AppendNewCompanyTagArray(reTags, newCompany, function (newTags) {
+                            tag = newTags;
+                        });
                     }
                 });
+
+                //var tempAttributeList = [];
+                //for (var i in resourceObj.ResourceAttributeInfo) {
+                //    tempAttributeList.push(resourceObj.ResourceAttributeInfo[i].Attribute);
+                //}
+                //var sortedAttributes = sortArray.sortData(tempAttributeList);
+                //for (var k in sortedAttributes) {
+                //    tag.push("attribute_" + sortedAttributes[k]);
+                //}
+                resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, "NotAvailable", "UnRegister", function (err, result) {
+                    redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
+                        if (err) {
+                            infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, "false");
+                            callback(err, "false");
+                        }
+                        else {
+                            infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, result);
+                            callback(null, result);
+                        }
+                    });
+                });
+
             });
         }
     });
@@ -556,7 +586,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
             var preResourceData = strObj[0].Obj;
             var cVid = strObj[0].Vid;
             var concurrencyInfo = deepcopy(preResourceData.ConcurrencyInfo);
-            var htArray = [handlingType];
+            var htArray = [{"Type":handlingType}];
             PreProcessResourceData(logKey, accessToken, preResourceData, htArray,function(err, msg, preProcessResData, attributeToRemove){
                 if(err){
                     callback(err, msg, null);

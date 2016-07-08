@@ -7,7 +7,8 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetResourceState *************************', logKey);
 
     var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
-    processState(logKey, StateKey, state, reason, function (err, resultObj) {
+    var internalAccessToken = util.format('%d:%d', tenant,company);
+    processState(logKey, StateKey, internalAccessToken, resourceId, state, reason, function (err, resultObj) {
         if (err != null) {
             console.log(err);
         }
@@ -20,7 +21,6 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
                     console.log(err);
                 }
                 else {
-                    var internalAccessToken = util.format('%d:%d', tenant,company);
                     resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", state, reason, "", function(err, result, obj){
                         if(err){
                             console.log("AddResourceStatusChangeInfo Failed.", err);
@@ -35,10 +35,11 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
     });
 };
 
-var processState = function (logKey, stateKey, state, reason, callback) {
+var processState = function (logKey, stateKey, internalAccessToken, resourceId, state, reason, callback) {
     var statusObj = {State: state, Reason: reason};
     if(state === "NotAvailable" && reason === "UnRegister") {
-        redisHandler.GetObj(logKey, stateKey, function (err, statusObjR) {
+        redisHandler.GetObj(logKey, stateKey, function (err, statusStrObj) {
+            var statusObjR = JSON.parse(statusStrObj);
             if (statusObjR && statusObjR.State === "NotAvailable") {
                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "EndBreak", "", function (err, result, obj) {
                     callback(null, statusObj);
