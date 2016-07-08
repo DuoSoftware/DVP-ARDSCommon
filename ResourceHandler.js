@@ -195,7 +195,7 @@ var AddResource = function (logKey, basicData, callback)  {
                     ResourceAttributeInfo: []
                 };
 
-                PreProcessResourceData(logKey,accessToken,preResourceData,function(err, msg, preProcessResData){
+                PreProcessResourceData(logKey, accessToken, preResourceData, basicData.HandlingTypes,function(err, msg, preProcessResData){
                     if(err){
                         callback(err, msg, null);
                     }else{
@@ -542,7 +542,7 @@ var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
     });
 };
 
-var RemoveShareResource = function (logKey, company, tenant, resourceId, handlingTypes, callback) {
+var RemoveShareResource = function (logKey, company, tenant, resourceId, handlingType, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveShareResource *************************', logKey);
     var accessToken = util.format('%s:%s', tenant,company);
     var searchTag = ["resourceid_" + resourceId, "objtype_Resource"];
@@ -556,7 +556,8 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
             var preResourceData = strObj[0].Obj;
             var cVid = strObj[0].Vid;
             var concurrencyInfo = deepcopy(preResourceData.ConcurrencyInfo);
-            PreProcessResourceData(logKey,accessToken,preResourceData,function(err, msg, preProcessResData, attributeToRemove){
+            var htArray = [handlingType];
+            PreProcessResourceData(logKey, accessToken, preResourceData, htArray,function(err, msg, preProcessResData, attributeToRemove){
                 if(err){
                     callback(err, msg, null);
                 }else{
@@ -564,7 +565,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
 
                     sci.on('concurrencyInfo', function (obj) {
                         //Validate login request with handling type
-                        if(handlingTypes.indexOf(obj.HandlingType) > -1 ) {
+                        if(obj.HandlingType == handlingType) {
                             //var concurrencySlotInfo = [];
                             var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType);
                             redisHandler.CheckObjExists(logKey,cObjkey,function(cErr, isExists){
