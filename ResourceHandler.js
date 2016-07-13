@@ -895,7 +895,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
     });
 };
 
-var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, resourceid, slotid, reason, otherInfo, callback) {
+var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, reason, otherInfo, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateAfterWork *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -1071,7 +1071,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
 };
 
 var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback){
-    UpdateSlotStateAfterWork(logKey, company, tenant, handlingType, resourceid, slotid, "", "", function(err, reply){
+    UpdateSlotStateAfterWork(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, "", "", function(err, reply){
         console.log(reply);
     });
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
