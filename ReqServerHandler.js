@@ -110,6 +110,7 @@ var SendCallBack = function (logKey, serverurl, callbackOption, resultToSend, ca
     infoLogger.DetailLogger.log('info', '%s SendCallBack Server Url: %s :: ResultToSend: %s', logKey, serverurl, resultToSend);
 
     //var surl = util.format('%s//%s', url.parse(serverurl).protocol, url.parse(serverurl).host);
+    var internalAccessToken = util.format("%d:%d", resultToSend.Tenant, resultToSend.Company);
     if(callbackOption == "GET") {
         restClientHandler.DoGetDirect(serverurl, resultToSend, function (err, res, result) {
             if (err) {
@@ -134,7 +135,7 @@ var SendCallBack = function (logKey, serverurl, callbackOption, resultToSend, ca
             }
         });
     }else{
-        restClientHandler.DoPostDirect(serverurl, resultToSend, function (err, res, result) {
+        restClientHandler.DoPost(serverurl, resultToSend, internalAccessToken, function (err, res, result) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s Finished SendCallBack. Error: %s', logKey, err);
                 console.log(err);
