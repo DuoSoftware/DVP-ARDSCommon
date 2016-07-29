@@ -11,6 +11,51 @@ var resourceStateMapper = require('./ResourceStateMapper');
 var deepcopy = require("deepcopy");
 var commonMethods = require('./CommonMethods');
 
+var SetProductivityData = function(logKey, company, tenant, resourceId, eventType){
+    try{
+        console.log("Start SetProductivityData:: eventType: " + eventType);
+        var slotInfoTags = ["company_" + company, "tenant_" + tenant, "state_Connected", "resourceid_" + resourceId];
+        SearchCSlotByTags(logKey, slotInfoTags, function (err, cslots) {
+            if (err) {
+                console.log(err);
+            }
+            else {
+                var pubMessage;
+                var productiveItems = [];
+                for (var i in cslots) {
+                    var cs = cslots[i].Obj;
+                    if(cs.HandlingType === "CALL" || cs.HandlingType === "CHAT"){
+                        productiveItems.push(cs);
+                        console.log("Found productiveItem: "+ cs.HandlingType);
+                    }
+                }
+                switch (eventType){
+                    case "Connected":
+                        if(productiveItems.length === 1) {
+                            pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId);
+                            console.log("Start publish Message: " + pubMessage);
+                            redisHandler.Publish("DashBoardEvent", "events", pubMessage, function () {
+                            });
+                        }
+                        break;
+                    case "Completed":
+                        if(productiveItems.length === 0) {
+                            pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId);
+                            console.log("Start publish Message: " + pubMessage);
+                            redisHandler.Publish("DashBoardEvent", "events", pubMessage, function () {
+                            });
+                        }
+                        break;
+                    default :
+                        break;
+                }
+            }
+        });
+    }catch(ex){
+        console.log("SetProductivityData Failed:: "+ ex);
+    }
+};
+
 var PreProcessTaskData = function(accessToken, taskInfos, loginTask){
     var e = new EventEmitter();
     process.nextTick(function () {
@@ -928,6 +973,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                 console.log(err);
                             }
                             else {
+                                SetProductivityData(logKey, company, tenant, resourceid, "Completed");
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "Connected", sessionid, function(err, result, obj){
                                     if(err){
@@ -1046,7 +1092,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                             }
                             else {
                                 UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "connected", function () { });
-
+                                SetProductivityData(logKey, company, tenant, resourceid, "Connected");
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 if(otherInfo == "" || otherInfo == null){
                                     otherInfo = "Connected";
