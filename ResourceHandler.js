@@ -975,7 +975,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                             else {
                                 SetProductivityData(logKey, company, tenant, resourceid, "Completed");
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "Connected", sessionid, function(err, result, obj){
+                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, sessionid, function(err, result, obj){
                                     if(err){
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
                                     }else{
@@ -1097,7 +1097,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                                 if(otherInfo == "" || otherInfo == null){
                                     otherInfo = "Connected";
                                 }
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, sessionid, function(err, result, obj){
+                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, handlingType, sessionid, function(err, result, obj){
                                     if(err){
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
                                     }else{
