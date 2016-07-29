@@ -24,7 +24,7 @@ var SetProductivityData = function(logKey, company, tenant, resourceId, eventTyp
                 var productiveItems = [];
                 for (var i in cslots) {
                     var cs = cslots[i].Obj;
-                    if(cs.HandlingType === "CALL" || cs.HandlingType === "CHAT"){
+                    if(cs.EnableToProductivity){
                         productiveItems.push(cs);
                         console.log("Found productiveItem: "+ cs.HandlingType);
                     }
@@ -69,6 +69,7 @@ var PreProcessTaskData = function(accessToken, taskInfos, loginTask){
                     resourceService.GetResourceAttributeDetails(accessToken, taskInfo, function (resAttErr, resAttRes, resAttObj, reTaskInfo) {
                         var task = {
                             HandlingType: reTaskInfo.ResTask.ResTaskInfo.TaskType,
+                            EnableToProductivity: reTaskInfo.ResTask.AddToProductivity,
                             NoOfSlots: reTaskInfo.Concurrency,
                             RefInfo: reTaskInfo.RefInfo
                         };
@@ -293,7 +294,8 @@ var SetResourceLogin = function(logKey, basicData, callback){
                                         ResourceId: preProcessResData.ResourceId,
                                         SlotId: i,
                                         ObjKey: slotInfokey,
-                                        OtherInfo: ""
+                                        OtherInfo: "",
+                                        EnableToProductivity: obj.EnableToProductivity
                                     };
                                     var slotInfoTags = ["company_" + slotInfo.Company, "tenant_" + slotInfo.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + preProcessResData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
                                     concurrencyInfo.push(slotInfokey);
@@ -465,7 +467,8 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                                 ResourceId: preProcessResData.ResourceId,
                                 SlotId: i,
                                 ObjKey: slotInfokey,
-                                OtherInfo: ""
+                                OtherInfo: "",
+                                EnableToProductivity: obj.EnableToProductivity
                             };
                             var slotInfoTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + preProcessResData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
 
