@@ -1249,7 +1249,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                 break;
 
                             case "EndFreeze":
-                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, "", "AfterWork", "Completed", function (err, result) {
+                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, "", "AfterWork", "Available", function (err, result) {
                                     callback(err, result);
                                 });
                                 break;
