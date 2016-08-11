@@ -1247,6 +1247,13 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                     callback(err, result);
                                 });
                                 break;
+
+                            case "EndFreeze":
+                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, "", "AfterWork", "Completed", function (err, result) {
+                                    callback(err, result);
+                                });
+                                break;
+
                             default :
                                 callback(err, "Invalid Request");
                         }
