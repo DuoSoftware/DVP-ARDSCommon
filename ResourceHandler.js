@@ -975,7 +975,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                         tempObj.State = "AfterWork";
                         tempObj.StateChangeTime = date.toISOString();
                         tempObj.OtherInfo = "";
-                        var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
+                        var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
                         var slotInfoTags = companyTags.concat(tags);
                         var jsonObj = JSON.stringify(tempObj);
                         redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
