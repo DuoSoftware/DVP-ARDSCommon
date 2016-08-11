@@ -291,6 +291,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
                                         LastReservedTime: "",
                                         MaxReservedTime: 10,
                                         MaxAfterWorkTime: 0,
+                                        FreezeAfterWorkTime: false,
                                         ResourceId: preProcessResData.ResourceId,
                                         SlotId: i,
                                         ObjKey: slotInfokey,
@@ -464,6 +465,8 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                                 HandlingRequest: "",
                                 LastReservedTime: "",
                                 MaxReservedTime: 10,
+                                MaxAfterWorkTime: 0,
+                                FreezeAfterWorkTime: false,
                                 ResourceId: preProcessResData.ResourceId,
                                 SlotId: i,
                                 ObjKey: slotInfokey,
@@ -888,7 +891,7 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
     });
 };
 
-var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, resourceid, slotid, reason, otherInfo, callback) {
+var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, resourceid, slotid, reason, otherInfo, callingParty, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateAvailable *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -898,47 +901,52 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
             callback(err, false);
         }
         else {
-            var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
-            redisHandler.GetObj(logKey,tagMetaKey,function(err, ceTags){
-                if(err){
-                    callback(err, null, null);
-                }
-                if(ceTags){
-                    commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
-                        var date = new Date();
-                        var tempObj = JSON.parse(obj);
-                        var handledRequest = tempObj.HandlingRequest;
+            var tempObj = JSON.parse(obj);
+            if(callingParty === "Completed" && tempObj.State === "AfterWork" && tempObj.FreezeAfterWorkTime === true){
+                callback(new Error("Resource in AfterWork Freeze State"), null);
+            }else {
+                var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
+                redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
+                    if (err) {
+                        callback(err, null, null);
+                    }
+                    if (ceTags) {
+                        commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
+                            var date = new Date();
+                            var handledRequest = tempObj.HandlingRequest;
 
-                        tempObj.State = "Available";
-                        tempObj.StateChangeTime = date.toISOString();
-                        tempObj.HandlingRequest = "";
-                        tempObj.MaxAfterWorkTime = 0;
-                        tempObj.OtherInfo = "";
-                        var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
-                        var slotInfoTags = companyTags.concat(tags);
-                        var jsonObj = JSON.stringify(tempObj);
-                        redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
-                            infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateAvailable. Result: %s', logKey, reply);
-                            if (err != null) {
-                                console.log(err);
-                            }
-                            else {
-                                var internalAccessToken = util.format('%s:%s', tenant,company);
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, handledRequest, function(err, result, obj){
-                                    if(err){
-                                        console.log("AddResourceStatusChangeInfo Failed.", err);
-                                    }else{
-                                        console.log("AddResourceStatusChangeInfo Success.", obj);
-                                    }
-                                });
-                            }
-                            callback(err, reply);
+                            tempObj.State = "Available";
+                            tempObj.StateChangeTime = date.toISOString();
+                            tempObj.HandlingRequest = "";
+                            tempObj.MaxAfterWorkTime = 0;
+                            tempObj.FreezeAfterWorkTime = false;
+                            tempObj.OtherInfo = "";
+                            var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
+                            var slotInfoTags = companyTags.concat(tags);
+                            var jsonObj = JSON.stringify(tempObj);
+                            redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
+                                infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateAvailable. Result: %s', logKey, reply);
+                                if (err != null) {
+                                    console.log(err);
+                                }
+                                else {
+                                    var internalAccessToken = util.format('%s:%s', tenant, company);
+                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, handledRequest, function (err, result, obj) {
+                                        if (err) {
+                                            console.log("AddResourceStatusChangeInfo Failed.", err);
+                                        } else {
+                                            console.log("AddResourceStatusChangeInfo Success.", obj);
+                                        }
+                                    });
+                                }
+                                callback(err, reply);
+                            });
                         });
-                    });
-                }else{
-                    callback(new Error("Update Redis tags failed"), null, null);
-                }
-            });
+                    } else {
+                        callback(new Error("Update Redis tags failed"), null, null);
+                    }
+                });
+            }
         }
     });
 };
@@ -1133,12 +1141,59 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
             var timeOut = slotObj.MaxAfterWorkTime * 1000;
             setTimeout(function(){
                 console.log("AfterWorkEnd: "+ Date.now());
-                UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", function (err, result) {});
+                UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", "Completed", function (err, result) {});
             }, timeOut);
         }
     });
     callback(null, "OK");
 };
+
+var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resourceid, slotid, reason, otherInfo, callback) {
+    infoLogger.DetailLogger.log('info', '%s ************************* Start SetSlotStateFreeze *************************', logKey);
+
+    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
+    redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
+        if (err) {
+            console.log(err);
+            callback(err, false);
+        }
+        else {
+            var tempObj = JSON.parse(obj);
+            if(tempObj.State === "AfterWork"){
+                var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
+                redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
+                    if (err) {
+                        callback(err, null, null);
+                    }
+                    if (ceTags) {
+                        commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
+
+                            tempObj.FreezeAfterWorkTime = true;
+
+                            var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
+                            var slotInfoTags = companyTags.concat(tags);
+                            var jsonObj = JSON.stringify(tempObj);
+                            redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
+                                infoLogger.DetailLogger.log('info', '%s Finished SetSlotStateFreeze. Result: %s', logKey, reply);
+                                if (err != null) {
+                                    console.log(err);
+                                }
+
+                                callback(err, reply);
+                            });
+                        });
+                    } else {
+                        callback(new Error("Update Redis tags failed"), null, null);
+                    }
+                });
+
+            }else {
+                callback(new Error("Cannot Freeze, Resource not in AfterWork State"), null);
+            }
+        }
+    });
+};
+
 
 var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, reason, otherInfo, callback) {
     var slotInfoTags = [];
@@ -1170,7 +1225,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                     if (cs.HandlingRequest == sessionid) {
                         switch (state) {
                             case "Available":
-                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, function (err, result) {
+                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, "Available", function (err, result) {
                                     callback(err, result);
                                 });
                                 break;
@@ -1186,14 +1241,20 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                     callback(err, result);
                                 });
                                 break;
+
+                            case "Freeze":
+                                SetSlotStateFreeze(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, function (err, result) {
+                                    callback(err, result);
+                                });
+                                break;
                             default :
-                                callback(err, "Invalied Request");
+                                callback(err, "Invalid Request");
                         }
                     }
                 }
             }
             else {
-                callback(new Error("No Recerved Resource CSlot found for sessionId: " + sessionid), "Invalied Request");
+                callback(new Error("No Reserved Resource CSlot found for sessionId: " + sessionid), "Invalied Request");
             }
         }
     });
