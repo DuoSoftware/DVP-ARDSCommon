@@ -233,7 +233,7 @@ var ReaddMetaData = function (metaDataObj, callback) {
 
     var obj = JSON.stringify(metaDataObj);
 
-    redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
+    redisHandler.AddObj_T("ReaddMetadata", key, obj, tag, function (err, result) {
         infoLogger.DetailLogger.log('info', 'Finished ReAddMeataData- Redis. Result: %s', result);
     });
 };
