@@ -353,7 +353,7 @@ var ReloadMetaData = function (company, tenant, serverType, requestType) {
         where: [{ Tenant: tenant }, { Company: company }, { ServerType: serverType }, { RequestType: requestType }]
     }).then(function (reqMeta) {
         if (reqMeta) {
-            var accessToken = util.format('%d:%d', reqMeta.Company,reqMeta.Tenant);
+            var accessToken = util.format('%d:%d', reqMeta.Tenant,reqMeta.Company);
             var attributeGroups = JSON.parse(reqMeta.AttributeGroups);
             var tempAttributeGroupInfo = [];
             var sagi = SetAttributeGroupInfo(accessToken, attributeGroups);
