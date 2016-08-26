@@ -113,6 +113,9 @@ var SendCallBack = function (logKey, serverurl, callbackOption, resultToSend, ca
     var internalAccessToken = util.format("%d:%d", resultToSend.Tenant, resultToSend.Company);
     if(callbackOption == "GET") {
         restClientHandler.DoGetDirect(serverurl, resultToSend, function (err, res, result) {
+            if(result) {
+                console.log(result);
+            }
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s Finished SendCallBack. Error: %s', logKey, err);
                 console.log(err);
