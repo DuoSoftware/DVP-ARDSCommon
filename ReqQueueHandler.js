@@ -122,7 +122,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                 var hashKey = util.format('ProcessingHash:%s:%s', company, tenant);
                 redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
                     if(eSession && eSession == sessionId){
-                        redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
+                        //redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
                     }
                 });
                 callback(err, result);
@@ -139,7 +139,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                         var hashKey = util.format('ProcessingHash:%s:%s', company, tenant);
                         redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
                             if(eSession && eSession == sessionId){
-                                redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
+                                //redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
                             }
                         });
                         callback(err, result);
@@ -188,19 +188,19 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId) {
                     }
                     else {
                         if (nextQueueItem == "" || nextQueueItem == null) {
-                            redisHandler.RemoveItemFromHash(logKey, processingHashId, queueId, function (err, result) {
-                                if (err) {
-                                    console.log(err);
-                                }
-                                else {
-                                    if (result == "1") {
-                                        console.log("Remove HashField Success.." + _processingHash + "::" + _queueId);
-                                    }
-                                    else {
-                                        console.log("Remove HashField Failed.." + _processingHash + "::" + _queueId);
-                                    }
-                                }
-                            });
+                            //redisHandler.RemoveItemFromHash(logKey, processingHashId, queueId, function (err, result) {
+                            //    if (err) {
+                            //        console.log(err);
+                            //    }
+                            //    else {
+                            //        if (result == "1") {
+                            //            console.log("Remove HashField Success.." + _processingHash + "::" + _queueId);
+                            //        }
+                            //        else {
+                            //            console.log("Remove HashField Failed.." + _processingHash + "::" + _queueId);
+                            //        }
+                            //    }
+                            //});
                         }
                         else {
                             redisHandler.AddItemToHash(logKey, processingHashId,queueId, nextQueueItem,function(err,result){
