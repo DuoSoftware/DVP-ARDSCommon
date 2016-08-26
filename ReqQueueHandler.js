@@ -46,7 +46,7 @@ var AddRequestToQueue = function (logKey, request, callback) {
                     requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
                         console.log("set Request State QUEUED");
                         if(hresult == "0") {
-                            rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                            //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
                         }
                     });
                     var pubQueueId = request.QueueId.replace(/:/g, "-");
@@ -97,7 +97,7 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
                 else {
                     requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
                         if(hresult == "0") {
-                            rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                            //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
                         }
                     });
                     callback(err, "OK");
