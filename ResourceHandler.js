@@ -879,14 +879,12 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
                         var cObj = JSON.parse(obj);
                         cObj.RejectCount = cObj.RejectCount + 1;
                         cObj.LastRejectedSession = rejectedSession;
-                        if(cObj.RejectCount >= cObj.maxRejectCount){
+                        if(cObj.RejectCount >= cObj.MaxRejectCount){
                             cObj.IsRejectCountExceeded = true;
                         }
                         var jCObj = JSON.stringify(cObj);
                         var tags = ["tenant_" + cObj.Tenant, "handlingType_" + cObj.HandlingType, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
                         var cObjTags = companyTags.concat(tags);
-                        //todo
-                        //if RejectCount > max reject count, update notification service
 
                         redisHandler.SetObj_V_T(logKey, cObjkey, jCObj, cObjTags, vid, function () {
                             infoLogger.DetailLogger.log('info', '%s Finished UpdateRejectCount. Result: %s', logKey, result);
