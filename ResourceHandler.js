@@ -323,6 +323,8 @@ var SetResourceLogin = function(logKey, basicData, callback){
                                     LastConnectedTime: "",
                                     LastRejectedSession: "",
                                     RejectCount: 0,
+                                    MaxRejectCount: 10,
+                                    IsRejectCountExceeded: false,
                                     ResourceId: preProcessResData.ResourceId,
                                     ObjKey: cObjkey,
                                     RefInfo: tempRefInfoObjStr
@@ -424,6 +426,8 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                             LastConnectedTime: "",
                             LastRejectedSession: "",
                             RejectCount: 0,
+                            MaxRejectCount: 10,
+                            IsRejectCountExceeded: false,
                             ResourceId: preProcessResData.ResourceId,
                             ObjKey: cObjkey,
                             RefInfo: tempRefInfoObjStr
@@ -808,7 +812,7 @@ var SearchResourcebyTags = function (logKey, tags, callback) {
     }
 };
 
-var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, resourceid, event, callback) {
+var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, resourceid, event, maxRejectCount, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateLastConnectedTime *************************', logKey);
 
     var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', company, tenant, resourceid, handlingType);
@@ -828,6 +832,7 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, r
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var cObj = JSON.parse(obj);
                         if(event == "reserved") {
+                            cObj.MaxRejectCount = maxRejectCount;
                             cObj.LastConnectedTime = date.toISOString();
                         }else if(event == "connected") {
                             cObj.RejectCount = 0;
@@ -872,6 +877,9 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
                         var cObj = JSON.parse(obj);
                         cObj.RejectCount = cObj.RejectCount + 1;
                         cObj.LastRejectedSession = rejectedSession;
+                        if(cObj.RejectCount >= cObj.maxRejectCount){
+                            cObj.IsRejectCountExceeded = true;
+                        }
                         var jCObj = JSON.stringify(cObj);
                         var tags = ["tenant_" + cObj.Tenant, "handlingType_" + cObj.HandlingType, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
                         var cObjTags = companyTags.concat(tags);
@@ -1013,7 +1021,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
     });
 };
 
-var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, maxAfterWorkTime, otherInfo, callback) {
+var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, maxAfterWorkTime, maxRejectCount, otherInfo, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateReserved *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -1048,7 +1056,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                                 console.log(err);
                             }
                             else {
-                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "reserved", function () { });
+                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "reserved", maxRejectCount, function () { });
 
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, sessionid, function(err, result, obj){
