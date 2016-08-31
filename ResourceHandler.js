@@ -910,11 +910,18 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
         }
         else {
             var tempObj = JSON.parse(obj);
+            console.log("==========================================================================================");
+            console.log("callingParty:: "+ callingParty);
+            console.log("tempObj.State:: "+ tempObj.State);
+
             if(callingParty === "Completed" && tempObj.State === "AfterWork" && tempObj.FreezeAfterWorkTime === true){
+                console.log("Reject Available Request:: Completed");
                 callback(new Error("Resource in AfterWork Freeze State"), null);
             }else if(callingParty === "EndFreeze" && tempObj.State != "AfterWork") {
+                console.log("Reject Available Request:: EndFreeze");
                 callback(new Error("Resource in Connected State"), null);
             }else {
+                console.log("Set Available");
                 var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
                 redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
                     if (err) {
@@ -1267,6 +1274,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                             default :
                                 callback(err, "Invalid Request");
                         }
+                        break;
                     }
                 }
             }
