@@ -917,6 +917,12 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
             if(callingParty === "Completed" && tempObj.State === "AfterWork" && tempObj.FreezeAfterWorkTime === true){
                 console.log("Reject Available Request:: Completed");
                 callback(new Error("Resource in AfterWork Freeze State"), null);
+            }else if(callingParty === "Completed" && tempObj.State === "Reserved"){
+                console.log("Reject Available Request:: Reserved");
+                callback(new Error("Resource in Reserved State"), null);
+            }else if(callingParty === "Completed" && tempObj.State === "Connected"){
+                console.log("Reject Available Request:: Connected");
+                callback(new Error("Resource in Connected State"), null);
             }else if(callingParty === "EndFreeze" && tempObj.State != "AfterWork") {
                 console.log("Reject Available Request:: EndFreeze");
                 callback(new Error("Resource in Connected State"), null);
