@@ -912,6 +912,8 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
             var tempObj = JSON.parse(obj);
             if(callingParty === "Completed" && tempObj.State === "AfterWork" && tempObj.FreezeAfterWorkTime === true){
                 callback(new Error("Resource in AfterWork Freeze State"), null);
+            }else if(callingParty === "EndFreeze" && tempObj.State != "AfterWork") {
+                callback(new Error("Resource in Connected State"), null);
             }else {
                 var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
                 redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
@@ -1257,7 +1259,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                 break;
 
                             case "EndFreeze":
-                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, "", "AfterWork", "Available", function (err, result) {
+                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, "", "AfterWork", "EndFreeze", function (err, result) {
                                     callback(err, result);
                                 });
                                 break;
