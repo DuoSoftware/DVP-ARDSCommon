@@ -987,40 +987,42 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var date = new Date();
                         var tempObj = JSON.parse(obj);
-                        var handledRequest = tempObj.HandlingRequest;
+                        if(tempObj.State === "Connected") {
+                            var handledRequest = tempObj.HandlingRequest;
 
-                        tempObj.State = "AfterWork";
-                        tempObj.StateChangeTime = date.toISOString();
-                        tempObj.OtherInfo = "";
-                        var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
-                        var slotInfoTags = companyTags.concat(tags);
-                        var jsonObj = JSON.stringify(tempObj);
-                        redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
-                            infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateAfterWork. Result: %s', logKey, reply);
-                            if (err != null) {
-                                console.log(err);
-                            }
-                            else {
-                                SetProductivityData(logKey, company, tenant, resourceid, "Completed");
-                                var internalAccessToken = util.format('%s:%s', tenant,company);
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, sessionid, function(err, result, obj){
-                                    if(err){
-                                        console.log("AddResourceStatusChangeInfo Failed.", err);
-                                    }else{
-                                        console.log("AddResourceStatusChangeInfo Success.", obj);
-                                    }
-
-                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", sessionid, function(err, result, obj){
-                                        if(err){
+                            tempObj.State = "AfterWork";
+                            tempObj.StateChangeTime = date.toISOString();
+                            tempObj.OtherInfo = "";
+                            var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
+                            var slotInfoTags = companyTags.concat(tags);
+                            var jsonObj = JSON.stringify(tempObj);
+                            redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
+                                infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateAfterWork. Result: %s', logKey, reply);
+                                if (err != null) {
+                                    console.log(err);
+                                }
+                                else {
+                                    SetProductivityData(logKey, company, tenant, resourceid, "Completed");
+                                    var internalAccessToken = util.format('%s:%s', tenant, company);
+                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, sessionid, function (err, result, obj) {
+                                        if (err) {
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
-                                        }else{
+                                        } else {
                                             console.log("AddResourceStatusChangeInfo Success.", obj);
                                         }
+
+                                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", sessionid, function (err, result, obj) {
+                                            if (err) {
+                                                console.log("AddResourceStatusChangeInfo Failed.", err);
+                                            } else {
+                                                console.log("AddResourceStatusChangeInfo Success.", obj);
+                                            }
+                                        });
                                     });
-                                });
-                            }
-                            callback(err, reply);
-                        });
+                                }
+                                callback(err, reply);
+                            });
+                        }
                     });
                 }else{
                     callback(new Error("Update Redis tags failed"), null);
