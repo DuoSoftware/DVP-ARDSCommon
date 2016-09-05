@@ -993,7 +993,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var date = new Date();
                         var tempObj = JSON.parse(obj);
-                        //if(tempObj.State === "Connected") {
+                        if(tempObj.State === "Connected" || tempObj.State === "Reserved") {
                             var handledRequest = tempObj.HandlingRequest;
 
                             tempObj.State = "AfterWork";
@@ -1028,7 +1028,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                 }
                                 callback(err, reply);
                             });
-                        //}
+                        }
                     });
                 }else{
                     callback(new Error("Update Redis tags failed"), null);
