@@ -781,48 +781,57 @@ var RemoveItemFromList = function (logKey, key, obj, callback) {
 var AddItemToHash = function (logKey, hashKey, field, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s :: obj: %s', logKey, hashKey, field, obj);
-
-    client.hset(hashKey, field, obj, function (err, result) {
-        if (err) {
-            infoLogger.DetailLogger.log('error', '%s AddItemToHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
-            console.log(err);
-            callback(err, null);
-        } else {
-            infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
-            callback(null, result);
-        }
+    lock(hashKey, 500, function (done) {
+        client.hset(hashKey, field, obj, function (err, result) {
+            if (err) {
+                infoLogger.DetailLogger.log('error', '%s AddItemToHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
+                console.log(err);
+                done();
+                callback(err, null);
+            } else {
+                infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
+                done();
+                callback(null, result);
+            }
+        });
     });
 };
 
 var RemoveItemFromHash = function (logKey, hashKey, field, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveItemFromHash - hashKey: %s :: field: %s', logKey, hashKey, field);
-
-    client.hdel(hashKey, field, function (err, result) {
-        if (err) {
-            infoLogger.DetailLogger.log('error', '%s RemoveItemFromHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
-            console.log(err);
-            callback(err, null);
-        } else {
-            infoLogger.DetailLogger.log('info', '%s RemoveItemFromHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
-            callback(null, result);
-        }
+    lock(hashKey, 500, function (done) {
+        client.hdel(hashKey, field, function (err, result) {
+            if (err) {
+                infoLogger.DetailLogger.log('error', '%s RemoveItemFromHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
+                console.log(err);
+                done();
+                callback(err, null);
+            } else {
+                infoLogger.DetailLogger.log('info', '%s RemoveItemFromHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
+                done();
+                callback(null, result);
+            }
+        });
     });
 };
 
 var RemoveHash = function (logKey, hashKey, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveHash - hashKey: %s', logKey, hashKey);
-
-    client.del(hashKey, function (err, result) {
-        if (err) {
-            infoLogger.DetailLogger.log('error', '%s RemoveHash Error - hashKey: %s :: Error: %s', logKey, hashKey, err);
-            console.log(err);
-            callback(err, null);
-        } else {
-            infoLogger.DetailLogger.log('info', '%s RemoveHash - hashKey: %s :: Reply: %s', logKey, hashKey, result);
-            callback(null, result);
-        }
+    lock(hashKey, 500, function (done) {
+        client.del(hashKey, function (err, result) {
+            if (err) {
+                infoLogger.DetailLogger.log('error', '%s RemoveHash Error - hashKey: %s :: Error: %s', logKey, hashKey, err);
+                console.log(err);
+                done();
+                callback(err, null);
+            } else {
+                infoLogger.DetailLogger.log('info', '%s RemoveHash - hashKey: %s :: Reply: %s', logKey, hashKey, result);
+                done();
+                callback(null, result);
+            }
+        });
     });
 };
 
@@ -889,15 +898,19 @@ var AddItemToHashNX = function (logKey, hashKey, field, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s :: obj: %s', logKey, hashKey, field, obj);
 
-    client.hsetnx(hashKey, field, obj, function (err, result) {
-        if (err) {
-            infoLogger.DetailLogger.log('error', '%s AddItemToHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
-            console.log(err);
-            callback(err, null);
-        } else {
-            infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
-            callback(null, result);
-        }
+    lock(hashKey, 500, function (done) {
+        client.hsetnx(hashKey, field, obj, function (err, result) {
+            if (err) {
+                infoLogger.DetailLogger.log('error', '%s AddItemToHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
+                console.log(err);
+                done();
+                callback(err, null);
+            } else {
+                infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
+                done();
+                callback(null, result);
+            }
+        });
     });
 };
 
