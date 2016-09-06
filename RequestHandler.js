@@ -154,7 +154,7 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
                 else {
                     if (result.length == 1) {
                         var csObj = result[0];
-                        resourceHandler.UpdateSlotStateAvailable(logKey, company, tenant, csObj.RequestType, csObj.ResourceId, csObj.SlotId, reason, "Reject", function (err, reply) {
+                        resourceHandler.UpdateSlotStateAvailable(logKey, company, tenant, csObj.RequestType, csObj.ResourceId, csObj.SlotId, reason, "Reject", "Available", function (err, reply) {
                             if (err) {
                                 console.log(err);
                             }
