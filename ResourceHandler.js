@@ -1238,13 +1238,13 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
         else {
             if(state == "Reject") {
                 UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, function (err, result, vid) {
-                    callback(err, result);
+                    //callback(err, result);
                 });
                 var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
                 redisHandler.Publish(logKey, "events", pubMessage, function () {
                 });
             }
-            else if (cslots != null && cslots.length > 0) {
+            if (cslots != null && cslots.length > 0) {
                 for (var i in cslots) {
                     var cs = cslots[i].Obj;
                     if (cs.HandlingRequest == sessionid) {
