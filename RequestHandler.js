@@ -145,7 +145,7 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
         }
         else {
             var requestObj = JSON.parse(obj);
-            var stags = ["company_" + company, "tenant_" + tenant, "handlingType_" + requestObj.RequestType, "handlingrequest_" + sessionId, "objtype_CSlotInfo"];
+            /*var stags = ["company_" + company, "tenant_" + tenant, "handlingType_" + requestObj.RequestType, "handlingrequest_" + sessionId, "objtype_CSlotInfo"];
 
             redisHandler.SearchObj_T(logKey, stags, function (err, result) {
                 if (err) {
@@ -161,7 +161,7 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
                         });
                     }
                 }
-            });
+            });*/
             if (reason == "NoSession" || reason == "ClientRejected") {
                 var pubQueueId = requestObj.QueueId.replace(/:/g, "-");
                 var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "DROPPED", pubQueueId, "", requestObj.SessionId);

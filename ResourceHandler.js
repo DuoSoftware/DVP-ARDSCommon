@@ -1249,6 +1249,12 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                     var cs = cslots[i].Obj;
                     if (cs.HandlingRequest == sessionid) {
                         switch (state) {
+                            case "Reject":
+                                UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result){
+                                    callback(err, result);
+                                });
+                                break;
+
                             case "Available":
                                 UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, "Available", function (err, result) {
                                     callback(err, result);
