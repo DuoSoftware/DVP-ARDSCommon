@@ -121,7 +121,7 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
 
 
 
-                                    redisHandler.RemoveItemFromList(logKey, request.QueueId, request.SessionId, function (err, result) {
+                                    redisHandler.RemoveItemFromList(logKey, newQueueId, request.SessionId, function (err, result) {
                                         if (err) {
                                             console.log(err);
                                         } else {
