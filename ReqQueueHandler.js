@@ -8,103 +8,148 @@ var restClientHandler = require('./RestClient.js');
 var AddRequestToQueue = function (logKey, request, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestToQueue *************************', logKey);
 
-    var hashKey = util.format('ProcessingHash:%d:%d', request.Company, request.Tenant);
-    redisHandler.CheckHashFieldExists(logKey, hashKey, request.QueueId, function (err, hresult, result) {
+    redisHandler.AddItemToListR(logKey, request.QueueId, request.SessionId, function (err, result) {
         if (err) {
             console.log(err);
             callback(err, "Failed");
         }
-        else if (result == "1") {
-            redisHandler.AddItemToListR(logKey, request.QueueId, request.SessionId, function (err, result) {
-                if (err) {
-                    console.log(err);
-                    callback(err, "Failed");
-                }
-                else {
-                    if (parseInt(result) > 0) {
-                        requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
-                            console.log("set Request State QUEUED");
-                        });
-                        var pubQueueId = request.QueueId.replace(/:/g, "-");
-                        var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
-                        redisHandler.Publish(logKey, "events", pubMessage, function(){});
-                        callback(err, "OK");
-                    }
-                    else {
-                        callback(err, "Failed");
-                    }
-                }
-            });
-        }
         else {
-            redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
-                if (err) {
-                    console.log(err);
-                    callback(err, "Failed");
-                }
-                else {
-                    requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
-                        console.log("set Request State QUEUED");
-                        if(hresult == "0") {
-                            //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
-                        }
-                    });
-                    var pubQueueId = request.QueueId.replace(/:/g, "-");
-                    var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
-                    redisHandler.Publish(logKey, "events", pubMessage, function(){});
-                    callback(err, "OK");
-                }
+            if (parseInt(result) > 0) {
+                requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
+                    console.log("set Request State QUEUED");
+                });
 
-            });
+
+                var hashKey = util.format('ProcessingHash:%d:%d', request.Company, request.Tenant);
+                redisHandler.CheckHashFieldExists(logKey, hashKey, request.QueueId, function (err, hresult, result) {
+                    if (err) {
+                        console.log(err);
+                        callback(err, "Failed");
+                    }else {
+                        if(result == "1"){
+                            console.log("Hash Exsists");
+                            callback(err, "OK");
+                        }else {
+                            redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
+                                if (err) {
+                                    console.log(err);
+                                    callback(err, "Failed");
+                                }
+                                else {
+                                    /*requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
+                                     console.log("set Request State QUEUED");
+                                     if (hresult == "0") {
+                                     //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                                     }
+                                     });
+                                     var pubQueueId = request.QueueId.replace(/:/g, "-");
+                                     var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
+                                     redisHandler.Publish(logKey, "events", pubMessage, function () {
+                                     });*/
+
+
+                                    redisHandler.RemoveItemFromList(logKey, request.QueueId, request.SessionId, function (err, result) {
+                                        if (err) {
+                                            console.log(err);
+                                        } else {
+                                            console.log("Remove queue item seccess");
+                                        }
+                                    });
+
+
+                                    console.log("Add item to Hash Success");
+                                    callback(err, "OK");
+                                }
+
+                            });
+                        }
+                    }
+                });
+
+
+
+                var pubQueueId = request.QueueId.replace(/:/g, "-");
+                var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
+                redisHandler.Publish(logKey, "events", pubMessage, function(){});
+            }
+            else {
+                callback(err, "Failed");
+            }
         }
     });
+
+
 };
 
 var ReAddRequestToQueue = function (logKey, request, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start ReAddRequestToQueue *************************', logKey);
 
-    var hashKey = util.format('ProcessingHash:%d:%d', request.Company, request.Tenant);
-    redisHandler.CheckHashFieldExists(logKey, hashKey, request.QueueId, function (err, hresult, result) {
+    var newQueueId = GetRejectedQueueId(request.QueueId);
+    redisHandler.AddItemToListR(logKey, newQueueId, request.SessionId, function (err, result) {
         if (err) {
             console.log(err);
             callback(err, "Failed");
         }
-        else if (result == "1") {
-            var newQueueId = GetRejectedQueueId(request.QueueId);
-            redisHandler.AddItemToListR(logKey, newQueueId, request.SessionId, function (err, result) {
-                if (err) {
-                    console.log(err);
-                    callback(err, "Failed");
-                }
-                else {
-                    if (parseInt(result) > 0) {
-                        requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
-                        });
-                        callback(err, "OK");
-                    }
-                    else {
-                        callback(err, "Failed");
-                    }
-                }
-            });
-        }
         else {
-            redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
-                if (err) {
-                    console.log(err);
-                    callback(err, "Failed");
-                }
-                else {
-                    requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
-                        if(hresult == "0") {
-                            //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+            if (parseInt(result) > 0) {
+                requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
+                });
+
+
+
+                var hashKey = util.format('ProcessingHash:%d:%d', request.Company, request.Tenant);
+                redisHandler.CheckHashFieldExists(logKey, hashKey, request.QueueId, function (err, hresult, result) {
+                    if (err) {
+                        console.log(err);
+                        callback(err, "Failed");
+                    }else {
+                        if (result == "1") {
+                            console.log("Hash Exsists");
+                            callback(err, "OK");
+                        }else{
+                            redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
+                                if (err) {
+                                    console.log(err);
+                                    callback(err, "Failed");
+                                }
+                                else {
+                                    /*requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
+                                     if (hresult == "0") {
+                                     //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                                     }
+                                     });*/
+
+
+
+                                    redisHandler.RemoveItemFromList(logKey, request.QueueId, request.SessionId, function (err, result) {
+                                        if (err) {
+                                            console.log(err);
+                                        } else {
+                                            console.log("Remove queue item seccess");
+                                        }
+                                    });
+
+
+
+                                    console.log("Add item to Hash Success");
+                                    callback(err, "OK");
+                                }
+                            });
                         }
-                    });
-                    callback(err, "OK");
-                }
-            });
+                    }
+                });
+
+
+
+
+            }
+            else {
+                callback(err, "Failed");
+            }
         }
     });
+
+
 };
 
 var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, sessionId, reason, callback) {
@@ -122,7 +167,8 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                 var hashKey = util.format('ProcessingHash:%s:%s', company, tenant);
                 redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
                     if(eSession && eSession == sessionId){
-                        redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
+                        //redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
+                        SetNextProcessingItem(logKey,queueId,hashKey, sessionId);
                     }
                 });
                 callback(err, result);
@@ -139,7 +185,8 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                         var hashKey = util.format('ProcessingHash:%s:%s', company, tenant);
                         redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
                             if(eSession && eSession == sessionId){
-                                redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
+                                //redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
+                                SetNextProcessingItem(logKey,queueId,hashKey, sessionId);
                             }
                         });
                         callback(err, result);
@@ -172,68 +219,77 @@ var GetNextRequestToProcess = function (logKey, queueId, callback) {
     });
 };
 
-var SetNextProcessingItem = function (logKey, queueId, processingHashId) {
+var SetNextProcessingItem = function (logKey, queueId, processingHashId, currentSession) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetNextProcessingItem *************************', logKey);
-    var rejectedQueueId = GetRejectedQueueId(queueId);
 
-    redisHandler.GetItemFromList(logKey, rejectedQueueId, function (err, nextRejectQueueItem) {
-        if (err) {
-            console.log(err);
-        }
-        else {
-            if(nextRejectQueueItem == "" || nextRejectQueueItem == null){
-                redisHandler.GetItemFromList(logKey, queueId, function (err, nextQueueItem) {
-                    if (err) {
-                        console.log(err);
-                    }
-                    else {
-                        if (nextQueueItem == "" || nextQueueItem == null) {
-                            redisHandler.RemoveItemFromHash(logKey, processingHashId, queueId, function (err, result) {
-                                if (err) {
-                                    console.log(err);
+    redisHandler.GetHashValue(logKey,processingHashId, queueId, function(err, eSession) {
+        if (eSession && eSession == currentSession) {
+
+            var rejectedQueueId = GetRejectedQueueId(queueId);
+
+            redisHandler.GetItemFromList(logKey, rejectedQueueId, function (err, nextRejectQueueItem) {
+                if (err) {
+                    console.log(err);
+                }
+                else {
+                    if (nextRejectQueueItem == "" || nextRejectQueueItem == null) {
+                        redisHandler.GetItemFromList(logKey, queueId, function (err, nextQueueItem) {
+                            if (err) {
+                                console.log(err);
+                            }
+                            else {
+                                if (nextQueueItem == "" || nextQueueItem == null) {
+                                    redisHandler.RemoveItemFromHash(logKey, processingHashId, queueId, function (err, result) {
+                                        if (err) {
+                                            console.log(err);
+                                        }
+                                        else {
+                                            if (result == "1") {
+                                                console.log("Remove HashField Success.." + _processingHash + "::" + _queueId);
+                                            }
+                                            else {
+                                                console.log("Remove HashField Failed.." + _processingHash + "::" + _queueId);
+                                            }
+                                        }
+                                    });
                                 }
                                 else {
-                                    if (result == "1") {
-                                        console.log("Remove HashField Success.." + _processingHash + "::" + _queueId);
-                                    }
-                                    else {
-                                        console.log("Remove HashField Failed.." + _processingHash + "::" + _queueId);
-                                    }
+                                    redisHandler.AddItemToHash(logKey, processingHashId, queueId, nextQueueItem, function (err, result) {
+                                        if (err) {
+                                            console.log(err);
+                                        }
+                                        else {
+                                            if (result == "1") {
+                                                console.log("Set HashField Success.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
+                                            }
+                                            else {
+                                                console.log("Set HashField Failed.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
+                                            }
+                                        }
+                                    });
                                 }
-                            });
-                        }
-                        else {
-                            redisHandler.AddItemToHash(logKey, processingHashId,queueId, nextQueueItem,function(err,result){
-                                if (err) {
-                                    console.log(err);
+                            }
+                        });
+                    } else {
+                        redisHandler.AddItemToHash(logKey, processingHashId, queueId, nextRejectQueueItem, function (err, result) {
+                            if (err) {
+                                console.log(err);
+                            }
+                            else {
+                                if (result == "1") {
+                                    console.log("Set HashField Success.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
                                 }
                                 else {
-                                    if (result == "1") {
-                                        console.log("Set HashField Success.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
-                                    }
-                                    else {
-                                        console.log("Set HashField Failed.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
-                                    }
+                                    console.log("Set HashField Failed.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
                                 }
-                            });
-                        }
+                            }
+                        });
                     }
-                });
-            }else {
-                redisHandler.AddItemToHash(logKey, processingHashId, queueId, nextRejectQueueItem, function (err, result) {
-                    if (err) {
-                        console.log(err);
-                    }
-                    else {
-                        if (result == "1") {
-                            console.log("Set HashField Success.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
-                        }
-                        else {
-                            console.log("Set HashField Failed.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
-                        }
-                    }
-                });
-            }
+                }
+            });
+
+        }else{
+            console.log("Session Mismatched ,ignore SetNextItem");
         }
     });
 };

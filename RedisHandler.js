@@ -700,32 +700,38 @@ var CheckObjExists = function (logKey, key, callback) {
 var AddItemToListR = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToListR - key: %s :: obj: %s', logKey, key, obj);
-
-    client.rpush(key, obj, function (error, reply) {
-        if (error) {
-            infoLogger.DetailLogger.log('error', '%s AddItemToListR Error - key: %s :: Error: %s', logKey, key, error);
-            callback(error, null);
-        }
-        else {
-            infoLogger.DetailLogger.log('info', '%s AddItemToListR - key: %s :: Reply: %s', logKey, key, reply);
-            callback(null, reply);
-        }
+    lock(key, 500, function (done) {
+        client.rpush(key, obj, function (error, reply) {
+            if (error) {
+                done();
+                infoLogger.DetailLogger.log('error', '%s AddItemToListR Error - key: %s :: Error: %s', logKey, key, error);
+                callback(error, null);
+            }
+            else {
+                done();
+                infoLogger.DetailLogger.log('info', '%s AddItemToListR - key: %s :: Reply: %s', logKey, key, reply);
+                callback(null, reply);
+            }
+        });
     });
 };
 
 var AddItemToListL = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToListL - key: %s :: obj: %s', logKey, key, obj);
-
-    client.lpush(key, obj, function (error, reply) {
-        if (error) {
-            infoLogger.DetailLogger.log('error', '%s AddItemToListL Error - key: %s :: Error: %s', logKey, key, error);
-            callback(error, null);
-        }
-        else {
-            infoLogger.DetailLogger.log('info', '%s AddItemToListL - key: %s :: Reply: %s', logKey, key, reply);
-            callback(null, reply);
-        }
+    lock(key, 500, function (done) {
+        client.lpush(key, obj, function (error, reply) {
+            if (error) {
+                done();
+                infoLogger.DetailLogger.log('error', '%s AddItemToListL Error - key: %s :: Error: %s', logKey, key, error);
+                callback(error, null);
+            }
+            else {
+                done();
+                infoLogger.DetailLogger.log('info', '%s AddItemToListL - key: %s :: Reply: %s', logKey, key, reply);
+                callback(null, reply);
+            }
+        });
     });
 };
 
@@ -764,16 +770,19 @@ var GetRangeFromList = function (logKey, key, callback) {
 var RemoveItemFromList = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveItemFromList - key: %s :: obj: %s', logKey, key, obj);
-
-    client.lrem(key, 0, obj, function (err, result) {
-        if (err) {
-            infoLogger.DetailLogger.log('error', '%s RemoveItemFromList Error - key: %s :: Error: %s', logKey, key, err);
-            console.log(err);
-            callback(err, null);
-        } else {
-            infoLogger.DetailLogger.log('info', '%s RemoveItemFromList - key: %s :: Reply: %d', logKey, key, result);
-            callback(null, result);
-        }
+    lock(key, 500, function (done) {
+        client.lrem(key, 0, obj, function (err, result) {
+            if (err) {
+                done();
+                infoLogger.DetailLogger.log('error', '%s RemoveItemFromList Error - key: %s :: Error: %s', logKey, key, err);
+                console.log(err);
+                callback(err, null);
+            } else {
+                done();
+                infoLogger.DetailLogger.log('info', '%s RemoveItemFromList - key: %s :: Reply: %d', logKey, key, result);
+                callback(null, result);
+            }
+        });
     });
 };
 
