@@ -941,7 +941,6 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                             tempObj.State = "Available";
                             tempObj.StateChangeTime = date.toISOString();
                             tempObj.HandlingRequest = "";
-                            tempObj.MaxAfterWorkTime = 0;
                             tempObj.FreezeAfterWorkTime = false;
                             tempObj.OtherInfo = "";
                             var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "objtype_CSlotInfo"];
@@ -1220,83 +1219,152 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
 };
 
 
-var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, reason, otherInfo, callback) {
+var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, reason, otherInfo, direction, callback) {
     var slotInfoTags = [];
 
-    if (resourceid == "") {
-        slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "handlingrequest_" + sessionid];
-    }
-    else {
-        slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "resourceid_" + resourceid, "handlingrequest_" + sessionid];
-    }
+    if(direction === "outbound" && state === "Connected"){
 
-    SearchCSlotByTags(logKey, slotInfoTags, function (err, cslots) {
-        if (err) {
-            console.log(err);
-            callback(err, null);
-        }
-        else {
-            if(state == "Reject") {
-                UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, function (err, result, vid) {
-                    //callback(err, result);
-                });
-                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
-                redisHandler.Publish(logKey, "events", pubMessage, function () {
-                });
-            }
-            if (cslots != null && cslots.length > 0) {
-                for (var i in cslots) {
-                    var cs = cslots[i].Obj;
-                    if (cs.HandlingRequest == sessionid) {
-                        switch (state) {
-                            case "Reject":
-                                UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result){
-                                    callback(err, result);
-                                });
-                                break;
+        slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "resourceid_" + resourceid];
 
-                            case "Available":
-                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, "Available", function (err, result) {
-                                    callback(err, result);
-                                });
-                                break;
-
-                            case "Connected":
-                                UpdateSlotStateConnected(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result) {
-                                    callback(err, result);
-                                });
-                                break;
-
-                            case "Completed":
-                                UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result){
-                                    callback(err, result);
-                                });
-                                break;
-
-                            case "Freeze":
-                                SetSlotStateFreeze(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, function (err, result) {
-                                    callback(err, result);
-                                });
-                                break;
-
-                            case "EndFreeze":
-                                UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, "", "AfterWork", "EndFreeze", function (err, result) {
-                                    callback(err, result);
-                                });
-                                break;
-
-                            default :
-                                callback(err, "Invalid Request");
-                        }
-                        break;
-                    }
-                }
+        SearchCSlotByTags(logKey, slotInfoTags, function (err, cslots) {
+            if (err) {
+                console.log(err);
+                callback(err, null);
             }
             else {
-                callback(new Error("No Reserved Resource CSlot found for sessionId: " + sessionid), "Invalied Request");
+                if (cslots != null && cslots.length > 0) {
+                    var selectedSlot = undefined;
+
+                    if(cslots.length === 1){
+                        selectedSlot = cslots[0].Obj;
+                    }else {
+                        var reservedSlots = [];
+                        var afterWorkSlots = [];
+                        var connectedSlots = [];
+                        for (var i = 0; i < cslots.length; i++) {
+                            var cs = cslots[i].Obj;
+                            if (cs.State === "Available") {
+                                selectedSlot = cs;
+                                break;
+                            } else {
+                                switch (cs.State) {
+                                    case "Reserved":
+                                        reservedSlots.push(cs);
+                                        break;
+                                    case "AfterWork":
+                                        afterWorkSlots.push(cs);
+                                        break;
+                                    case "Connected":
+                                        connectedSlots.push(cs);
+                                        break;
+                                    default :
+                                        break;
+                                }
+                            }
+                        }
+
+                        if (!selectedSlot) {
+                            if (afterWorkSlots.length > 0) {
+                                selectedSlot = afterWorkSlots[0];
+                            } else if (reservedSlots.length > 0) {
+                                selectedSlot = reservedSlots[0];
+                            } else if(connectedSlots.length > 0){
+                                selectedSlot = connectedSlots[0];
+                            }
+                        }
+                    }
+
+
+                    if(selectedSlot){
+                        UpdateSlotStateConnected(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, otherInfo, function (err, result) {
+                            callback(err, result);
+                        });
+                    }else{
+                        callback(new Error("No Resource CSlot found"), "Invalid Request");
+                    }
+
+                }
+                else {
+                    callback(new Error("No Resource CSlot found"), "Invalid Request");
+                }
             }
+        });
+    }else {
+        if (resourceid == "") {
+            slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "handlingrequest_" + sessionid];
         }
-    });
+        else {
+            slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "resourceid_" + resourceid, "handlingrequest_" + sessionid];
+        }
+
+        SearchCSlotByTags(logKey, slotInfoTags, function (err, cslots) {
+            if (err) {
+                console.log(err);
+                callback(err, null);
+            }
+            else {
+                if (state == "Reject") {
+                    UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, function (err, result, vid) {
+                        //callback(err, result);
+                    });
+                    var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
+                    redisHandler.Publish(logKey, "events", pubMessage, function () {
+                    });
+                }
+                if (cslots != null && cslots.length > 0) {
+                    for (var i in cslots) {
+                        var cs = cslots[i].Obj;
+                        if (cs.HandlingRequest == sessionid) {
+                            switch (state) {
+                                case "Reject":
+                                    UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result) {
+                                        callback(err, result);
+                                    });
+                                    break;
+
+                                case "Available":
+                                    UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, "Available", function (err, result) {
+                                        callback(err, result);
+                                    });
+                                    break;
+
+                                case "Connected":
+                                    UpdateSlotStateConnected(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result) {
+                                        callback(err, result);
+                                    });
+                                    break;
+
+                                case "Completed":
+                                    UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result) {
+                                        callback(err, result);
+                                    });
+                                    break;
+
+                                case "Freeze":
+                                    SetSlotStateFreeze(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, function (err, result) {
+                                        callback(err, result);
+                                    });
+                                    break;
+
+                                case "EndFreeze":
+                                    UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, "", "AfterWork", "EndFreeze", function (err, result) {
+                                        callback(err, result);
+                                    });
+                                    break;
+
+                                default :
+                                    callback(err, "Invalid Request");
+                            }
+                            break;
+                        }
+                    }
+                }
+                else {
+                    callback(new Error("No Reserved Resource CSlot found for sessionId: " + sessionid), "Invalied Request");
+                }
+            }
+        });
+    }
 };
 
 var SearchCSlotByTags = function (logKey, tags, callback) {
