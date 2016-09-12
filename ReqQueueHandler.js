@@ -30,38 +30,40 @@ var AddRequestToQueue = function (logKey, request, callback) {
                             console.log("Hash Exists");
                             callback(err, "OK");
                         }else {
-                            redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
-                                if (err) {
-                                    console.log(err);
-                                    callback(err, "Failed");
-                                }
-                                else {
-                                    /*requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
-                                     console.log("set Request State QUEUED");
-                                     if (hresult == "0") {
-                                     //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
-                                     }
-                                     });
-                                     var pubQueueId = request.QueueId.replace(/:/g, "-");
-                                     var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
-                                     redisHandler.Publish(logKey, "events", pubMessage, function () {
-                                     });*/
-
-
-                                    redisHandler.RemoveItemFromList(logKey, request.QueueId, request.SessionId, function (err, result) {
-                                        if (err) {
-                                            console.log(err);
-                                        } else {
-                                            console.log("Remove queue item seccess");
-                                        }
-                                    });
-
-
-                                    console.log("Add item to Hash Success");
-                                    callback(err, "OK");
-                                }
-
-                            });
+                            SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash");
+                            console.log("Add item to Hash Success");
+                            callback(err, "OK");
+                            //redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
+                            //    if (err) {
+                            //        console.log(err);
+                            //        callback(err, "Failed");
+                            //    }
+                            //    else {
+                            //        /*requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
+                            //         console.log("set Request State QUEUED");
+                            //         if (hresult == "0") {
+                            //         //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                            //         }
+                            //         });
+                            //         var pubQueueId = request.QueueId.replace(/:/g, "-");
+                            //         var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
+                            //         redisHandler.Publish(logKey, "events", pubMessage, function () {
+                            //         });*/
+                            //
+                            //
+                            //        redisHandler.RemoveItemFromList(logKey, request.QueueId, request.SessionId, function (err, result) {
+                            //            if (err) {
+                            //                console.log(err);
+                            //            } else {
+                            //                console.log("Remove queue item seccess");
+                            //            }
+                            //        });
+                            //
+                            //
+                            //
+                            //    }
+                            //
+                            //});
                         }
                     }
                 });
@@ -107,34 +109,37 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
                             console.log("Hash Exsists");
                             callback(err, "OK");
                         }else{
-                            redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
-                                if (err) {
-                                    console.log(err);
-                                    callback(err, "Failed");
-                                }
-                                else {
-                                    /*requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
-                                     if (hresult == "0") {
-                                     //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
-                                     }
-                                     });*/
-
-
-
-                                    redisHandler.RemoveItemFromList(logKey, newQueueId, request.SessionId, function (err, result) {
-                                        if (err) {
-                                            console.log(err);
-                                        } else {
-                                            console.log("Remove queue item success");
-                                        }
-                                    });
-
-
-
-                                    console.log("Add item to Hash Success");
-                                    callback(err, "OK");
-                                }
-                            });
+                            SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash");
+                            console.log("Add item to Hash Success");
+                            callback(err, "OK");
+                            //redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
+                            //    if (err) {
+                            //        console.log(err);
+                            //        callback(err, "Failed");
+                            //    }
+                            //    else {
+                            //        /*requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
+                            //         if (hresult == "0") {
+                            //         //rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                            //         }
+                            //         });*/
+                            //
+                            //
+                            //
+                            //        redisHandler.RemoveItemFromList(logKey, newQueueId, request.SessionId, function (err, result) {
+                            //            if (err) {
+                            //                console.log(err);
+                            //            } else {
+                            //                console.log("Remove queue item success");
+                            //            }
+                            //        });
+                            //
+                            //
+                            //
+                            //        console.log("Add item to Hash Success");
+                            //        callback(err, "OK");
+                            //    }
+                            //});
                         }
                     }
                 });
@@ -228,7 +233,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                 console.log(err);
                 done();
             }else {
-                if (eSession && eSession == currentSession) {
+                if ((eSession && eSession == currentSession) || currentSession === "CreateHash") {
 
                     var rejectedQueueId = GetRejectedQueueId(queueId);
 
