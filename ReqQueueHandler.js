@@ -222,7 +222,7 @@ var GetNextRequestToProcess = function (logKey, queueId, callback) {
 var SetNextProcessingItem = function (logKey, queueId, processingHashId, currentSession) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetNextProcessingItem *************************', logKey);
     var setNextLock = util.format("setNextLock.%s", queueId);
-    redisHandler.RLock(setNextLock, 10000, function (done) {
+    redisHandler.RLock(setNextLock, 1000, function (done) {
         redisHandler.GetHashValue(logKey, processingHashId, queueId, function (err, eSession) {
             if(err){
                 console.log(err);
