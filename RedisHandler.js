@@ -741,11 +741,27 @@ var GetItemFromList = function (logKey, key, callback) {
 
     client.lpop(key, function (err, result) {
         if (err) {
-            infoLogger.DetailLogger.log('error', '%s GetItemFromList Error - key: %s :: Error: %s', logKey, key, error);
+            infoLogger.DetailLogger.log('error', '%s GetItemFromList Error - key: %s :: Error: %s', logKey, key, err);
             console.log(err);
             callback(err, null);
         } else {
             infoLogger.DetailLogger.log('info', '%s GetItemFromList - key: %s :: Reply: %s', logKey, key, result);
+            callback(null, result);
+        }
+    });
+};
+
+var GetLengthOfTheList = function (logKey, key, callback) {
+    infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
+    infoLogger.DetailLogger.log('info', '%s GetLengthOfTheList - key: %s', logKey, key);
+
+    client.llen(key, function (err, result) {
+        if (err) {
+            infoLogger.DetailLogger.log('error', '%s GetLengthOfTheList Error - key: %s :: Error: %s', logKey, key, err);
+            console.log(err);
+            callback(err, null);
+        } else {
+            infoLogger.DetailLogger.log('info', '%s GetLengthOfTheList - key: %s :: Reply: %s', logKey, key, result);
             callback(null, result);
         }
     });
@@ -757,7 +773,7 @@ var GetRangeFromList = function (logKey, key, callback) {
 
     client.lrange(key, 0, -1, function (err, result) {
         if (err) {
-            infoLogger.DetailLogger.log('error', '%s GetRangeFromList Error - key: %s :: Error: %s', logKey, key, error);
+            infoLogger.DetailLogger.log('error', '%s GetRangeFromList Error - key: %s :: Error: %s', logKey, key, err);
             console.log(err);
             callback(err, null);
         } else {
@@ -966,6 +982,7 @@ module.exports.CheckObjExists = CheckObjExists;
 module.exports.AddItemToListR = AddItemToListR;
 module.exports.AddItemToListL = AddItemToListL;
 module.exports.GetItemFromList = GetItemFromList;
+module.exports.GetLengthOfTheList = GetLengthOfTheList;
 module.exports.GetRangeFromList = GetRangeFromList;
 module.exports.RemoveItemFromList = RemoveItemFromList;
 
@@ -978,3 +995,5 @@ module.exports.RemoveHash = RemoveHash;
 module.exports.AddItemToHashNX = AddItemToHashNX;
 
 module.exports.Publish = Publish;
+
+module.exports.RLock = lock;
