@@ -264,6 +264,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
                     ResourceName: resObj.Result.ResourceName,
                     OtherInfo: resObj.Result.OtherData,
                     ConcurrencyInfo: [],
+                    LoginTasks:[],
                     ResourceAttributeInfo: []
                 };
 
@@ -272,6 +273,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
                         callback(err, msg, null);
                     }else{
                         var concurrencyInfo = [];
+                        var loginTasks = [];
                         var sci = SetConcurrencyInfo(preProcessResData.ConcurrencyInfo);
 
                         sci.on('concurrencyInfo', function (obj) {
@@ -332,6 +334,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
                                 };
                                 var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
                                 concurrencyInfo.push(cObjkey);
+                                loginTasks.push(cObjkey.HandlingType);
 
                                 var jsonConObj = JSON.stringify(concurrencyObj);
                                 redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
@@ -343,7 +346,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
                         });
 
                         sci.on('endconcurrencyInfo', function () {
-                            var resourceObj = { Company: preProcessResData.Company, Tenant: preProcessResData.Tenant, Class: preProcessResData.Class, Type: preProcessResData.Type, Category: preProcessResData.Category, ResourceId: preProcessResData.ResourceId, ResourceName: preProcessResData.ResourceName, ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo, ConcurrencyInfo: concurrencyInfo, OtherInfo: preProcessResData.OtherInfo };
+                            var resourceObj = { Company: preProcessResData.Company, Tenant: preProcessResData.Tenant, Class: preProcessResData.Class, Type: preProcessResData.Type, Category: preProcessResData.Category, ResourceId: preProcessResData.ResourceId, ResourceName: preProcessResData.ResourceName, ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo, ConcurrencyInfo: concurrencyInfo, LoginTasks: loginTasks, OtherInfo: preProcessResData.OtherInfo };
 
                             var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
                             var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "resourceid_" + resourceObj.ResourceId, "objtype_Resource"];
@@ -395,6 +398,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
     var preResourceData = resourceData.Obj;
     var cVid = resourceData.Vid;
     var concurrencyInfo = deepcopy(preResourceData.ConcurrencyInfo);
+    var loginTasks = deepcopy(preResourceData.LoginTasks);
     PreProcessResourceData(logKey, accessToken, preResourceData, basicData.HandlingTypes, function (err, msg, preProcessResData) {
         if (err) {
             callback(err, msg, null);
@@ -437,6 +441,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
 
                         var jsonConObj = JSON.stringify(concurrencyObj);
                         if (isExists == 0 || editType == "addResource") {
+                            loginTasks.push(cObjkey.HandlingType);
                             concurrencyInfo.push(cObjkey);
                             redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
                                 if (err) {
@@ -520,6 +525,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                     ResourceName: preProcessResData.ResourceName,
                     ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
                     ConcurrencyInfo: concurrencyInfo,
+                    LoginTasks: loginTasks,
                     OtherInfo: preProcessResData.OtherInfo
                 };
 
@@ -795,7 +801,11 @@ var GetResourceState = function (logKey, company, tenant, resourceId, callback) 
     var key = util.format('ResourceState:%s:%s:%s', company, tenant, resourceId);
     redisHandler.GetObj(logKey, key, function (err, result) {
         infoLogger.DetailLogger.log('info', '%s Finished GetResourceState. Result: %s', logKey, result);
-        callback(err, result);
+        if(result){
+            callback(err, JSON.parse(result));
+        }else {
+            callback(new Error("No Resource State Found"), null);
+        }
     });
 };
 
