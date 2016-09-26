@@ -573,7 +573,10 @@ var ShareResource = function(logKey, basicData, callback){
                     callback(err, reply, vid);
                 });
             }else{
-                callback(new Error("Resource Not Found"), null, null);
+                //callback(new Error("Resource Not Found"), null, null);
+                SetResourceLogin(logKey, basicData, function(err, reply, vid){
+                    callback(err, reply, vid);
+                });
             }
         }
     });
