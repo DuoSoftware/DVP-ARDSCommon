@@ -334,7 +334,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
                                 };
                                 var cObjTags = ["company_" + concurrencyObj.Company, "tenant_" + concurrencyObj.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
                                 concurrencyInfo.push(cObjkey);
-                                loginTasks.push(cObjkey.HandlingType);
+                                loginTasks.push(concurrencyObj.HandlingType);
 
                                 var jsonConObj = JSON.stringify(concurrencyObj);
                                 redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
@@ -441,7 +441,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
 
                         var jsonConObj = JSON.stringify(concurrencyObj);
                         if (isExists == 0 || editType == "addResource") {
-                            loginTasks.push(cObjkey.HandlingType);
+                            loginTasks.push(concurrencyObj.HandlingType);
                             concurrencyInfo.push(cObjkey);
                             redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
                                 if (err) {
