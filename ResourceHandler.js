@@ -412,10 +412,12 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                 if(validateHandlingType) {
                     //var concurrencySlotInfo = [];
                     var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType);
-                    redisHandler.CheckObjExists(logKey, cObjkey, function (cErr, isExists) {
-                        if (cErr) {
+                    redisHandler.GetObj(logKey, cObjkey, function (cErr, isExists) {
+                        if (cErr || !isExists) {
                             console.log(cErr);
-                            isExists = 0;
+                            isExists = undefined;
+                        }else{
+                            isExists = JSON.parse(isExists);
                         }
 
                         var tempRefInfoObj = validateHandlingType.Contact;//JSON.parse(obj.RefInfo);
@@ -440,7 +442,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                         var cObjTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
 
                         var jsonConObj = JSON.stringify(concurrencyObj);
-                        if (isExists == 0 || editType == "addResource") {
+                        if (!isExists || editType == "addResource") {
                             loginTasks.push(concurrencyObj.HandlingType);
                             concurrencyInfo.push(cObjkey);
                             redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
@@ -448,6 +450,15 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                                     console.log(err);
                                 }
                             });
+                        } else if(isExists && isExists.IsRejectCountExceeded == true){
+                            isExists.IsRejectCountExceeded = false;
+                            isExists.RejectCount = 0;
+                            redisHandler.SetObj_V_T(logKey, cObjkey, JSON.stringify(isExists), cObjTags, function (err, reply, vid) {
+                                if (err) {
+                                    console.log(err);
+                                }
+                            });
+
                         } else {
                             var tagMetaKey = util.format('tagMeta:%s', cObjkey);
                             redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
@@ -487,7 +498,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                             var slotInfoTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + slotInfo.HandlingType, "state_" + slotInfo.State, "resourceid_" + preProcessResData.ResourceId, "slotid_" + i, "objtype_CSlotInfo"];
 
                             var jsonSlotObj = JSON.stringify(slotInfo);
-                            if (isExists == 0 || editType == "addResource") {
+                            if (!isExists || editType == "addResource") {
                                 concurrencyInfo.push(slotInfokey);
                                 redisHandler.AddObj_V_T(logKey, slotInfokey, jsonSlotObj, slotInfoTags, function (err, reply, vid) {
                                     if (err) {
