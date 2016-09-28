@@ -228,6 +228,7 @@ var SetObj_T = function (logKey, key, obj, tags, callback) {
                 if (err) {
                     done();
                     console.log(error);
+                    callback(err, null);
                 }
                 else if (reply === "OK") {
                     client.set(key, obj, function (error, reply) {
@@ -235,14 +236,19 @@ var SetObj_T = function (logKey, key, obj, tags, callback) {
                         if (error) {
                             infoLogger.DetailLogger.log('error', '%s SetObj_T Error - key: %s :: Error: %s', logKey, key, error);
                             console.log(error);
+                            callback(error, null);
                         }
                         else {
                             infoLogger.DetailLogger.log('info', '%s SetObj_T Success - key: %s', logKey, key);
                             callback(null, reply);
                         }
                     });
+                }else{
+                    callback(new Error("redis set faied"), null);
                 }
             });
+        }else{
+            callback(new Error("emppty tag array"), null);
         }
     });
 };

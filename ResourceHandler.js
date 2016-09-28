@@ -453,7 +453,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                         } else if(isExists && isExists.IsRejectCountExceeded == true){
                             isExists.IsRejectCountExceeded = false;
                             isExists.RejectCount = 0;
-                            redisHandler.SetObj_V_T(logKey, cObjkey, JSON.stringify(isExists), cObjTags, function (err, reply, vid) {
+                            redisHandler.SetObj_T(logKey, cObjkey, JSON.stringify(isExists), cObjTags, function (err, reply) {
                                 if (err) {
                                     console.log(err);
                                 }
