@@ -319,7 +319,7 @@ var GetRejectedQueueId = function(queueId){
     return util.format("%s:%s", splitQueueId.join(":"), "REJECTED");
 };
 
-var SendQueuePositionInfo = function(logKey, url, queueId, callback){
+var SendQueuePositionInfo = function(logKey, url, queueId, callbackOption, callback){
     infoLogger.DetailLogger.log('info', '%s:Queue: %s ************************* Start SendQueuePositionInfo *************************', logKey, queueId);
     redisHandler.GetRangeFromList(logKey, queueId, function(err, result){
         if(err){
@@ -328,14 +328,25 @@ var SendQueuePositionInfo = function(logKey, url, queueId, callback){
             for (var i=0; i< result.length; i++) {
                 var item = result[i];
                 if(item){
-                    var body = {SessionId: item, QueueId: queueId, QueuePosition: i+1};
-                    restClientHandler.DoPostDirect(url, body, function (err, res, result){
-                        if(err){
-                            console.log(err);
-                        }else{
-                            console.log("SendQueuePositionInfo: %s: %s", item, result);
-                        }
-                    });
+                    var queuePosition = i+1;
+                    var body = {SessionId: item, QueueId: queueId, QueuePosition: queuePosition.toString()};
+                    if(callbackOption == "GET") {
+                        restClientHandler.DoGetDirect(url, body, function (err, res, result) {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                console.log("SendQueuePositionInfo: %s", result);
+                            }
+                        });
+                    }else {
+                        restClientHandler.DoPostDirect(url, body, function (err, res, result) {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                console.log("SendQueuePositionInfo: %s", result);
+                            }
+                        });
+                    }
                 }
             }
         }
