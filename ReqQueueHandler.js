@@ -11,10 +11,11 @@ var AddRequestToQueue = function (logKey, request, callback) {
     redisHandler.AddItemToListR(logKey, request.QueueId, request.SessionId, function (err, result) {
         if (err) {
             console.log(err);
-            callback(err, "Failed");
+            callback(err, "Failed", null);
         }
         else {
             if (parseInt(result) > 0) {
+                var queuePosition = result;
                 requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
                     console.log("set Request State QUEUED");
                 });
@@ -24,15 +25,15 @@ var AddRequestToQueue = function (logKey, request, callback) {
                 redisHandler.CheckHashFieldExists(logKey, hashKey, request.QueueId, function (err, hresult, result) {
                     if (err) {
                         console.log(err);
-                        callback(err, "Failed");
+                        callback(err, "Failed", null);
                     }else {
                         if(result == "1"){
                             console.log("Hash Exists");
-                            callback(err, "OK");
+                            callback(err, "OK", queuePosition);
                         }else {
                             SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function(result){});
                             console.log("Add item to Hash Success");
-                            callback(err, "OK");
+                            callback(err, "OK", queuePosition);
                             //redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
                             //    if (err) {
                             //        console.log(err);
