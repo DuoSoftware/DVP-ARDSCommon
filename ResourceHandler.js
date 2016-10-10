@@ -761,7 +761,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                     }
                 });
             }else{
-                callback(new Error("No logged in Resource Found."), reply, vid);
+                callback(new Error("No logged in Resource Found."), null, null);
             }
         }
     });
