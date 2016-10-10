@@ -662,93 +662,107 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
             callback(err, null, null);
         }
         else {
-            var preResourceData = strObj[0].Obj;
-            var cVid = strObj[0].Vid;
-            var concurrencyInfo = deepcopy(preResourceData.ConcurrencyInfo);
-            var htArray = [{"Type":handlingType}];
-            PreProcessResourceData(logKey, accessToken, preResourceData, htArray,function(err, msg, preProcessResData, attributeToRemove){
-                if(err){
-                    callback(err, msg, null);
-                }else{
-                    var sci = SetConcurrencyInfo(preProcessResData.ConcurrencyInfo);
+            if(strObj && Array.isArray(strObj) && strObj.length > 0) {
+                var preResourceData = strObj[0].Obj;
+                var cVid = strObj[0].Vid;
+                var concurrencyInfo = deepcopy(preResourceData.ConcurrencyInfo);
+                var htArray = [{"Type": handlingType}];
+                PreProcessResourceData(logKey, accessToken, preResourceData, htArray, function (err, msg, preProcessResData, attributeToRemove) {
+                    if (err) {
+                        callback(err, msg, null);
+                    } else {
+                        var sci = SetConcurrencyInfo(preProcessResData.ConcurrencyInfo);
 
-                    sci.on('concurrencyInfo', function (obj) {
-                        //Validate login request with handling type
-                        if(obj.HandlingType == handlingType) {
-                            //var concurrencySlotInfo = [];
-                            var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType);
-                            redisHandler.CheckObjExists(logKey,cObjkey,function(cErr, isExists){
-                                if(cErr){
-                                    console.log(cErr);
-                                    isExists = 0;
-                                }
-                                if (isExists == 1) {
-                                    var tagMetaKey = util.format('tagMeta:%s', cObjkey);
-                                    redisHandler.GetObj(logKey,tagMetaKey,function(err, ceTags){
-                                        if(ceTags){
-                                            var newCompany = util.format('company_%s',company);
-                                            commonMethods.RemoveTagFromTagStr(ceTags, newCompany, function(newTags){
-                                                redisHandler.SetTags(logKey, newTags,cObjkey,function(err, reply){
-                                                    if (err) {
-                                                        console.log(err);
-                                                    }
-                                                } );
-                                            });
-                                        }
-                                    });
-                                }
-
-                                for (var i = 0; i < obj.NoOfSlots; i++) {
-                                    var slotInfokey = util.format('CSlotInfo:%d:%d:%s:%s:%d', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType, i);
-
+                        sci.on('concurrencyInfo', function (obj) {
+                            //Validate login request with handling type
+                            if (obj.HandlingType == handlingType) {
+                                //var concurrencySlotInfo = [];
+                                var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType);
+                                redisHandler.CheckObjExists(logKey, cObjkey, function (cErr, isExists) {
+                                    if (cErr) {
+                                        console.log(cErr);
+                                        isExists = 0;
+                                    }
                                     if (isExists == 1) {
-                                        var slotTagMetaKey = util.format('tagMeta:%s', slotInfokey);
-                                        redisHandler.GetObj(logKey,slotTagMetaKey,function(err, seTags){
-                                            if(seTags){
-                                                var newCompany = util.format('company_%s',company);
-                                                commonMethods.RemoveTagFromTagStr(seTags, newCompany, function(newsTags){
-                                                    redisHandler.SetTags(logKey, newsTags,slotInfokey,function(err, reply){
+                                        var tagMetaKey = util.format('tagMeta:%s', cObjkey);
+                                        redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
+                                            if (ceTags) {
+                                                var newCompany = util.format('company_%s', company);
+                                                commonMethods.RemoveTagFromTagStr(ceTags, newCompany, function (newTags) {
+                                                    redisHandler.SetTags(logKey, newTags, cObjkey, function (err, reply) {
                                                         if (err) {
                                                             console.log(err);
                                                         }
-                                                    } );
+                                                    });
                                                 });
                                             }
                                         });
                                     }
-                                }
-                            });
-                        }
-                    });
 
-                    sci.on('endconcurrencyInfo', function () {
-                        var resourceObj = { Company: preProcessResData.Company, Tenant: preProcessResData.Tenant, Class: preProcessResData.Class, Type: preProcessResData.Type, Category: preProcessResData.Category, ResourceId: preProcessResData.ResourceId, ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo, ConcurrencyInfo: concurrencyInfo, OtherInfo: preProcessResData.OtherInfo };
+                                    for (var i = 0; i < obj.NoOfSlots; i++) {
+                                        var slotInfokey = util.format('CSlotInfo:%d:%d:%s:%s:%d', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType, i);
 
-                        var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
-
-                        var tagMetaKey = util.format('tagMeta:%s', key);
-                        redisHandler.GetObj(logKey,tagMetaKey,function(err, reTags){
-                            if(reTags){
-                                var tagsToRemove = [util.format('company_%s',company)];
-
-                                for (var i in attributeToRemove) {
-                                    tagsToRemove.push("attribute_" + attributeToRemove[i].Attribute);
-                                    resourceObj.ResourceAttributeInfo = commonMethods.RemoveItemFromObjectArray(resourceObj.ResourceAttributeInfo, 'Attribute', attributeToRemove[i].Attribute);
-                                }
-
-                                commonMethods.RemoveTagsFromTagArray(reTags, tagsToRemove, function(newTags){
-                                    var jsonObj = JSON.stringify(resourceObj);
-
-                                    redisHandler.SetObj_V_T(logKey, key, jsonObj, newTags, cVid.toString(), function (err, reply, vid) {
-                                        infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
-                                        callback(err, reply, vid);
-                                    });
+                                        if (isExists == 1) {
+                                            var slotTagMetaKey = util.format('tagMeta:%s', slotInfokey);
+                                            redisHandler.GetObj(logKey, slotTagMetaKey, function (err, seTags) {
+                                                if (seTags) {
+                                                    var newCompany = util.format('company_%s', company);
+                                                    commonMethods.RemoveTagFromTagStr(seTags, newCompany, function (newsTags) {
+                                                        redisHandler.SetTags(logKey, newsTags, slotInfokey, function (err, reply) {
+                                                            if (err) {
+                                                                console.log(err);
+                                                            }
+                                                        });
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    }
                                 });
                             }
                         });
-                    });
-                }
-            });
+
+                        sci.on('endconcurrencyInfo', function () {
+                            var resourceObj = {
+                                Company: preProcessResData.Company,
+                                Tenant: preProcessResData.Tenant,
+                                Class: preProcessResData.Class,
+                                Type: preProcessResData.Type,
+                                Category: preProcessResData.Category,
+                                ResourceId: preProcessResData.ResourceId,
+                                ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
+                                ConcurrencyInfo: concurrencyInfo,
+                                OtherInfo: preProcessResData.OtherInfo
+                            };
+
+                            var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
+
+                            var tagMetaKey = util.format('tagMeta:%s', key);
+                            redisHandler.GetObj(logKey, tagMetaKey, function (err, reTags) {
+                                if (reTags) {
+                                    var tagsToRemove = [util.format('company_%s', company)];
+
+                                    for (var i in attributeToRemove) {
+                                        tagsToRemove.push("attribute_" + attributeToRemove[i].Attribute);
+                                        resourceObj.ResourceAttributeInfo = commonMethods.RemoveItemFromObjectArray(resourceObj.ResourceAttributeInfo, 'Attribute', attributeToRemove[i].Attribute);
+                                    }
+
+                                    commonMethods.RemoveTagsFromTagArray(reTags, tagsToRemove, function (newTags) {
+                                        var jsonObj = JSON.stringify(resourceObj);
+
+                                        redisHandler.SetObj_V_T(logKey, key, jsonObj, newTags, cVid.toString(), function (err, reply, vid) {
+                                            infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
+                                            callback(err, reply, vid);
+                                        });
+                                    });
+                                }
+                            });
+                        });
+                    }
+                });
+            }else{
+                callback(new Error("No logged in Resource Found."), reply, vid);
+            }
         }
     });
 };
