@@ -666,6 +666,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                 var preResourceData = strObj[0].Obj;
                 var cVid = strObj[0].Vid;
                 var concurrencyInfo = deepcopy(preResourceData.ConcurrencyInfo);
+                var loginTasks = deepcopy(preResourceData.LoginTasks);
                 var htArray = [{"Type": handlingType}];
                 PreProcessResourceData(logKey, accessToken, preResourceData, htArray, function (err, msg, preProcessResData, attributeToRemove) {
                     if (err) {
@@ -689,11 +690,31 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                             if (ceTags) {
                                                 var newCompany = util.format('company_%s', company);
                                                 commonMethods.RemoveTagFromTagStr(ceTags, newCompany, function (newTags) {
-                                                    redisHandler.SetTags(logKey, newTags, cObjkey, function (err, reply) {
-                                                        if (err) {
-                                                            console.log(err);
-                                                        }
-                                                    });
+                                                    if(newTags.includes("company_")) {
+                                                        redisHandler.SetTags(logKey, newTags, cObjkey, function (err, reply) {
+                                                            if (err) {
+                                                                console.log(err);
+                                                            }
+                                                        });
+                                                    }else{
+                                                        var slotInfoTags = commonMethods.ConvertTagStrToArray(newTags, function (slotInfoTags) {
+                                                            redisHandler.RemoveObj_V_T(logKey, cObjkey, slotInfoTags, function (err, result) {
+                                                                if (err) {
+                                                                    console.log(err);
+                                                                }else{
+                                                                    var loginTaskIndex = loginTasks.indexOf(handlingType);
+                                                                    var cInfoIndex = concurrencyInfo.indexOf(cObjkey);
+                                                                    if(loginTaskIndex > -1){
+                                                                        loginTasks.splice(loginTaskIndex, -1);
+                                                                    }
+                                                                    if(cInfoIndex > -1) {
+                                                                        concurrencyInfo.splice(cInfoIndex, -1);
+                                                                    }
+                                                                    console.log("Remove Concurrency Obj:: "+ result);
+                                                                }
+                                                            });
+                                                        });
+                                                    }
                                                 });
                                             }
                                         });
@@ -708,11 +729,27 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                 if (seTags) {
                                                     var newCompany = util.format('company_%s', company);
                                                     commonMethods.RemoveTagFromTagStr(seTags, newCompany, function (newsTags) {
-                                                        redisHandler.SetTags(logKey, newsTags, slotInfokey, function (err, reply) {
-                                                            if (err) {
-                                                                console.log(err);
-                                                            }
-                                                        });
+                                                        if(newTags.includes("company_")) {
+                                                            redisHandler.SetTags(logKey, newsTags, slotInfokey, function (err, reply) {
+                                                                if (err) {
+                                                                    console.log(err);
+                                                                }
+                                                            });
+                                                        }else{
+                                                            var slotInfoTags = commonMethods.ConvertTagStrToArray(newsTags, function (slotInfoTags) {
+                                                                redisHandler.RemoveObj_V_T(logKey, slotInfokey, slotInfoTags, function (err, result) {
+                                                                    if (err) {
+                                                                        console.log(err);
+                                                                    }else{
+                                                                        var cInfoIndex = concurrencyInfo.indexOf(slotInfokey);
+                                                                        if(cInfoIndex > -1) {
+                                                                            concurrencyInfo.splice(cInfoIndex, -1);
+                                                                        }
+                                                                        console.log("Remove ConcurrencySlot Obj:: "+ result);
+                                                                    }
+                                                                });
+                                                            });
+                                                        }
                                                     });
                                                 }
                                             });
@@ -730,8 +767,10 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                 Type: preProcessResData.Type,
                                 Category: preProcessResData.Category,
                                 ResourceId: preProcessResData.ResourceId,
+                                ResourceName: preProcessResData.ResourceName,
                                 ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
                                 ConcurrencyInfo: concurrencyInfo,
+                                LoginTasks: loginTasks,
                                 OtherInfo: preProcessResData.OtherInfo
                             };
 

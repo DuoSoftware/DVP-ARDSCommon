@@ -29,7 +29,7 @@ var AddRequestToQueue = function (logKey, request, callback) {
                     }else {
                         if(result == "1"){
                             console.log("Hash Exists");
-                            callback(err, "OK", queuePosition);
+                            callback(err, "OK", queuePosition + 1);
                         }else {
                             SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function(result){});
                             console.log("Add item to Hash Success");
@@ -326,27 +326,29 @@ var SendQueuePositionInfo = function(logKey, url, queueId, callbackOption, callb
         if(err){
             console.log(err);
         }else{
-            for (var i=0; i< result.length; i++) {
-                var item = result[i];
-                if(item){
-                    var queuePosition = i+1;
-                    var body = {SessionId: item, QueueId: queueId, QueuePosition: queuePosition.toString()};
-                    if(callbackOption == "GET") {
-                        restClientHandler.DoGetDirect(url, body, function (err, res, result) {
-                            if (err) {
-                                console.log(err);
-                            } else {
-                                console.log("SendQueuePositionInfo: %s", result);
-                            }
-                        });
-                    }else {
-                        restClientHandler.DoPostDirect(url, body, function (err, res, result) {
-                            if (err) {
-                                console.log(err);
-                            } else {
-                                console.log("SendQueuePositionInfo: %s", result);
-                            }
-                        });
+            if(result) {
+                for (var i = 0; i < result.length; i++) {
+                    var item = result[i];
+                    if (item) {
+                        var queuePosition = i + 2;
+                        var body = {SessionId: item, QueueId: queueId, QueuePosition: queuePosition.toString()};
+                        if (callbackOption == "GET") {
+                            restClientHandler.DoGetDirect(url, body, function (err, res, result) {
+                                if (err) {
+                                    console.log(err);
+                                } else {
+                                    console.log("SendQueuePositionInfo: %s", result);
+                                }
+                            });
+                        } else {
+                            restClientHandler.DoPostDirect(url, body, function (err, res, result) {
+                                if (err) {
+                                    console.log(err);
+                                } else {
+                                    console.log("SendQueuePositionInfo: %s", result);
+                                }
+                            });
+                        }
                     }
                 }
             }
