@@ -443,8 +443,10 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
 
                         var jsonConObj = JSON.stringify(concurrencyObj);
                         if (!isExists || editType == "addResource") {
-                            loginTasks.push(concurrencyObj.HandlingType);
-                            concurrencyInfo.push(cObjkey);
+                            if(concurrencyInfo.indexOf(cObjkey) === -1) {
+                                loginTasks.push(concurrencyObj.HandlingType);
+                                concurrencyInfo.push(cObjkey);
+                            }
                             redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
                                 if (err) {
                                     console.log(err);
@@ -499,7 +501,9 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
 
                             var jsonSlotObj = JSON.stringify(slotInfo);
                             if (!isExists || editType == "addResource") {
-                                concurrencyInfo.push(slotInfokey);
+                                if(concurrencyInfo.indexOf(slotInfokey) === -1) {
+                                    concurrencyInfo.push(slotInfokey);
+                                }
                                 redisHandler.AddObj_V_T(logKey, slotInfokey, jsonSlotObj, slotInfoTags, function (err, reply, vid) {
                                     if (err) {
                                         console.log(err);
@@ -697,7 +701,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                             }
                                                         });
                                                     }else{
-                                                        var slotInfoTags = commonMethods.ConvertTagStrToArray(newTags, function (slotInfoTags) {
+                                                        commonMethods.ConvertTagStrToArray(newTags, function (slotInfoTags) {
                                                             redisHandler.RemoveObj_V_T(logKey, cObjkey, slotInfoTags, function (err, result) {
                                                                 if (err) {
                                                                     console.log(err);
@@ -729,14 +733,14 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                 if (seTags) {
                                                     var newCompany = util.format('company_%s', company);
                                                     commonMethods.RemoveTagFromTagStr(seTags, newCompany, function (newsTags) {
-                                                        if(newTags.includes("company_")) {
+                                                        if(newsTags.includes("company_")) {
                                                             redisHandler.SetTags(logKey, newsTags, slotInfokey, function (err, reply) {
                                                                 if (err) {
                                                                     console.log(err);
                                                                 }
                                                             });
                                                         }else{
-                                                            var slotInfoTags = commonMethods.ConvertTagStrToArray(newsTags, function (slotInfoTags) {
+                                                            commonMethods.ConvertTagStrToArray(newsTags, function (slotInfoTags) {
                                                                 redisHandler.RemoveObj_V_T(logKey, slotInfokey, slotInfoTags, function (err, result) {
                                                                     if (err) {
                                                                         console.log(err);
@@ -760,42 +764,45 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                         });
 
                         sci.on('endconcurrencyInfo', function () {
-                            var resourceObj = {
-                                Company: preProcessResData.Company,
-                                Tenant: preProcessResData.Tenant,
-                                Class: preProcessResData.Class,
-                                Type: preProcessResData.Type,
-                                Category: preProcessResData.Category,
-                                ResourceId: preProcessResData.ResourceId,
-                                ResourceName: preProcessResData.ResourceName,
-                                ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
-                                ConcurrencyInfo: concurrencyInfo,
-                                LoginTasks: loginTasks,
-                                OtherInfo: preProcessResData.OtherInfo
-                            };
+                            setTimeout(function(){
 
-                            var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
+                                var resourceObj = {
+                                    Company: preProcessResData.Company,
+                                    Tenant: preProcessResData.Tenant,
+                                    Class: preProcessResData.Class,
+                                    Type: preProcessResData.Type,
+                                    Category: preProcessResData.Category,
+                                    ResourceId: preProcessResData.ResourceId,
+                                    ResourceName: preProcessResData.ResourceName,
+                                    ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
+                                    ConcurrencyInfo: concurrencyInfo,
+                                    LoginTasks: loginTasks,
+                                    OtherInfo: preProcessResData.OtherInfo
+                                };
 
-                            var tagMetaKey = util.format('tagMeta:%s', key);
-                            redisHandler.GetObj(logKey, tagMetaKey, function (err, reTags) {
-                                if (reTags) {
-                                    var tagsToRemove = [util.format('company_%s', company)];
+                                var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
 
-                                    for (var i in attributeToRemove) {
-                                        tagsToRemove.push("attribute_" + attributeToRemove[i].Attribute);
-                                        resourceObj.ResourceAttributeInfo = commonMethods.RemoveItemFromObjectArray(resourceObj.ResourceAttributeInfo, 'Attribute', attributeToRemove[i].Attribute);
-                                    }
+                                var tagMetaKey = util.format('tagMeta:%s', key);
+                                redisHandler.GetObj(logKey, tagMetaKey, function (err, reTags) {
+                                    if (reTags) {
+                                        var tagsToRemove = [util.format('company_%s', company)];
 
-                                    commonMethods.RemoveTagsFromTagArray(reTags, tagsToRemove, function (newTags) {
-                                        var jsonObj = JSON.stringify(resourceObj);
+                                        for (var i in attributeToRemove) {
+                                            tagsToRemove.push("attribute_" + attributeToRemove[i].Attribute);
+                                            resourceObj.ResourceAttributeInfo = commonMethods.RemoveItemFromObjectArray(resourceObj.ResourceAttributeInfo, 'Attribute', attributeToRemove[i].Attribute);
+                                        }
 
-                                        redisHandler.SetObj_V_T(logKey, key, jsonObj, newTags, cVid.toString(), function (err, reply, vid) {
-                                            infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
-                                            callback(err, reply, vid);
+                                        commonMethods.RemoveTagsFromTagArray(reTags, tagsToRemove, function (newTags) {
+                                            var jsonObj = JSON.stringify(resourceObj);
+
+                                            redisHandler.SetObj_V_T(logKey, key, jsonObj, newTags, cVid.toString(), function (err, reply, vid) {
+                                                infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
+                                                callback(err, reply, vid);
+                                            });
                                         });
-                                    });
-                                }
-                            });
+                                    }
+                                });
+                            }, 2000);
                         });
                     }
                 });
