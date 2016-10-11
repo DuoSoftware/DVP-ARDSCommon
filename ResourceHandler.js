@@ -709,10 +709,10 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                                     var loginTaskIndex = loginTasks.indexOf(handlingType);
                                                                     var cInfoIndex = concurrencyInfo.indexOf(cObjkey);
                                                                     if(loginTaskIndex > -1){
-                                                                        loginTasks.splice(loginTaskIndex, -1);
+                                                                        loginTasks.splice(loginTaskIndex, 1);
                                                                     }
                                                                     if(cInfoIndex > -1) {
-                                                                        concurrencyInfo.splice(cInfoIndex, -1);
+                                                                        concurrencyInfo.splice(cInfoIndex, 1);
                                                                     }
                                                                     console.log("Remove Concurrency Obj:: "+ result);
                                                                 }
@@ -747,7 +747,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                                     }else{
                                                                         var cInfoIndex = concurrencyInfo.indexOf(slotInfokey);
                                                                         if(cInfoIndex > -1) {
-                                                                            concurrencyInfo.splice(cInfoIndex, -1);
+                                                                            concurrencyInfo.splice(cInfoIndex, 1);
                                                                         }
                                                                         console.log("Remove ConcurrencySlot Obj:: "+ result);
                                                                     }
@@ -764,45 +764,69 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                         });
 
                         sci.on('endconcurrencyInfo', function () {
-                            setTimeout(function(){
 
-                                var resourceObj = {
-                                    Company: preProcessResData.Company,
-                                    Tenant: preProcessResData.Tenant,
-                                    Class: preProcessResData.Class,
-                                    Type: preProcessResData.Type,
-                                    Category: preProcessResData.Category,
-                                    ResourceId: preProcessResData.ResourceId,
-                                    ResourceName: preProcessResData.ResourceName,
-                                    ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
-                                    ConcurrencyInfo: concurrencyInfo,
-                                    LoginTasks: loginTasks,
-                                    OtherInfo: preProcessResData.OtherInfo
-                                };
+                            var resourceObj = {
+                                Company: preProcessResData.Company,
+                                Tenant: preProcessResData.Tenant,
+                                Class: preProcessResData.Class,
+                                Type: preProcessResData.Type,
+                                Category: preProcessResData.Category,
+                                ResourceId: preProcessResData.ResourceId,
+                                ResourceName: preProcessResData.ResourceName,
+                                ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
+                                ConcurrencyInfo: concurrencyInfo,
+                                LoginTasks: loginTasks,
+                                OtherInfo: preProcessResData.OtherInfo
+                            };
 
-                                var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
+                            var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
 
-                                var tagMetaKey = util.format('tagMeta:%s', key);
-                                redisHandler.GetObj(logKey, tagMetaKey, function (err, reTags) {
-                                    if (reTags) {
-                                        var tagsToRemove = [util.format('company_%s', company)];
+                            var tagMetaKey = util.format('tagMeta:%s', key);
+                            redisHandler.GetObj(logKey, tagMetaKey, function (err, reTags) {
+                                if (reTags) {
+                                    var tagsToRemove = [util.format('company_%s', company)];
 
-                                        for (var i in attributeToRemove) {
-                                            tagsToRemove.push("attribute_" + attributeToRemove[i].Attribute);
-                                            resourceObj.ResourceAttributeInfo = commonMethods.RemoveItemFromObjectArray(resourceObj.ResourceAttributeInfo, 'Attribute', attributeToRemove[i].Attribute);
+                                    var handlingTypesToRemove = [];
+                                    for (var i in attributeToRemove) {
+                                        if(handlingTypesToRemove.indexOf(attributeToRemove[i].HandlingType) === -1) {
+                                            handlingTypesToRemove.push(attributeToRemove[i].HandlingType);
                                         }
-
-                                        commonMethods.RemoveTagsFromTagArray(reTags, tagsToRemove, function (newTags) {
-                                            var jsonObj = JSON.stringify(resourceObj);
-
-                                            redisHandler.SetObj_V_T(logKey, key, jsonObj, newTags, cVid.toString(), function (err, reply, vid) {
-                                                infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
-                                                callback(err, reply, vid);
-                                            });
-                                        });
+                                        tagsToRemove.push("attribute_" + attributeToRemove[i].Attribute);
+                                        resourceObj.ResourceAttributeInfo = commonMethods.RemoveItemFromObjectArray(resourceObj.ResourceAttributeInfo, 'Attribute', attributeToRemove[i].Attribute);
                                     }
-                                });
-                            }, 2000);
+
+                                    var cInfoCopy = deepcopy(concurrencyInfo);
+                                    var tInfoCopy = deepcopy(loginTasks);
+
+                                    for(var k in handlingTypesToRemove){
+                                        for(var j in cInfoCopy) {
+                                            var cIndex = cInfoCopy[j].indexOf(handlingTypesToRemove[k]);
+                                            if (cIndex > -1) {
+                                                var removeIndex = resourceObj.ConcurrencyInfo.indexOf(cInfoCopy[j]);
+                                                if(removeIndex > -1) {
+                                                    resourceObj.ConcurrencyInfo.splice(removeIndex, 1);
+                                                }
+                                            }
+                                        }
+                                        //for(var l in tInfoCopy) {
+                                        var tIndex = tInfoCopy.indexOf(handlingTypesToRemove[k]);
+                                        if (tIndex > -1) {
+                                            resourceObj.LoginTasks.splice(tIndex, 1);
+                                        }
+                                        //}
+                                    }
+
+
+                                    commonMethods.RemoveTagsFromTagArray(reTags, tagsToRemove, function (newTags) {
+                                        var jsonObj = JSON.stringify(resourceObj);
+
+                                        redisHandler.SetObj_V_T(logKey, key, jsonObj, newTags, cVid.toString(), function (err, reply, vid) {
+                                            infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
+                                            callback(err, reply, vid);
+                                        });
+                                    });
+                                }
+                            });
                         });
                     }
                 });
