@@ -706,14 +706,6 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                                 if (err) {
                                                                     console.log(err);
                                                                 }else{
-                                                                    var loginTaskIndex = loginTasks.indexOf(handlingType);
-                                                                    var cInfoIndex = concurrencyInfo.indexOf(cObjkey);
-                                                                    if(loginTaskIndex > -1){
-                                                                        loginTasks.splice(loginTaskIndex, 1);
-                                                                    }
-                                                                    if(cInfoIndex > -1) {
-                                                                        concurrencyInfo.splice(cInfoIndex, 1);
-                                                                    }
                                                                     console.log("Remove Concurrency Obj:: "+ result);
                                                                 }
                                                             });
@@ -745,10 +737,6 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                                     if (err) {
                                                                         console.log(err);
                                                                     }else{
-                                                                        var cInfoIndex = concurrencyInfo.indexOf(slotInfokey);
-                                                                        if(cInfoIndex > -1) {
-                                                                            concurrencyInfo.splice(cInfoIndex, 1);
-                                                                        }
                                                                         console.log("Remove ConcurrencySlot Obj:: "+ result);
                                                                     }
                                                                 });
