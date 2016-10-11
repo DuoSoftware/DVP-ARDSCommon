@@ -257,11 +257,11 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                                 console.log(err);
                                             }
                                             else {
-                                                if (result == "1") {
-                                                    console.log("Remove HashField Success.." + _processingHash + "::" + _queueId);
+                                                if (result === 1) {
+                                                    console.log("Remove HashField Success.." + processingHashId + "::" + queueId);
                                                 }
                                                 else {
-                                                    console.log("Remove HashField Failed.." + _processingHash + "::" + _queueId);
+                                                    console.log("Remove HashField Failed.." + processingHashId + "::" + queueId);
                                                 }
                                             }
                                             callback("done");
@@ -273,12 +273,12 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                                 console.log(err);
                                             }
                                             else {
-                                                if (result == "1") {
-                                                    console.log("Set HashField Success.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
+                                                if (result === 1 || result === 0) {
+                                                    console.log("Set HashField Success.." + processingHashId + "::" + queueId + "::" + nextQueueItem);
                                                     SendProcessingQueueInfo(logKey, queueId, nextQueueItem, function(){});
                                                 }
                                                 else {
-                                                    console.log("Set HashField Failed.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
+                                                    console.log("Set HashField Failed.." + processingHashId + "::" + queueId + "::" + nextQueueItem);
                                                 }
                                             }
                                             callback("done");
@@ -292,11 +292,11 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                     console.log(err);
                                 }
                                 else {
-                                    if (result == "1") {
-                                        console.log("Set HashField Success.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
+                                    if (result === 1 || result === 0) {
+                                        console.log("Set HashField Success.." + processingHashId + "::" + queueId + "::" + nextRejectQueueItem);
                                     }
                                     else {
-                                        console.log("Set HashField Failed.." + _processingHash + "::" + _queueId + "::" + nextQueueItem);
+                                        console.log("Set HashField Failed.." + processingHashId + "::" + queueId + "::" + nextRejectQueueItem);
                                     }
                                 }
 
