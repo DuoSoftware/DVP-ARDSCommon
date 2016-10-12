@@ -10,6 +10,7 @@ var resourceService = require('./services/resourceService');
 var resourceStateMapper = require('./ResourceStateMapper');
 var deepcopy = require("deepcopy");
 var commonMethods = require('./CommonMethods');
+var notificationService = require('./services/notificationService');
 
 var SetProductivityData = function(logKey, company, tenant, resourceId, eventType){
     try{
@@ -262,6 +263,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
                     Category: resObj.Result.ResCategory,
                     ResourceId: resObj.Result.ResourceId.toString(),
                     ResourceName: resObj.Result.ResourceName,
+                    UserName: basicData.UserName,
                     OtherInfo: resObj.Result.OtherData,
                     ConcurrencyInfo: [],
                     LoginTasks:[],
@@ -329,6 +331,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
                                     MaxRejectCount: 10,
                                     IsRejectCountExceeded: false,
                                     ResourceId: preProcessResData.ResourceId,
+                                    UserName: basicData.UserName,
                                     ObjKey: cObjkey,
                                     RefInfo: tempRefInfoObjStr
                                 };
@@ -346,7 +349,20 @@ var SetResourceLogin = function(logKey, basicData, callback){
                         });
 
                         sci.on('endconcurrencyInfo', function () {
-                            var resourceObj = { Company: preProcessResData.Company, Tenant: preProcessResData.Tenant, Class: preProcessResData.Class, Type: preProcessResData.Type, Category: preProcessResData.Category, ResourceId: preProcessResData.ResourceId, ResourceName: preProcessResData.ResourceName, ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo, ConcurrencyInfo: concurrencyInfo, LoginTasks: loginTasks, OtherInfo: preProcessResData.OtherInfo };
+                            var resourceObj = {
+                                Company: preProcessResData.Company,
+                                Tenant: preProcessResData.Tenant,
+                                Class: preProcessResData.Class,
+                                Type: preProcessResData.Type,
+                                Category: preProcessResData.Category,
+                                ResourceId: preProcessResData.ResourceId,
+                                ResourceName: preProcessResData.ResourceName,
+                                UserName: basicData.UserName,
+                                ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
+                                ConcurrencyInfo: concurrencyInfo,
+                                LoginTasks: loginTasks,
+                                OtherInfo: preProcessResData.OtherInfo
+                            };
 
                             var key = util.format('Resource:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId);
                             var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "resourceid_" + resourceObj.ResourceId, "objtype_Resource"];
@@ -436,6 +452,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                             MaxRejectCount: 10,
                             IsRejectCountExceeded: false,
                             ResourceId: preProcessResData.ResourceId,
+                            UserName: basicData.UserName,
                             ObjKey: cObjkey,
                             RefInfo: tempRefInfoObjStr
                         };
@@ -538,6 +555,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                     Category: preProcessResData.Category,
                     ResourceId: preProcessResData.ResourceId,
                     ResourceName: preProcessResData.ResourceName,
+                    UserName: basicData.UserName,
                     ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
                     ConcurrencyInfo: concurrencyInfo,
                     LoginTasks: loginTasks,
@@ -761,6 +779,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                 Category: preProcessResData.Category,
                                 ResourceId: preProcessResData.ResourceId,
                                 ResourceName: preProcessResData.ResourceName,
+                                UserName: preProcessResData.UserName,
                                 ResourceAttributeInfo: preProcessResData.ResourceAttributeInfo,
                                 ConcurrencyInfo: concurrencyInfo,
                                 LoginTasks: loginTasks,
@@ -836,7 +855,20 @@ var SetResource = function (logKey, basicObj, cVid, callback) {
         }
         else {
             var obj = JSON.parse(jobj);
-            var resourceObj = { Company: basicData.Company, Tenant: basicData.Tenant, Class: basicData.Class, Type: basicData.Type, Category: basicData.Category, ResourceId: basicData.ResourceId, ResourceAttributeInfo: basicData.ResourceAttributeInfo, ConcurrencyInfo: obj.ConcurrencyInfo, State: obj.State };
+            var resourceObj = {
+                Company: basicData.Company,
+                Tenant: basicData.Tenant,
+                Class: basicData.Class,
+                Type: basicData.Type,
+                Category: basicData.Category,
+                ResourceId: basicData.ResourceId,
+                ResourceName: basicData.ResourceName,
+                UserName: basicData.UserName,
+                ResourceAttributeInfo: basicData.ResourceAttributeInfo,
+                ConcurrencyInfo: obj.ConcurrencyInfo,
+                LoginTasks: obj.LoginTasks,
+                OtherInfo: basicData.OtherInfo
+            };
 
             var tag = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "objtype_Resource", "resourceid_" + resourceObj.ResourceId];
 
@@ -976,7 +1008,15 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
                         cObj.RejectCount = cObj.RejectCount + 1;
                         cObj.LastRejectedSession = rejectedSession;
                         if(cObj.RejectCount >= cObj.MaxRejectCount){
+                            console.log('Reject Count Exceeded:: '+ cObj.UserName);
                             cObj.IsRejectCountExceeded = true;
+
+                            var notificationMsg = {
+                                From: "ARDS",
+                                Direction:"STATELESS",
+                                To:cObj.UserName
+                            };
+                            notificationService.SendNotificationInitiate(logKey, "message", "", notificationMsg, company, tenant);
                         }
                         var jCObj = JSON.stringify(cObj);
                         var tags = ["tenant_" + cObj.Tenant, "handlingType_" + cObj.HandlingType, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
