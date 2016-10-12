@@ -1014,7 +1014,8 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
                             var notificationMsg = {
                                 From: "ARDS",
                                 Direction:"STATELESS",
-                                To:cObj.UserName
+                                To:cObj.UserName,
+                                Message: "Recount Exceeded!, Account suspended for Task:: "+cObj.HandlingType
                             };
                             notificationService.SendNotificationInitiate(logKey, "message", "", notificationMsg, company, tenant);
                         }
