@@ -116,6 +116,10 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
                     if (err) {
                         console.log(err);
                     }
+                    if(requestObj.QPositionEnable) {
+                        reqQueueHandler.SendQueuePositionInfo(logKey, requestObj.QPositionUrl, requestObj.QueueId, requestObj.CallbackOption, function () {
+                        });
+                    }
                 });
             }
             redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
