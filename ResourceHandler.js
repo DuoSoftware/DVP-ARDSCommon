@@ -1299,6 +1299,9 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
         if(slotObjStr){
             var slotObj = JSON.parse(slotObjStr);
             console.log("MaxAfterWorkTime: "+ slotObj.MaxAfterWorkTime);
+            if(!slotObj.MaxAfterWorkTime || slotObj.MaxAfterWorkTime === 0){
+                slotObj.MaxAfterWorkTime = 10;
+            }
             var timeOut = slotObj.MaxAfterWorkTime * 1000;
             setTimeout(function(){
                 console.log("AfterWorkEnd: "+ Date.now());
