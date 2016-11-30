@@ -798,12 +798,16 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                     var tagsToRemove = [util.format('company_%s', company)];
 
                                     var handlingTypesToRemove = [];
-                                    for (var i in attributeToRemove) {
-                                        if(handlingTypesToRemove.indexOf(attributeToRemove[i].HandlingType) === -1) {
-                                            handlingTypesToRemove.push(attributeToRemove[i].HandlingType);
+                                    if(attributeToRemove && attributeToRemove.length >0) {
+                                        for (var i in attributeToRemove) {
+                                            if (handlingTypesToRemove.indexOf(attributeToRemove[i].HandlingType) === -1) {
+                                                handlingTypesToRemove.push(attributeToRemove[i].HandlingType);
+                                            }
+                                            tagsToRemove.push("attribute_" + attributeToRemove[i].Attribute);
+                                            resourceObj.ResourceAttributeInfo = commonMethods.RemoveItemFromObjectArray(resourceObj.ResourceAttributeInfo, 'Attribute', attributeToRemove[i].Attribute);
                                         }
-                                        tagsToRemove.push("attribute_" + attributeToRemove[i].Attribute);
-                                        resourceObj.ResourceAttributeInfo = commonMethods.RemoveItemFromObjectArray(resourceObj.ResourceAttributeInfo, 'Attribute', attributeToRemove[i].Attribute);
+                                    }else{
+                                        handlingTypesToRemove.push(handlingType);
                                     }
 
                                     var cInfoCopy = deepcopy(concurrencyInfo);
