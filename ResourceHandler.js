@@ -1459,7 +1459,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                     redisHandler.Publish(logKey, "events", pubMessage, function () {
                     });
                 }
-                if (cslots != null && cslots.length > 0) {
+                if (cslots && cslots.length > 0) {
                     for (var i in cslots) {
                         var cs = cslots[i].Obj;
                         if (cs.HandlingRequest == sessionid) {
