@@ -1304,17 +1304,33 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
     console.log("AfterWorkStart: "+ Date.now());
     redisHandler.GetObj(logKey, slotInfokey, function(err, slotObjStr){
         console.log("GetObjSuccess: "+slotInfokey);
-        if(slotObjStr){
-            var slotObj = JSON.parse(slotObjStr);
-            console.log("MaxAfterWorkTime: "+ slotObj.MaxAfterWorkTime);
-            if(!slotObj.MaxAfterWorkTime || slotObj.MaxAfterWorkTime === 0){
-                slotObj.MaxAfterWorkTime = 10;
-            }
-            var timeOut = slotObj.MaxAfterWorkTime * 1000;
-            setTimeout(function(){
-                console.log("AfterWorkEnd: "+ Date.now());
-                UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", "Completed", function (err, result) {});
+        var timeOut = 10000;
+        if(err){
+            setTimeout(function () {
+                console.log("AfterWorkEnd: " + Date.now());
+                UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", "Completed", function (err, result) {
+                });
             }, timeOut);
+        }else {
+            if (slotObjStr) {
+                var slotObj = JSON.parse(slotObjStr);
+                console.log("MaxAfterWorkTime: " + slotObj.MaxAfterWorkTime);
+                if (!slotObj.MaxAfterWorkTime || slotObj.MaxAfterWorkTime === 0) {
+                    slotObj.MaxAfterWorkTime = 10;
+                }
+                timeOut = slotObj.MaxAfterWorkTime * 1000;
+                setTimeout(function () {
+                    console.log("AfterWorkEnd: " + Date.now());
+                    UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", "Completed", function (err, result) {
+                    });
+                }, timeOut);
+            }else{
+                setTimeout(function () {
+                    console.log("AfterWorkEnd: " + Date.now());
+                    UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", "Completed", function (err, result) {
+                    });
+                }, timeOut);
+            }
         }
     });
     callback(null, "OK");
