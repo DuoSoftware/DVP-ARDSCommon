@@ -37,20 +37,36 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
 
 var processState = function (logKey, stateKey, internalAccessToken, resourceId, state, reason, callback) {
     var statusObj = {State: state, Reason: reason};
-    if(state === "NotAvailable" && reason === "UnRegister") {
-        redisHandler.GetObj(logKey, stateKey, function (err, statusStrObj) {
-            var statusObjR = JSON.parse(statusStrObj);
-            if (statusObjR && statusObjR.State === "NotAvailable") {
-                resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "EndBreak", "", function (err, result, obj) {
+
+    redisHandler.GetObj(logKey, stateKey, function (err, statusStrObj) {
+        if(err){
+            statusObj.Mode = 'Outbound';
+            callback(null, statusObj);
+        }else{
+            if(statusStrObj) {
+                var statusObjR = JSON.parse(statusStrObj);
+                statusObj.Mode = statusObjR.Mode;
+                if(state === "NotAvailable" && reason === "UnRegister") {
+                    if (statusObjR && statusObjR.State === "NotAvailable") {
+                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "EndBreak", "", function (err, result, obj) {
+                            callback(null, statusObj);
+                        });
+                    } else {
+                        callback(null, statusObj);
+                    }
+                }else if(reason === "Outbound" || reason === "Inbound"){
+                    statusObj.Mode = reason;
                     callback(null, statusObj);
-                });
+                }else{
+                    callback(null, statusObj);
+                }
             }else{
+                statusObj.Mode = 'Outbound';
                 callback(null, statusObj);
             }
-        });
-    }else{
-        callback(null, statusObj);
-    }
+        }
+
+    });
 
 };
 
