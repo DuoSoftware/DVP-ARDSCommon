@@ -1317,10 +1317,14 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
             if (slotObjStr) {
                 var slotObj = JSON.parse(slotObjStr);
                 console.log("MaxAfterWorkTime: " + slotObj.MaxAfterWorkTime);
-                if (!slotObj.MaxAfterWorkTime || slotObj.MaxAfterWorkTime === 0) {
-                    slotObj.MaxAfterWorkTime = 10;
+                var awTime = 10;
+                if(slotObj.MaxAfterWorkTime) {
+                    awTime = parseInt(slotObj.MaxAfterWorkTime);
+                    if(awTime === 0){
+                        awTime = 10;
+                    }
                 }
-                timeOut = slotObj.MaxAfterWorkTime * 1000;
+                timeOut = awTime * 1000;
                 setTimeout(function () {
                     console.log("AfterWorkEnd: " + Date.now());
                     UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", "Completed", function (err, result) {
