@@ -377,6 +377,8 @@ var SetResourceLogin = function(logKey, basicData, callback){
                             }
                             var jsonObj = JSON.stringify(resourceObj);
                             redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
+                                var resource_issMapKey = util.format('ResourceIssMap:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.UserName);
+                                redisHandler.SetObj_NX(logKey, resource_issMapKey, key, function(){});
                                 resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
                                 });
                                 infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);

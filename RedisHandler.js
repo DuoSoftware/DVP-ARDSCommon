@@ -138,6 +138,25 @@ var SetObj = function (logKey, key, obj, callback) {
     });
 };
 
+var SetObj_NX = function (logKey, key, obj, callback) {
+    lock(key, 500, function (done) {
+        infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
+        infoLogger.DetailLogger.log('info', '%s SetObj_NX - key: %s :: obj: %s', logKey, key, obj);
+
+        client.setnx(key, obj, function (error, reply) {
+            done();
+            if (error) {
+                infoLogger.DetailLogger.log('error', '%s SetObj_NX - key: %s :: Error: %s', logKey, key, error);
+                callback(error, null);
+            }
+            else {
+                infoLogger.DetailLogger.log('info', '%s SetObj_NX - key: %s :: Reply: %s', logKey, key, reply);
+                callback(null, reply);
+            }
+        });
+    });
+};
+
 var RemoveObj = function (logKey, key, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
     lock(key, 500, function (done) {
@@ -963,6 +982,7 @@ var Publish = function(logKey, pattern, message, callback){
 };
 
 module.exports.SetObj = SetObj;
+module.exports.SetObj_NX = SetObj_NX;
 module.exports.RemoveObj = RemoveObj;
 module.exports.GetObj = GetObj;
 module.exports.SetTags = SetTags;
