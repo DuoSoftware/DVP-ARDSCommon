@@ -1320,11 +1320,13 @@ var UpdateSlotStateCompleted = function(logKey, company, tenant, handlingType, r
                 var awTime = 10;
                 if(slotObj.MaxAfterWorkTime) {
                     awTime = parseInt(slotObj.MaxAfterWorkTime);
+                    console.log("MaxAfterWorkTime_converte: " + awTime);
                     if(awTime === 0){
                         awTime = 10;
                     }
                 }
                 timeOut = awTime * 1000;
+                console.log("New timeout: " + timeOut);
                 setTimeout(function () {
                     console.log("AfterWorkEnd: " + Date.now());
                     UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", "Completed", function (err, result) {
