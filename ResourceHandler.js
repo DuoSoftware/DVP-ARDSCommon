@@ -1106,7 +1106,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                                     console.log(err);
                                 }
                                 else {
-                                    var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime, 'x'), 'seconds');
+                                    var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
                                     resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, handledRequest, function (err, result, obj) {
                                         if (err) {
@@ -1170,7 +1170,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                     console.log(err);
                                 }
                                 else {
-                                    var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime, 'x'), 'seconds');
+                                    var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                     SetProductivityData(logKey, company, tenant, resourceid, "Completed");
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
                                     resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, sessionid, function (err, result, obj) {
@@ -1246,7 +1246,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                             else {
                                 UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "reserved", maxRejectCount, function () { });
 
-                                var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime, 'x'), 'seconds');
+                                var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, sessionid, function(err, result, obj){
                                     if(err){
@@ -1310,7 +1310,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                                 UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "connected", function () { });
                                 SetProductivityData(logKey, company, tenant, resourceid, "Connected");
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
-                                var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime, 'x'), 'seconds');
+                                var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                 if(otherInfo == "" || otherInfo == null){
                                     otherInfo = "Connected";
                                 }
