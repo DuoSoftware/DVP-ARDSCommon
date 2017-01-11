@@ -115,9 +115,9 @@ var AddResourceStatusDurationInfo = function(accessToken, resourceId, statusType
     var jObject = {StatusType:statusType, Status:status, Reason:reason, OtherData: otherData, SessionId: sessionId, Duration: duration};
 
     try {
-        var serverUrl = util.format("http://%s/DVP/API/%s/ResourceManager/Resource/%s/Status", config.Services.resourceServiceHost, config.Services.resourceServiceVersion, resourceId);
+        var serverUrl = util.format("http://%s/DVP/API/%s/ResourceManager/Resource/%s/StatusDuration", config.Services.resourceServiceHost, config.Services.resourceServiceVersion, resourceId);
         if (validator.isIP(config.Services.resourceServiceHost)) {
-            serverUrl = util.format("http://%s:%s/DVP/API/%s/ResourceManager/Resource/%s/Status", config.Services.resourceServiceHost, config.Services.resourceServicePort, config.Services.resourceServiceVersion, resourceId);
+            serverUrl = util.format("http://%s:%s/DVP/API/%s/ResourceManager/Resource/%s/StatusDuration", config.Services.resourceServiceHost, config.Services.resourceServicePort, config.Services.resourceServiceVersion, resourceId);
         }
         restClientHandler.DoPost(serverUrl,jObject, accessToken,function(err, res1, result){
             if(err){
