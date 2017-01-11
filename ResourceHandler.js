@@ -11,6 +11,8 @@ var resourceStateMapper = require('./ResourceStateMapper');
 var deepcopy = require("deepcopy");
 var commonMethods = require('./CommonMethods');
 var notificationService = require('./services/notificationService');
+var deepcopy = require('deepcopy');
+var moment = require('moment');
 
 var SetProductivityData = function(logKey, company, tenant, resourceId, eventType){
     try{
@@ -255,6 +257,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
             callback(resErr, resRes, preResourceData);
         }else{
             if(resObj.IsSuccess) {
+                var date = new Date();
                 preResourceData = {
                     Company: resObj.Result.CompanyId,
                     Tenant: resObj.Result.TenantId,
@@ -291,6 +294,7 @@ var SetResourceLogin = function(logKey, basicData, callback){
                                         Tenant: preProcessResData.Tenant,
                                         HandlingType: obj.HandlingType,
                                         State: "Available",
+                                        StateChangeTime: date.toISOString(),
                                         HandlingRequest: "",
                                         LastReservedTime: "",
                                         MaxReservedTime: 10,
@@ -421,6 +425,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
         if (err) {
             callback(err, msg, null);
         } else {
+            var date = new Date();
             var sci = SetConcurrencyInfo(preProcessResData.ConcurrencyInfo);
 
             sci.on('concurrencyInfo', function (obj) {
@@ -504,6 +509,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                                 Tenant: preProcessResData.Tenant,
                                 HandlingType: obj.HandlingType,
                                 State: "Available",
+                                StateChangeTime: date.toISOString(),
                                 HandlingRequest: "",
                                 LastReservedTime: "",
                                 MaxReservedTime: 10,
@@ -1057,6 +1063,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
         }
         else {
             var tempObj = JSON.parse(obj);
+            var tempObjCopy = deepcopy(tempObj);
             console.log("==========================================================================================");
             console.log("callingParty:: "+ callingParty);
             console.log("tempObj.State:: "+ tempObj.State);
@@ -1099,12 +1106,20 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                                     console.log(err);
                                 }
                                 else {
+                                    var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime, 'x'), 'seconds');
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
                                     resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, handledRequest, function (err, result, obj) {
                                         if (err) {
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
                                         } else {
                                             console.log("AddResourceStatusChangeInfo Success.", obj);
+                                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObjCopy.State,"",tempObjCopy.OtherInfo,tempObjCopy.HandlingRequest, duration,function(){
+                                                if (err) {
+                                                    console.log("AddResourceStatusDurationInfo Failed.", err);
+                                                } else {
+                                                    console.log("AddResourceStatusDurationInfo Success.", obj);
+                                                }
+                                            });
                                         }
                                     });
                                 }
@@ -1139,6 +1154,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var date = new Date();
                         var tempObj = JSON.parse(obj);
+                        var tempObjCopy = deepcopy(tempObj);
                         if(tempObj.State === "Connected" || tempObj.State === "Reserved") {
                             var handledRequest = tempObj.HandlingRequest;
 
@@ -1154,6 +1170,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                     console.log(err);
                                 }
                                 else {
+                                    var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime, 'x'), 'seconds');
                                     SetProductivityData(logKey, company, tenant, resourceid, "Completed");
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
                                     resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, sessionid, function (err, result, obj) {
@@ -1161,6 +1178,13 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
                                         } else {
                                             console.log("AddResourceStatusChangeInfo Success.", obj);
+                                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObjCopy.State,"",tempObjCopy.OtherInfo,tempObjCopy.HandlingRequest, duration,function(){
+                                                if (err) {
+                                                    console.log("AddResourceStatusDurationInfo Failed.", err);
+                                                } else {
+                                                    console.log("AddResourceStatusDurationInfo Success.", obj);
+                                                }
+                                            });
                                         }
 
                                         resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", sessionid, function (err, result, obj) {
@@ -1203,6 +1227,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var date = new Date();
                         var tempObj = JSON.parse(obj);
+                        var tempObjCopy = deepcopy(tempObj);
                         tempObj.State = "Reserved";
                         tempObj.StateChangeTime = date.toISOString();
                         tempObj.HandlingRequest = sessionid;
@@ -1221,12 +1246,20 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                             else {
                                 UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "reserved", maxRejectCount, function () { });
 
+                                var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime, 'x'), 'seconds');
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, sessionid, function(err, result, obj){
                                     if(err){
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
                                     }else{
                                         console.log("AddResourceStatusChangeInfo Success.", obj);
+                                        resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObjCopy.State,"",tempObjCopy.OtherInfo,tempObjCopy.HandlingRequest, duration,function(){
+                                            if (err) {
+                                                console.log("AddResourceStatusDurationInfo Failed.", err);
+                                            } else {
+                                                console.log("AddResourceStatusDurationInfo Success.", obj);
+                                            }
+                                        });
                                     }
                                 });
                             }
@@ -1260,6 +1293,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                     commonMethods.GetSortedCompanyTagArray(ceTags, function(companyTags){
                         var date = new Date();
                         var tempObj = JSON.parse(obj);
+                        var tempObjCopy = deepcopy(tempObj);
                         tempObj.State = "Connected";
                         tempObj.StateChangeTime = date.toISOString();
                         tempObj.HandlingRequest = sessionid;
@@ -1276,6 +1310,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                                 UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "connected", function () { });
                                 SetProductivityData(logKey, company, tenant, resourceid, "Connected");
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
+                                var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime, 'x'), 'seconds');
                                 if(otherInfo == "" || otherInfo == null){
                                     otherInfo = "Connected";
                                 }
@@ -1284,6 +1319,13 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
                                     }else{
                                         console.log("AddResourceStatusChangeInfo Success.", obj);
+                                        resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObjCopy.State,"",tempObjCopy.OtherInfo,tempObjCopy.HandlingRequest, duration,function(){
+                                            if (err) {
+                                                console.log("AddResourceStatusDurationInfo Failed.", err);
+                                            } else {
+                                                console.log("AddResourceStatusDurationInfo Success.", obj);
+                                            }
+                                        });
                                     }
                                 });
                             }
