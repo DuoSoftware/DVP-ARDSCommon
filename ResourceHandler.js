@@ -1626,7 +1626,7 @@ var DoResourceSelection = function (company, tenant,resourceCount, sessionId, se
         rUrl = util.format('http://%s:%s', config.Services.routingServiceHost, config.Services.routingServicePort)
     }
     var params = util.format('/resourceselection/getresource/%d/%d/%d/%s/%s/%s/%s/%s/%s', company, tenant, resourceCount, sessionId, serverType, requestType, selectionAlgo, handlingAlgo, otherInfo);
-    restClientHandler.DoGet(rUrl, params, function (err, res, obj) {
+    restClientHandler.PickResource(rUrl, params, function (err, res, obj) {
         callback(err, res, obj);
     });
 };

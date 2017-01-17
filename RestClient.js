@@ -17,20 +17,25 @@ var DoGet = function (url, params, internalAccessToken, callback) {
     console.log('DoGet:: %s', httpUrl);
     var options = {
         url: httpUrl,
+        method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
+            'content-type': 'application/json',
             'authorization': accessToken,
             'companyinfo': internalAccessToken
         }
     };
-    request(options, function optionalCallback(err, httpResponse, body) {
-        if (err) {
-            console.log('upload failed:', err);
-        }
-        var jBody = JSON.parse(body);
-        console.log('Server returned: %j', jBody);
-        callback(err, httpResponse, jBody);
-    });
+    try {
+        request(options, function optionalCallback(err, httpResponse, body) {
+            if (err) {
+                console.log('upload failed:', err);
+            }
+            var jBody = JSON.parse(body);
+            console.log('Server returned: %j', jBody);
+            callback(err, httpResponse, jBody);
+        });
+    }catch(ex){
+        callback(ex, undefined, undefined);
+    }
 };
 
 var DoPost = function (serviceurl, postData, internalAccessToken, callback) {
@@ -109,9 +114,32 @@ var DoGetDirect = function (serviceurl, postData, callback) {
     });
 };
 
+var PickResource = function (url, params, callback) {
+    var httpUrl = util.format('%s%s', url, params);
+    var accessToken = util.format('Bearer %s',config.Services.accessToken);
+    console.log('DoGet:: %s', httpUrl);
+    var options = {
+        url: httpUrl,
+        method: 'GET'
+    };
+    try {
+        request(options, function optionalCallback(err, httpResponse, body) {
+            if (err) {
+                console.log('upload failed:', err);
+            }
+            console.log('Server returned: %s', body);
+            callback(err, httpResponse, body);
+        });
+    }catch(ex){
+        callback(ex, undefined, undefined);
+    }
+};
+
+
 module.exports.DoGet = DoGet;
 module.exports.DoPost = DoPost;
 module.exports.DoGetSync = DoGetSync;
 module.exports.DoPostSync = DoPostSync;
 module.exports.DoPostDirect = DoPostDirect;
 module.exports.DoGetDirect = DoGetDirect;
+module.exports.PickResource = PickResource;
