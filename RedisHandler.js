@@ -198,6 +198,23 @@ var GetObj = function (logKey, key, callback) {
 };
 
 
+var MGetObj = function (logKey, keys, callback) {
+    infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
+    infoLogger.DetailLogger.log('info', '%s MGetObj - key: %s', logKey, keys);
+
+    client.mget(keys, function (err, result) {
+        if (err) {
+            infoLogger.DetailLogger.log('error', '%s MGetObj - key: %s :: Error: %s', logKey, keys, err);
+            console.log(err);
+            callback(err, null);
+        } else {
+            infoLogger.DetailLogger.log('info', '%s MGetObj - key: %s :: Reply: %s', logKey, keys, result);
+            callback(null, result);
+        }
+    });
+};
+
+
 var AddObj_T = function (logKey, key, obj, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
     lock(key, 500, function (done) {
@@ -985,6 +1002,7 @@ module.exports.SetObj = SetObj;
 module.exports.SetObj_NX = SetObj_NX;
 module.exports.RemoveObj = RemoveObj;
 module.exports.GetObj = GetObj;
+module.exports.MGetObj = MGetObj;
 module.exports.SetTags = SetTags;
 module.exports.RemoveTags = RemoveTags;
 
