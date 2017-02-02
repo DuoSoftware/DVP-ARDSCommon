@@ -1060,7 +1060,7 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, r
     });
 };
 
-var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourceid, rejectedSession, callback) {
+var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourceid, rejectedSession, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateRejectCount *************************', logKey);
 
     var cObjkey = util.format('ConcurrencyInfo:%d:%d:%s:%s', company, tenant, resourceid, handlingType);
@@ -1069,6 +1069,7 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
     redisHandler.GetObj_V(logKey, cObjkey, function (err, obj, vid) {
         if (err) {
             console.log(err);
+            callback(err, null, null);
         }
         else {
             var tagMetaKey = util.format('tagMeta:%s', cObjkey);
@@ -1101,6 +1102,9 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
                             infoLogger.DetailLogger.log('info', '%s Finished UpdateRejectCount. Result: %s', logKey, result);
                             callback(err, result, vid);
                         });
+
+                        var internalToken = util.format("%d:%d", tenant, company);
+                        resourceService.AddResourceTaskRejectInfo(internalToken, cObj.ResourceId, cObj.HandlingType, reason, "", rejectedSession, function(){});
                     });
                 }else{
                     callback(new Error("Update Redis tags failed"), null, null);
@@ -1576,7 +1580,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
             }
             else {
                 if (state == "Reject") {
-                    UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, function (err, result, vid) {
+                    UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, reason, function (err, result, vid) {
                         //callback(err, result);
                     });
                     var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);

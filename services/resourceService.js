@@ -135,6 +135,30 @@ var AddResourceStatusDurationInfo = function(accessToken, resourceId, statusType
     }
 };
 
+var AddResourceTaskRejectInfo = function(accessToken, resourceId, task, reason, otherData, sessionId, callback){
+    var jObject = {Task:task, Reason:reason, OtherData: otherData, SessionId: sessionId};
+
+    try {
+        var serverUrl = util.format("http://%s/DVP/API/%s/ResourceManager/Resource/%s/TaskRejectInfo", config.Services.resourceServiceHost, config.Services.resourceServiceVersion, resourceId);
+        if (validator.isIP(config.Services.resourceServiceHost)) {
+            serverUrl = util.format("http://%s:%s/DVP/API/%s/ResourceManager/Resource/%s/TaskRejectInfo", config.Services.resourceServiceHost, config.Services.resourceServicePort, config.Services.resourceServiceVersion, resourceId);
+        }
+        restClientHandler.DoPost(serverUrl,jObject, accessToken,function(err, res1, result){
+            if(err){
+                callback(err, undefined);
+            }else{
+                if(res1.statusCode === 200) {
+                    callback(undefined, JSON.parse(result));
+                }else{
+                    callback(new Error(result), undefined);
+                }
+            }
+        });
+    }catch(ex){
+        callback(ex, undefined);
+    }
+};
+
 var GetAttribute = function(accessToken, attId, callback){
     try {
         var rUrl = util.format('http://%s', config.Services.resourceServiceHost);
@@ -156,6 +180,7 @@ module.exports.GetResourceTaskDetails = GetResourceTaskDetails;
 module.exports.GetResourceAttributeDetails = GetResourceAttributeDetails;
 module.exports.AddResourceStatusChangeInfo = AddResourceStatusChangeInfo;
 module.exports.GetAttribute = GetAttribute;
-module.exports.AddResourceStatusDurationInfo = AddResourceStatusDurationInfo
+module.exports.AddResourceStatusDurationInfo = AddResourceStatusDurationInfo;
+module.exports.AddResourceTaskRejectInfo = AddResourceTaskRejectInfo;
 
 //-------------End ResourceService Integration--------------------------------------
