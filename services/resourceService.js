@@ -9,6 +9,7 @@ var validator = require('validator');
 var util = require('util');
 var redisHandler = require('../RedisHandler.js');
 var infoLogger = require('../InformationLogger.js');
+var deepcopy = require('deepcopy');
 
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
     try {
@@ -94,8 +95,15 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
     var jObject = {StatusType:statusType, Status:status, Reason:reason, OtherData: otherData};
 
     var splitData = accessToken.split(':');
+    var param2 = deepcopy(reason);
+    var dashBoardReason = deepcopy(reason);
+
+    if(reason && reason !== "EndBreak" && reason.toLowerCase().indexOf('break') > -1){
+        dashBoardReason = 'Break';
+    }
+
     if(splitData.length == 2) {
-        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", splitData[0], splitData[1], statusType, status, reason, resourceId, "param2", resourceId);
+        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", splitData[0], splitData[1], statusType, status, dashBoardReason, resourceId, param2, resourceId);
         redisHandler.Publish("DashBoardEvent", "events", pubMessage, function () {
         });
     }
