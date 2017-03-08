@@ -167,7 +167,7 @@ var PreProcessResourceData = function(logKey, accessToken, preResourceData, logi
 var SetConcurrencyInfo = function (data) {
     var e = new EventEmitter();
     process.nextTick(function () {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length >0) {
             var count = 0;
             for (var i in data) {
                 var val = data[i];
@@ -384,6 +384,10 @@ var SetResourceLogin = function(logKey, basicData, callback){
                                 var resource_issMapKey = util.format('ResourceIssMap:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.UserName);
                                 redisHandler.SetObj_NX(logKey, resource_issMapKey, key, function(){});
                                 resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
+                                    if(resourceObj.ConcurrencyInfo && resourceObj.ConcurrencyInfo.length === 0) {
+                                        resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, "Available", "Offline", function (err, result) {
+                                        });
+                                    }
                                 });
                                 infoLogger.DetailLogger.log('info', '%s Finished AddResource. Result: %s', logKey, reply);
                                 callback(err, reply, vid);

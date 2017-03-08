@@ -40,13 +40,14 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
 
     redisHandler.GetObj(logKey, stateKey, function (err, statusStrObj) {
         if(err){
-            statusObj.Mode = 'Outbound';
+            statusObj.Mode = 'Offline';
             callback(null, statusObj);
         }else{
             if(statusStrObj) {
                 var statusObjR = JSON.parse(statusStrObj);
                 statusObj.Mode = statusObjR.Mode;
                 if(state === "NotAvailable" && reason === "UnRegister") {
+                    statusObj.Mode = "Offline";
                     if (statusObjR && statusObjR.State === "NotAvailable") {
                         resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "EndBreak", "", function (err, result, obj) {
                             callback(null, statusObj);
@@ -54,14 +55,14 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                     } else {
                         callback(null, statusObj);
                     }
-                }else if(reason === "Outbound" || reason === "Inbound"){
+                }else if(reason === "Outbound" || reason === "Inbound" || reason === "Offline"){
                     statusObj.Mode = reason;
                     callback(null, statusObj);
                 }else{
                     callback(null, statusObj);
                 }
             }else{
-                statusObj.Mode = 'Outbound';
+                statusObj.Mode = 'Offline';
                 callback(null, statusObj);
             }
         }
