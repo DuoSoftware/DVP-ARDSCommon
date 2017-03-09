@@ -882,78 +882,82 @@ var SetResource = function (logKey, company, tenant, basicObj, callback) {
             callback(err, undefined, undefined);
         }
         else {
-            var obj = JSON.parse(jobj);
-            var resourceObj = {
-                Company: obj.Company,
-                Tenant: obj.Tenant,
-                Class: obj.Class,
-                Type: obj.Type,
-                Category: obj.Category,
-                ResourceId: obj.ResourceId,
-                ResourceName: obj.ResourceName,
-                UserName: obj.UserName,
-                ResourceAttributeInfo: obj.ResourceAttributeInfo,
-                ConcurrencyInfo: obj.ConcurrencyInfo,
-                LoginTasks: obj.LoginTasks,
-                OtherInfo: basicObj.OtherInfo? basicObj.OtherInfo: obj.OtherInfo
-            };
+            if(jobj) {
+                var obj = JSON.parse(jobj);
+                var resourceObj = {
+                    Company: obj.Company,
+                    Tenant: obj.Tenant,
+                    Class: obj.Class,
+                    Type: obj.Type,
+                    Category: obj.Category,
+                    ResourceId: obj.ResourceId,
+                    ResourceName: obj.ResourceName,
+                    UserName: obj.UserName,
+                    ResourceAttributeInfo: obj.ResourceAttributeInfo,
+                    ConcurrencyInfo: obj.ConcurrencyInfo,
+                    LoginTasks: obj.LoginTasks,
+                    OtherInfo: basicObj.OtherInfo ? basicObj.OtherInfo : obj.OtherInfo
+                };
 
-            var checkExist = undefined;
-            resourceObj.ResourceAttributeInfo.forEach(function (resAttInfo, resAttIndex){
+                var checkExist = undefined;
+                resourceObj.ResourceAttributeInfo.forEach(function (resAttInfo, resAttIndex) {
 
-                if(resAttInfo.Attribute === basicObj.ResourceAttributeInfo.Attribute){
-                    checkExist = resAttIndex;
+                    if (resAttInfo.Attribute === basicObj.ResourceAttributeInfo.Attribute) {
+                        checkExist = resAttIndex;
+                    }
+
+                });
+
+                //var checkExist = resourceObj.ResourceAttributeInfo.indexOf(basicObj.ResourceAttributeInfo);
+                if (checkExist > -1) {
+                    resourceObj.ResourceAttributeInfo[checkExist] = basicObj.ResourceAttributeInfo;
+                } else {
+                    //resourceObj.ResourceAttributeInfo[checkExist] = basicObj.ResourceAttributeInfo;
+
+                    resourceObj.ResourceAttributeInfo.push(basicObj.ResourceAttributeInfo);
                 }
 
-            });
+                var defaultTags = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "resourceid_" + resourceObj.ResourceId, "objtype_Resource"];
 
-            //var checkExist = resourceObj.ResourceAttributeInfo.indexOf(basicObj.ResourceAttributeInfo);
-            if(!checkExist) {
-                resourceObj.ResourceAttributeInfo.push(basicObj.ResourceAttributeInfo);
-            }else{
-                //resourceObj.ResourceAttributeInfo[checkExist] = basicObj.ResourceAttributeInfo;
-                resourceObj.ResourceAttributeInfo[checkExist] = basicObj.ResourceAttributeInfo;
-            }
+                var tagMetaKey = util.format('tagMeta:%s', key);
+                redisHandler.GetObj(logKey, tagMetaKey, function (err, reTags) {
+                    if (reTags) {
+                        var tagIndexToRemove = [];
+                        var existingTags = reTags.split(":");
 
-            var defaultTags = ["company_" + resourceObj.Company, "tenant_" + resourceObj.Tenant, "class_" + resourceObj.Class, "type_" + resourceObj.Type, "category_" + resourceObj.Category, "resourceid_" + resourceObj.ResourceId, "objtype_Resource"];
+                        existingTags.splice(0, 1);
 
-            var tagMetaKey = util.format('tagMeta:%s', key);
-            redisHandler.GetObj(logKey,tagMetaKey,function(err, reTags){
-                if(reTags){
-                    var tagIndexToRemove = [];
-                    var existingTags = reTags.split(":");
+                        defaultTags = existingTags.filter(function (eTag) {
+                            if (eTag.indexOf('attribute_') === -1) {
+                                return eTag;
+                            }
+                        });
 
-                    existingTags.splice(0,1);
 
-                    defaultTags = existingTags.filter(function (eTag) {
-                        if(eTag.indexOf('attribute_') === -1){
-                            return eTag;
-                        }
+                    }
+
+
+                    var tempAttributeList = [];
+                    resourceObj.ResourceAttributeInfo.forEach(function (resAttrInfo) {
+                        tempAttributeList.push(resAttrInfo.Attribute);
                     });
 
+                    var sortedAttributes = sortArray.sortData(tempAttributeList);
 
-                }
+                    sortedAttributes.forEach(function (sortedAttr) {
+                        defaultTags.push("attribute_" + sortedAttr);
+                    });
 
+                    var jsonObj = JSON.stringify(resourceObj);
 
-                var tempAttributeList = [];
-                resourceObj.ResourceAttributeInfo.forEach(function (resAttrInfo) {
-                    tempAttributeList.push(resAttrInfo.Attribute);
+                    redisHandler.SetObj_V_T(logKey, key, jsonObj, defaultTags, cVid, function (err, reply, vid) {
+                        infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
+                        callback(err, reply, vid);
+                    });
                 });
-
-                var sortedAttributes = sortArray.sortData(tempAttributeList);
-
-                sortedAttributes.forEach(function (sortedAttr) {
-                    defaultTags.push("attribute_" + sortedAttr);
-                });
-
-                var jsonObj = JSON.stringify(resourceObj);
-
-                redisHandler.SetObj_V_T(logKey, key, jsonObj, defaultTags, cVid, function (err, reply, vid) {
-                    infoLogger.DetailLogger.log('info', '%s Finished SetResource. Result: %s', logKey, reply);
-                    callback(err, reply, vid);
-                });
-            });
-
+            }else{
+                callback(new Error("No registerd resource found"), undefined, undefined);
+            }
 
         }
     });
