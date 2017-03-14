@@ -814,7 +814,10 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                             var tagMetaKey = util.format('tagMeta:%s', key);
                             redisHandler.GetObj(logKey, tagMetaKey, function (err, reTags) {
                                 if (reTags) {
-                                    var tagsToRemove = [util.format('company_%s', company)];
+                                    var tagsToRemove = [];
+                                    if(resourceObj.Company !== company) {
+                                        tagsToRemove = [util.format('company_%s', company)];
+                                    }
 
                                     var handlingTypesToRemove = [];
                                     if(attributeToRemove && attributeToRemove.length >0) {
