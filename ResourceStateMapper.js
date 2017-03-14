@@ -21,7 +21,7 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
                     console.log(err);
                 }
                 else {
-                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", state, reason, "", function(err, result, obj){
+                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", state, reason, {SessionId:"", Direction:""}, function(err, result, obj){
                         if(err){
                             console.log("AddResourceStatusChangeInfo Failed.", err);
                         }else{
@@ -49,7 +49,7 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                 if(state === "NotAvailable" && reason === "UnRegister") {
                     statusObj.Mode = "Offline";
                     if (statusObjR && statusObjR.State === "NotAvailable") {
-                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "EndBreak", "", function (err, result, obj) {
+                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "EndBreak", {SessionId:"", Direction:""}, function (err, result, obj) {
                             callback(null, statusObj);
                         });
                     } else {

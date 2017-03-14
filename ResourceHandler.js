@@ -1225,7 +1225,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                                 else {
                                     var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
-                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, handledRequest, function (err, result, obj) {
+                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, {SessionId:otherInfo, Direction:""}, handledRequest, function (err, result, obj) {
                                         if (err) {
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
                                         } else {
@@ -1290,7 +1290,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                     var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                     SetProductivityData(logKey, company, tenant, resourceid, "Completed");
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
-                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, sessionid, function (err, result, obj) {
+                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, {SessionId:sessionid, Direction:""}, function (err, result, obj) {
                                         if (err) {
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
                                         } else {
@@ -1304,7 +1304,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                             });
                                         }
 
-                                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", sessionid, function (err, result, obj) {
+                                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", {SessionId:sessionid, Direction:""}, function (err, result, obj) {
                                             if (err) {
                                                 console.log("AddResourceStatusChangeInfo Failed.", err);
                                             } else {
@@ -1365,7 +1365,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
 
                                 var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                 var internalAccessToken = util.format('%s:%s', tenant,company);
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, sessionid, function(err, result, obj){
+                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, {SessionId:sessionid, Direction:""}, function(err, result, obj){
                                     if(err){
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
                                     }else{
@@ -1431,7 +1431,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                                 if(otherInfo == "" || otherInfo == null){
                                     otherInfo = "Connected";
                                 }
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, handlingType, sessionid, function(err, result, obj){
+                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, handlingType, {SessionId:sessionid, Direction:otherInfo}, function(err, result, obj){
                                     if(err){
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
                                     }else{

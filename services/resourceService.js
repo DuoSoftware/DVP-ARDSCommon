@@ -92,11 +92,17 @@ var GetResourceAttributeDetails = function(accessToken, taskInfo, callback){
 };
 
 var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, status, reason, otherData, callback){
-    var jObject = {StatusType:statusType, Status:status, Reason:reason, OtherData: otherData};
 
     var splitData = accessToken.split(':');
     var param2 = deepcopy(reason);
     var dashBoardReason = deepcopy(reason);
+
+    var pOtherData = otherData.SessionId? otherData.SessionId:"";
+    var jObject = {StatusType:statusType, Status:status, Reason:reason, OtherData: pOtherData};
+
+    if(status === "Connected"){
+        param2 = util.format('%s%s', param2, otherData.Direction);
+    }
 
     if(reason && reason !== "EndBreak" && reason.toLowerCase().indexOf('break') > -1){
         dashBoardReason = 'Break';
