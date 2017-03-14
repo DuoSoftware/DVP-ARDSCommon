@@ -1607,7 +1607,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
 
 
                     if(selectedSlot){
-                        UpdateSlotStateConnected(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, otherInfo, function (err, result) {
+                        UpdateSlotStateConnected(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, otherInfo, direction, function (err, result) {
                             callback(err, result);
                         });
                     }else{
