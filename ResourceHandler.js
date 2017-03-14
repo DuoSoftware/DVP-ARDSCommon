@@ -850,6 +850,11 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                         //}
                                     }
 
+                                    if(resourceObj.LoginTasks && resourceObj.LoginTasks.length === 0){
+                                        resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, "Available", "Offline", function (err, result) {
+                                        });
+                                    }
+
 
                                     commonMethods.RemoveTagsFromTagArray(reTags, tagsToRemove, function (newTags) {
                                         var jsonObj = JSON.stringify(resourceObj);
