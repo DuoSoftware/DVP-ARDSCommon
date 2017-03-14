@@ -1391,7 +1391,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
     });
 };
 
-var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback) {
+var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, direction, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateConnected *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -1431,7 +1431,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                                 if(otherInfo == "" || otherInfo == null){
                                     otherInfo = "Connected";
                                 }
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, handlingType, {SessionId:sessionid, Direction:otherInfo}, function(err, result, obj){
+                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, handlingType, {SessionId:sessionid, Direction:direction}, function(err, result, obj){
                                     if(err){
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
                                     }else{
@@ -1660,7 +1660,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                     break;
 
                                 case "Connected":
-                                    UpdateSlotStateConnected(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result) {
+                                    UpdateSlotStateConnected(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, direction, function (err, result) {
                                         callback(err, result);
                                     });
                                     break;
