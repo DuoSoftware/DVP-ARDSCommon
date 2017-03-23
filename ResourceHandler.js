@@ -1611,12 +1611,12 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                             callback(err, result);
                         });
                     }else{
-                        callback(new Error("No Resource CSlot found"), "Invalid Request");
+                        callback(undefined, "No Resource CSlot found");
                     }
 
                 }
                 else {
-                    callback(new Error("No Resource CSlot found"), "Invalid Request");
+                    callback(undefined, "No Resource CSlot found");
                 }
             }
         });
@@ -1691,7 +1691,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                     }
                 }
                 else {
-                    callback(new Error("No Reserved Resource CSlot found for sessionId: " + sessionid), "Invalied Request");
+                    callback(undefined, "No Reserved Resource CSlot found for sessionId: " + sessionid);
                 }
             }
         });
