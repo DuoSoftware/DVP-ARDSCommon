@@ -13,6 +13,7 @@ var commonMethods = require('./CommonMethods');
 var notificationService = require('./services/notificationService');
 var deepcopy = require('deepcopy');
 var moment = require('moment');
+var async = require('async');
 
 var SetProductivityData = function(logKey, company, tenant, resourceId, eventType){
     try{
@@ -757,8 +758,9 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                         });
                                     }
 
-                                    for (var i = 0; i < obj.NoOfSlots; i++) {
-                                        var slotInfokey = util.format('CSlotInfo:%d:%d:%s:%s:%d', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType, i);
+                                    function setSlotDetail(slotInfokey, setSlotDetailCallback){
+
+                                        //var slotInfokey = util.format('CSlotInfo:%d:%d:%s:%s:%d', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType, i);
 
                                         if (isExists == 1) {
                                             var slotTagMetaKey = util.format('tagMeta:%s', slotInfokey);
@@ -787,7 +789,20 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                 }
                                             });
                                         }
+
+                                        setSlotDetailCallback();
                                     }
+
+                                    var setSlotDetails = [];
+                                    for (var i = 0; i < obj.NoOfSlots; i++) {
+                                        var slotInfokey = util.format('CSlotInfo:%d:%d:%s:%s:%d', preProcessResData.Company, preProcessResData.Tenant, preProcessResData.ResourceId, obj.HandlingType, i);
+                                        setSlotDetails.push(setSlotDetail.bind(this, slotInfokey));
+
+                                    }
+
+                                    async.parallel(setSlotDetails, function () {
+                                        console.log("setSlotDetails Success");
+                                    })
                                 });
                             }
                         });
