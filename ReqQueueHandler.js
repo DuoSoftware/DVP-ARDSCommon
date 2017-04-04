@@ -4,6 +4,7 @@ var requestHandler = require('./RequestHandler.js');
 var infoLogger = require('./InformationLogger.js');
 var rabbitMqHandler = require('./RabbitMQHandler.js');
 var restClientHandler = require('./RestClient.js');
+var config = require('config');
 
 var AddRequestToQueue = function (logKey, request, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestToQueue *************************', logKey);
@@ -31,7 +32,11 @@ var AddRequestToQueue = function (logKey, request, callback) {
                             console.log("Hash Exists");
                             callback(err, "OK", queuePosition + 1);
                         }else {
-                            SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function(result){});
+                            SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function(result){
+                                if((!hresult || hresult === "0") && config.Host.UseMsgQueue){
+                                    rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                                }
+                            });
                             console.log("Add item to Hash Success");
                             callback(err, "OK", queuePosition);
                             //redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
@@ -110,7 +115,11 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
                             console.log("Hash Exsists");
                             callback(err, "OK");
                         }else{
-                            SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function(result){});
+                            SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function(result){
+                                if((!hresult || hresult === "0") && config.Host.UseMsgQueue){
+                                    rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
+                                }
+                            });
                             console.log("Add item to Hash Success");
                             callback(err, "OK");
                             //redisHandler.AddItemToHash(logKey, hashKey, request.QueueId, request.SessionId, function (err, result) {
