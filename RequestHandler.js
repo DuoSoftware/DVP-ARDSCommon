@@ -166,8 +166,7 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
                     }
                 }
             });*/
-            //if (reason == "NoSession" || reason == "ClientRejected") {
-            if (reason == "ClientRejected") {
+            if (reason == "NoSession" || reason == "ClientRejected") {
                 var pubQueueId = requestObj.QueueId.replace(/:/g, "-");
                 var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "DROPPED", pubQueueId, "", requestObj.SessionId);
                 redisHandler.Publish(logKey, "events", pubMessage, function(){});
