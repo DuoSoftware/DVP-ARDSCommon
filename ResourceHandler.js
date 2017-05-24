@@ -162,7 +162,15 @@ var PreProcessResourceData = function(logKey, accessToken, preResourceData, logi
                     }
                 });
                 pptd.on('endTaskInfo', function(){
-                    preResourceData.ResourceAttributeInfo = commonMethods.UniqueObjectArray(preResourceData.ResourceAttributeInfo, 'Attribute');;
+                    var filteredAttributeInfo = [];
+
+                    preResourceData.ResourceAttributeInfo.forEach(function (attributeObj) {
+                        if(filteredAttributeInfo.indexOf(attributeObj) === -1){
+                            filteredAttributeInfo.push(attributeObj);
+                        }
+                    });
+                    //preResourceData.ResourceAttributeInfo = commonMethods.UniqueObjectArray(preResourceData.ResourceAttributeInfo, 'Attribute');;
+                    preResourceData.ResourceAttributeInfo = filteredAttributeInfo;
                     callback(null, "", preResourceData, newAttributeInfo);
                 });
             }else{
