@@ -39,7 +39,7 @@ var DoGet = function (url, params, internalAccessToken, callback) {
 };
 
 var DoPost = function (serviceurl, postData, internalAccessToken, callback) {
-    var jsonStr = JSON.stringify(postData);
+    var jsonStr = postData? JSON.stringify(postData): "";
     var accessToken = util.format('Bearer %s',config.Services.accessToken);
     var options = {
         url: serviceurl,

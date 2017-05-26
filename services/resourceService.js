@@ -10,6 +10,7 @@ var util = require('util');
 var redisHandler = require('../RedisHandler.js');
 var infoLogger = require('../InformationLogger.js');
 var deepcopy = require('deepcopy');
+var ardsMonitoringService = require('./ardsMonitoringService');
 
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
     try {
@@ -113,6 +114,8 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
         redisHandler.Publish("DashBoardEvent", "events", pubMessage, function () {
         });
     }
+
+    ardsMonitoringService.SendResourceStatus(accessToken, resourceId);
 
     var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
     if(validator.isIP(config.Services.resourceServiceHost)) {
