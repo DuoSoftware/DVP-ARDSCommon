@@ -12,7 +12,7 @@ var client = function (url) {
 };
 
 var DoGet = function (url, params, internalAccessToken, callback) {
-    var httpUrl = util.format('%s%s', url, params);
+    var httpUrl = params? util.format('%s%s', url, params): url;
     var accessToken = util.format('Bearer %s',config.Services.accessToken);
     console.log('DoGet:: %s', httpUrl);
     var options = {
