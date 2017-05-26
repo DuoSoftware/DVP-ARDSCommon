@@ -9,7 +9,7 @@ var validator = require('validator');
 var util = require('util');
 var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 
-function SendResourceStatus(accessToken, resourceId){
+function SendResourceStatus(accessToken, resourceId, additionalParams){
 
     var rUrl = util.format('http://%s',config.Services.ardsMonitoringServiceHost);
     if(validator.isIP(config.Services.ardsMonitoringServiceHost)) {
@@ -17,8 +17,12 @@ function SendResourceStatus(accessToken, resourceId){
     }
 
     var sendStatusUrl = util.format('%s/DVP/API/%s/ARDS/MONITORING/resource/%s/status/publish', rUrl, config.Services.ardsMonitoringServiceVersion,resourceId);
-    restClientHandler.DoPost(sendStatusUrl,undefined, accessToken,function(err, res, obj){
-       if(err) {
+    if(additionalParams){
+        sendStatusUrl = util.format('%s?%s', sendStatusUrl, additionalParams);
+    }
+
+    restClientHandler.DoGet(sendStatusUrl,undefined, accessToken,function(err, res, obj){
+        if(err) {
             logger.error('SendResourceStatus - %s :: Error - %s ', resourceId, err);
         }else {
             logger.info('SendResourceStatus - %s :: Message - %s ', resourceId, res);

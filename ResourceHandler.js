@@ -14,6 +14,7 @@ var notificationService = require('./services/notificationService');
 var deepcopy = require('deepcopy');
 var moment = require('moment');
 var async = require('async');
+var ardsMonitoringService = require('./services/ardsMonitoringService');;
 
 var SetProductivityData = function(logKey, company, tenant, resourceId, eventType){
     try{
@@ -614,6 +615,7 @@ var EditResource = function(logKey, editType, accessToken, basicData, resourceDa
                                 if (editType == "addResource") {
                                     var statusObj = {State: state, Reason: reason};
                                 }
+                                ardsMonitoringService.SendResourceStatus(accessToken, resourceObj.ResourceId, undefined);
                                 callback(err, reply, vid);
                             });
                         });
@@ -691,6 +693,9 @@ var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
                                 callback(err, "false");
                             }
                             else {
+                                var accessToken = util.format('%d:%d', resourceObj.Tenant, resourceObj.Company);
+                                var pubAdditionalParams = util.format('resourceName=%s&statusType=%s', resourceObj.ResourceName, 'removeResource');
+                                ardsMonitoringService.SendResourceStatus(accessToken, resourceObj.ResourceId, pubAdditionalParams);
                                 infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, result);
                                 callback(null, result);
                             }
@@ -789,7 +794,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                                         console.log(err);
                                                                     }else{
                                                                         console.log("Remove ConcurrencySlot Obj:: "+ result);
-                                                                    }
+                                                                        }
                                                                 });
                                                             });
                                                         }
@@ -879,6 +884,10 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                     if(resourceObj.LoginTasks && resourceObj.LoginTasks.length === 0){
                                         resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, "Available", "Offline", function (err, result) {
                                         });
+                                    }else{
+                                        var pubAdditionalParams = util.format('resourceName=%s&statusType=%s&task=%s', resourceObj.ResourceName, 'removeTask', handlingType);
+                                        ardsMonitoringService.SendResourceStatus(accessToken, resourceObj.ResourceId, pubAdditionalParams);
+
                                     }
 
 

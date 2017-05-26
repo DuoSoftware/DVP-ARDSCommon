@@ -115,7 +115,7 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
         });
     }
 
-    ardsMonitoringService.SendResourceStatus(accessToken, resourceId);
+    ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
 
     var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
     if(validator.isIP(config.Services.resourceServiceHost)) {
