@@ -400,9 +400,9 @@ var SetResourceLogin = function(logKey, basicData, callback){
                             redisHandler.AddObj_V_T(logKey, key, jsonObj, tag, function (err, reply, vid) {
                                 var resource_issMapKey = util.format('ResourceIssMap:%d:%d:%s', resourceObj.Company, resourceObj.Tenant, resourceObj.UserName);
                                 redisHandler.SetObj_NX(logKey, resource_issMapKey, key, function(){});
-                                resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId,"Available","Register",function(err,result){
+                                resourceStateMapper.SetResourceState(logKey,resourceObj.Company,resourceObj.Tenant,resourceObj.ResourceId, resourceObj.UserName,"Available","Register",function(err,result){
                                     if(resourceObj.ConcurrencyInfo && resourceObj.ConcurrencyInfo.length === 0) {
-                                        resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, "Available", "Offline", function (err, result) {
+                                        resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, resourceObj.UserName, "Available", "Offline", function (err, result) {
                                         });
                                     }
                                 });
@@ -686,7 +686,7 @@ var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
                     //for (var k in sortedAttributes) {
                     //    tag.push("attribute_" + sortedAttributes[k]);
                     //}
-                    resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, "NotAvailable", "UnRegister", function (err, result) {
+                    resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, resourceObj.UserName, "NotAvailable", "UnRegister", function (err, result) {
                         redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
                             if (err) {
                                 infoLogger.DetailLogger.log('info', '%s Finished RemoveResource. Result: %s', logKey, "false");
@@ -882,7 +882,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                     }
 
                                     if(resourceObj.LoginTasks && resourceObj.LoginTasks.length === 0){
-                                        resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, "Available", "Offline", function (err, result) {
+                                        resourceStateMapper.SetResourceState(logKey, resourceObj.Company, resourceObj.Tenant, resourceObj.ResourceId, resourceObj.UserName, "Available", "Offline", function (err, result) {
                                         });
                                     }else{
                                         var pubAdditionalParams = util.format('resourceName=%s&statusType=%s&task=%s', resourceObj.ResourceName, 'removeTask', handlingType);
