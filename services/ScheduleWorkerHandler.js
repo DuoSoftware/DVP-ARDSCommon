@@ -115,10 +115,10 @@ function StopCronJob(company, tenant, id, cb) {
 
 module.exports.StartBreak = function (company, tenant, userName, logKey) {
     try {
-        var mainServer = format("http://{0}/DVP/API/{1}/ARDS/Notification/{2}", config.LBServer.ip, config.Host.version, userName);
+        var mainServer = format("http://{0}/DVP/API/{1}/ARDS/Notification/{2}", config.Host.LBIP, config.Host.Version, userName);
 
-        if (validator.isIP(config.LBServer.ip))
-            mainServer = format("http://{0}:{1}/DVP/API/{2}/ARDS/Notification/{3}", config.LBServer.ip, config.LBServer.port, config.Host.version, userName);
+        if (validator.isIP(config.Host.LBIP))
+            mainServer = format("http://{0}:{1}/DVP/API/{2}/ARDS/Notification/{3}", config.Host.LBIP, config.Host.LBPort, config.Host.Version, userName);
 
         RegisterCronJob(company, tenant, userName, mainServer, function (isSuccess) {
             if (isSuccess) {
@@ -157,9 +157,9 @@ module.exports.SendNotification = function (company, tenant, userName,logKey) {
     try {
 
         /*From: "ARDS",
-            Direction: "STATELESS",
-            To: userName,
-            Message: "Break Time Exceeded!"*/
+         Direction: "STATELESS",
+         To: userName,
+         Message: "Break Time Exceeded!"*/
 
         var notificationMsg = {
             From: "ARDS",

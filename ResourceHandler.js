@@ -794,7 +794,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                                                                         console.log(err);
                                                                     }else{
                                                                         console.log("Remove ConcurrencySlot Obj:: "+ result);
-                                                                        }
+                                                                    }
                                                                 });
                                                             });
                                                         }
