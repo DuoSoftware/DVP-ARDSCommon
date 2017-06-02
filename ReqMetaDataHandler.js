@@ -364,7 +364,7 @@ var ReloadMetaData = function (company, tenant, serverType, requestType) {
                 tempAttributeGroupInfo.push(obj);
             });
             sagi.on('endgroupInfo', function() {
-                var metaDataObj = { Company: reqMeta.Company, Tenant: reqMeta.Tenant, ServerType: reqMeta.ServerType, RequestType: reqMeta.RequestType, ServingAlgo: reqMeta.ServingAlgo, HandlingAlgo: reqMeta.HandlingAlgo, SelectionAlgo: reqMeta.SelectionAlgo, MaxReservedTime: reqMeta.MaxReservedTime, MaxRejectCount: reqMeta.MaxRejectCount, ReqHandlingAlgo: reqMeta.ReqHandlingAlgo, ReqSelectionAlgo: reqMeta.ReqSelectionAlgo, MaxAfterWorkTime: reqMeta.MaxAfterWorkTime };
+                var metaDataObj = { Company: reqMeta.Company, Tenant: reqMeta.Tenant, ServerType: reqMeta.ServerType, RequestType: reqMeta.RequestType, ServingAlgo: reqMeta.ServingAlgo, HandlingAlgo: reqMeta.HandlingAlgo, SelectionAlgo: reqMeta.SelectionAlgo, MaxReservedTime: reqMeta.MaxReservedTime, MaxRejectCount: reqMeta.MaxRejectCount, ReqHandlingAlgo: reqMeta.ReqHandlingAlgo, ReqSelectionAlgo: reqMeta.ReqSelectionAlgo, MaxAfterWorkTime: reqMeta.MaxAfterWorkTime, MaxFreezeTime: reqMeta.MaxFreezeTime };
                 metaDataObj.AttributeMeta = tempAttributeGroupInfo;
                 ReaddMetaData(metaDataObj, function () { });
                 return metaDataObj;

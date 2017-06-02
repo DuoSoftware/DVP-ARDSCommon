@@ -317,6 +317,7 @@ var SetResourceLogin = function (logKey, basicData, callback) {
                                         LastReservedTime: "",
                                         MaxReservedTime: 10,
                                         MaxAfterWorkTime: 0,
+                                        MaxFreezeTime: 0,
                                         FreezeAfterWorkTime: false,
                                         TempMaxRejectCount: 10,
                                         ResourceId: preProcessResData.ResourceId,
@@ -537,6 +538,7 @@ var EditResource = function (logKey, editType, accessToken, basicData, resourceD
                                 LastReservedTime: "",
                                 MaxReservedTime: 10,
                                 MaxAfterWorkTime: 0,
+                                MaxFreezeTime: 0,
                                 FreezeAfterWorkTime: false,
                                 TempMaxRejectCount: 10,
                                 ResourceId: preProcessResData.ResourceId,
@@ -1376,7 +1378,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
     });
 };
 
-var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, maxAfterWorkTime, maxRejectCount, otherInfo, callback) {
+var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, maxAfterWorkTime, maxFreezeTime, maxRejectCount, otherInfo, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateReserved *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -1403,6 +1405,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                         tempObj.OtherInfo = otherInfo;
                         tempObj.MaxReservedTime = maxReservedTime;
                         tempObj.MaxAfterWorkTime = maxAfterWorkTime;
+                        tempObj.MaxFreezeTime = maxFreezeTime;
                         var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
                         var slotInfoTags = companyTags.concat(tags);
                         var jsonObj = JSON.stringify(tempObj);
