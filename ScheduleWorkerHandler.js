@@ -9,8 +9,25 @@ var util = require('util');
 var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 var format = require("stringformat");
 var notificationService = require('./services/notificationService');
+var redisHandler = require('./RedisHandler.js');
+var Q = require('q');
+var moment = require('moment');
 
-function RegisterCronJob(company, tenant, reference, callbackData, mainServer, time, cb) {
+function getBreakThresholdValue(logKey, key) {
+    var deferred = Q.defer();
+
+    redisHandler.GetObj(logKey, key, function (err, result) {
+        if (err) {
+            deferred.reject(err);
+        }
+        else {
+            deferred.resolve(result);
+        }
+    });
+    return deferred.promise;
+}
+
+function registerCronJob(company, tenant, reference, callbackData, mainServer, time, cb) {
     try {
         if ((config.Services && config.Services.cronurl && config.Services.cronport && config.Services.cronversion)) {
 
@@ -19,10 +36,13 @@ function RegisterCronJob(company, tenant, reference, callbackData, mainServer, t
             if (validator.isIP(config.Services.cronurl))
                 cronURL = format("http://{0}:{1}/DVP/API/{2}/Cron", config.Services.cronurl, config.Services.cronport, config.Services.cronversion);
 
+            var parsedDate = new Date();
+            var newDate = new Date(parsedDate.getTime() + (1000 * time));
+
             var notificationMsg = {
                 Reference: reference,
-                Description: "Direct message twitter",
-                CronePattern: format("*/{0} * * * *", time),
+                Description: "ARDS Notifications",
+                CronePattern: newDate.toISOString(),
                 CallbackURL: mainServer,
                 CallbackData: JSON.stringify(callbackData)
             };
@@ -61,13 +81,13 @@ function RegisterCronJob(company, tenant, reference, callbackData, mainServer, t
             });
         }
     } catch (ex) {
-        logger.error('RegisterCronJob - [%s] - ERROR Occurred', reference, ex);
+        logger.error('registerCronJob - [%s] - ERROR Occurred', reference, ex);
     }
 
 
 }
 
-function StopCronJob(company, tenant, id, cb) {
+function stopCronJob(company, tenant, id, cb) {
 
     try {
         if ((config.Services && config.Services.cronurl && config.Services.cronport && config.Services.cronversion)) {
@@ -78,7 +98,7 @@ function StopCronJob(company, tenant, id, cb) {
                 cronURL = format("http://{0}:{1}/DVP/API/{2}/Cron/Reference/{3}/Action/destroy", config.Services.cronurl, config.Services.cronport, config.Services.cronversion, id);
 
 
-            logger.debug("StopCronJob service URL %s", cronURL);
+            logger.debug("stopCronJob service URL %s", cronURL);
             request({
                 method: "POST",
                 url: cronURL,
@@ -96,7 +116,7 @@ function StopCronJob(company, tenant, id, cb) {
 
                     } else {
 
-                        logger.error("There is an error in  StopCronJob for this");
+                        logger.error("There is an error in  stopCronJob for this");
                         return cb(false, {});
 
 
@@ -111,12 +131,12 @@ function StopCronJob(company, tenant, id, cb) {
         }
     }
     catch (ex) {
-        logger.error('StartBreak RegisterCronJob - [%s] - ERROR Occurred', id, ex);
+        logger.error('startBreak registerCronJob - [%s] - ERROR Occurred', id, ex);
     }
 
 }
 
-module.exports.StartBreak = function (company, tenant, userName, resourceId, logKey) {
+module.exports.startBreak = function (company, tenant, userName, resourceId, breakType, logKey) {
     try {
         var mainServer = format("http://{0}/DVP/API/{1}/ARDS/Notification/{2}", config.Host.LBIP, config.Host.Version, userName);
 
@@ -133,25 +153,36 @@ module.exports.StartBreak = function (company, tenant, userName, resourceId, log
             RoomName: "ARDS:break_exceeded"
         };
 
-        RegisterCronJob(company, tenant, userName, callbackData, mainServer, 1, function (isSuccess) {
-            if (isSuccess) {
-                logger.info('Create Cron Job.' + userName);
-            }
-            else {
-                logger.error('failed Create Cron Job. ' + userName);
-            }
-        });
+        var breakTypeKey = util.format('BreakType:%d:%d:%s', tenant, company, breakType);
+        getBreakThresholdValue(logKey, breakTypeKey)
+            .then(function (val) {
+                var timeJobject = JSON.parse(val);
+                var time = parseInt(timeJobject.MaxDurationPerDay ? timeJobject.MaxDurationPerDay : 10)*60;
+                registerCronJob(company, tenant, userName, callbackData, mainServer, time, function (isSuccess) {
+                    if (isSuccess) {
+                        logger.info('Create Cron Job.' + userName);
+                    }
+                    else {
+                        logger.error('failed Create Cron Job. ' + userName);
+                    }
+                });
+            })
+            .fail(function (err) {
+                console.error(err);
+            })
+            .done();
+
 
     }
     catch (ex) {
-        logger.error('StartBreak RegisterCronJob - [%s] - ERROR Occurred', logKey, ex);
+        logger.error('startBreak registerCronJob - [%s] - ERROR Occurred', logKey, ex);
     }
 };
 
-module.exports.EndBreak = function (company, tenant, userName, logKey) {
+module.exports.endBreak = function (company, tenant, userName, logKey) {
     try {
 
-        StopCronJob(company, tenant, userName, function (isSuccess) {
+        stopCronJob(company, tenant, userName, function (isSuccess) {
             if (isSuccess) {
                 logger.info('Stop Cron Job.' + userName);
             }
@@ -161,12 +192,12 @@ module.exports.EndBreak = function (company, tenant, userName, logKey) {
         });
     }
     catch (ex) {
-        logger.error('EndBreak StopCronJob - [%s] - ERROR Occurred', logKey, ex);
+        logger.error('endBreak stopCronJob - [%s] - ERROR Occurred', logKey, ex);
 
     }
 };
 
-module.exports.StartFreeze = function (company, tenant, userName, resourceId, logKey) {
+module.exports.startFreeze = function (company, tenant, userName, resourceId, time, logKey) {
     try {
         var mainServer = format("http://{0}/DVP/API/{1}/ARDS/Notification/{2}", config.Host.LBIP, config.Host.Version, userName);
 
@@ -183,7 +214,7 @@ module.exports.StartFreeze = function (company, tenant, userName, resourceId, lo
             RoomName: "ARDS:freeze_exceeded"
         };
 
-        RegisterCronJob(company, tenant, userName, callbackData, mainServer, 1, function (isSuccess) {
+        registerCronJob(company, tenant, userName, callbackData, mainServer, time, function (isSuccess) {
             if (isSuccess) {
                 logger.info('Create Cron Job.' + userName);
             }
@@ -194,14 +225,14 @@ module.exports.StartFreeze = function (company, tenant, userName, resourceId, lo
 
     }
     catch (ex) {
-        logger.error('StartBreak RegisterCronJob - [%s] - ERROR Occurred', logKey, ex);
+        logger.error('startBreak registerCronJob - [%s] - ERROR Occurred', logKey, ex);
     }
 };
 
-module.exports.EndFreeze = function (company, tenant, userName, logKey) {
+module.exports.endFreeze = function (company, tenant, userName, logKey) {
     try {
 
-        StopCronJob(company, tenant, userName, function (isSuccess) {
+        stopCronJob(company, tenant, userName, function (isSuccess) {
             if (isSuccess) {
                 logger.info('Stop Cron Job.' + userName);
             }
@@ -211,6 +242,6 @@ module.exports.EndFreeze = function (company, tenant, userName, logKey) {
         });
     }
     catch (ex) {
-        logger.error('EndBreak StopCronJob - [%s] - ERROR Occurred', logKey, ex);
+        logger.error('endBreak stopCronJob - [%s] - ERROR Occurred', logKey, ex);
     }
 };

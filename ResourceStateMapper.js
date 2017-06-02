@@ -30,11 +30,11 @@ var SetResourceState = function (logKey, company, tenant, resourceId, resourceNa
                         }
                     });
                     if(reason && reason.toLowerCase() !== "endbreak" && reason.toLowerCase().indexOf('break') > -1){
-                        scheduleWorkerHandler.StartBreak(company, tenant, resourceName,resourceId, logKey);
+                        scheduleWorkerHandler.startBreak(company, tenant, resourceName,resourceId,reason, logKey);
                     }
 
                     if(reason && reason.toLowerCase() !== "break" && reason.toLowerCase().indexOf('endbreak') > -1){
-                        scheduleWorkerHandler.EndBreak(company, tenant, resourceName,logKey);
+                        scheduleWorkerHandler.endBreak(company, tenant, resourceName,logKey);
                     }
                 }
                 callback(err, result);
@@ -57,7 +57,7 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                 if(state === "NotAvailable" && reason === "UnRegister") {
                     statusObj.Mode = "Offline";
                     if (statusObjR && statusObjR.State === "NotAvailable") {
-                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "EndBreak", {SessionId:"", Direction:""}, function (err, result, obj) {
+                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "endBreak", {SessionId:"", Direction:""}, function (err, result, obj) {
                             callback(null, statusObj);
                         });
                     } else {

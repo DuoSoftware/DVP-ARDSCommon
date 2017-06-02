@@ -1229,8 +1229,8 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
             } else if (callingParty === "Completed" && tempObj.State === "Connected") {
                 console.log("Reject Available Request:: Connected");
                 callback(new Error("Resource in Connected State"), null);
-            } else if (callingParty === "EndFreeze" && tempObj.State != "AfterWork") {
-                console.log("Reject Available Request:: EndFreeze");
+            } else if (callingParty === "endFreeze" && tempObj.State != "AfterWork") {
+                console.log("Reject Available Request:: endFreeze");
                 callback(new Error("Resource in Connected State"), null);
             } else {
                 console.log("Set Available");
@@ -1246,9 +1246,9 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
 
                             if (tempObj.FreezeAfterWorkTime) {
                                 try {
-                                    scheduleWorkerHandler.EndFreeze(company, tenant, resourceid, logKey);
+                                    scheduleWorkerHandler.endFreeze(company, tenant, resourceid, logKey);
                                 } catch (ex) {
-                                    console.log('scheduleWorkerHandler.EndFreeze Error :: ' + ex);
+                                    console.log('scheduleWorkerHandler.endFreeze Error :: ' + ex);
                                 }
                             }
                             tempObj.State = "Available";
@@ -1593,10 +1593,10 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
                                     console.log(err);
                                 }
                                 try {
-                                    scheduleWorkerHandler.StartFreeze(company, tenant, resourceid, resourceid, logKey);
+                                    scheduleWorkerHandler.startFreeze(company, tenant, resourceid, resourceid,tempObj.MaxFreezeTime, logKey);
                                 }
                                 catch (ex){
-                                    console.log('scheduleWorkerHandler.StartFreeze :: ' + ex);
+                                    console.log('scheduleWorkerHandler.startFreeze :: ' + ex);
                                 }
                                 callback(err, reply);
                             });
@@ -1742,8 +1742,8 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                     });
                                     break;
 
-                                case "EndFreeze":
-                                    UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, "", "AfterWork", "EndFreeze", function (err, result) {
+                                case "endFreeze":
+                                    UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, "", "AfterWork", "endFreeze", function (err, result) {
                                         callback(err, result);
                                     });
                                     break;
