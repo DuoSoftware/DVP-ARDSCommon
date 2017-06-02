@@ -20,7 +20,7 @@ module.exports.SendNotificationToRoom = function (company, tenant, roomName, eve
         var companyInfo = util.format("%d:%d", tenant, company);
 
         var jsonStr = JSON.stringify(msgData);
-        var accessToken = config.Services.accessToken;
+        var accessToken = "bearer " + config.Services.accessToken;
         var options = {
             url: notificationUrl,
             method: "POST",

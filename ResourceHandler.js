@@ -1248,7 +1248,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                                 try {
                                     scheduleWorkerHandler.EndFreeze(company, tenant, resourceid, logKey);
                                 } catch (ex) {
-                                    console.log(err);
+                                    console.log('scheduleWorkerHandler.EndFreeze Error :: ' + ex);
                                 }
                             }
                             tempObj.State = "Available";
@@ -1596,7 +1596,7 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
                                     scheduleWorkerHandler.StartFreeze(company, tenant, resourceid, resourceid, logKey);
                                 }
                                 catch (ex){
-                                    console.log(ex);
+                                    console.log('scheduleWorkerHandler.StartFreeze :: ' + ex);
                                 }
                                 callback(err, reply);
                             });
