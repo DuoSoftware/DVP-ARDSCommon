@@ -203,7 +203,8 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
                                     ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
                                     MaxReservedTime: metaDataObj.MaxReservedTime,
                                     MaxRejectCount: metaDataObj.MaxRejectCount,
-                                    MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime
+                                    MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime,
+                                    MaxFreezeTime: metaDataObj.MaxFreezeTime
                                 }
                             ).then(function (results) {
                                     callback(null, "OK");
@@ -269,7 +270,8 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
                         ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
                         MaxReservedTime: metaDataObj.MaxReservedTime,
                         MaxRejectCount: metaDataObj.MaxRejectCount,
-                        MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime
+                        MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime,
+                        MaxFreezeTime: metaDataObj.MaxFreezeTime
                     }).then(function (results) {
                         callback(null, "OK");
                     }).error(function (err) {
