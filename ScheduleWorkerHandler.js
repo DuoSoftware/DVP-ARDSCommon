@@ -73,9 +73,9 @@ function StopCronJob(company, tenant, id, cb) {
         if ((config.Services && config.Services.cronurl && config.Services.cronport && config.Services.cronversion)) {
 
 
-            var cronURL = format("http://{0}/DVP/API/{1}/Cron/Reference/{2}/Action/stop", config.Services.cronurl, config.Services.cronversion, id);
+            var cronURL = format("http://{0}/DVP/API/{1}/Cron/Reference/{2}/Action/destroy", config.Services.cronurl, config.Services.cronversion, id);
             if (validator.isIP(config.Services.cronurl))
-                cronURL = format("http://{0}:{1}/DVP/API/{2}/Cron/Reference/{3}/Action/stop", config.Services.cronurl, config.Services.cronport, config.Services.cronversion, id);
+                cronURL = format("http://{0}:{1}/DVP/API/{2}/Cron/Reference/{3}/Action/destroy", config.Services.cronurl, config.Services.cronport, config.Services.cronversion, id);
 
 
             logger.debug("StopCronJob service URL %s", cronURL);
