@@ -11,7 +11,7 @@ var redisHandler = require('../RedisHandler.js');
 var infoLogger = require('../InformationLogger.js');
 var deepcopy = require('deepcopy');
 var ardsMonitoringService = require('./ardsMonitoringService');
-var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
+
 
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
     try {
@@ -108,11 +108,6 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
 
     if(reason && reason.toLowerCase() !== "endbreak" && reason.toLowerCase().indexOf('break') > -1){
         dashBoardReason = 'Break';
-        scheduleWorkerHandler.StartBreak(resourceId);
-    }
-
-    if(reason && reason.toLowerCase() !== "break" && reason.toLowerCase().indexOf('endbreak') > -1){
-        scheduleWorkerHandler.EndBreak(resourceId);
     }
 
     if(splitData.length == 2) {

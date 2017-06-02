@@ -2,6 +2,7 @@
 var util = require('util');
 var infoLogger = require('./InformationLogger.js');
 var resourceService = require('./services/resourceService');
+var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
 
 var SetResourceState = function (logKey, company, tenant, resourceId, resourceName, state, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetResourceState *************************', logKey);
@@ -28,6 +29,13 @@ var SetResourceState = function (logKey, company, tenant, resourceId, resourceNa
                             console.log("AddResourceStatusChangeInfo Success.", obj);
                         }
                     });
+                    if(reason && reason.toLowerCase() !== "endbreak" && reason.toLowerCase().indexOf('break') > -1){
+                        scheduleWorkerHandler.StartBreak(company, tenant, resourceName,resourceId, logKey);
+                    }
+
+                    if(reason && reason.toLowerCase() !== "break" && reason.toLowerCase().indexOf('endbreak') > -1){
+                        scheduleWorkerHandler.EndBreak(resourceId);
+                    }
                 }
                 callback(err, result);
             });
