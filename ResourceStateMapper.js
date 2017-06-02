@@ -34,7 +34,7 @@ var SetResourceState = function (logKey, company, tenant, resourceId, resourceNa
                     }
 
                     if(reason && reason.toLowerCase() !== "break" && reason.toLowerCase().indexOf('endbreak') > -1){
-                        scheduleWorkerHandler.EndBreak(resourceId);
+                        scheduleWorkerHandler.EndBreak(company, tenant, resourceName,logKey);
                     }
                 }
                 callback(err, result);

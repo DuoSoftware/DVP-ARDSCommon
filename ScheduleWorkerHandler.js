@@ -135,10 +135,10 @@ module.exports.StartBreak = function (company, tenant, userName, resourceId, log
 
         RegisterCronJob(company, tenant, userName, callbackData, mainServer, 10, function (isSuccess) {
             if (isSuccess) {
-                logger.error('failed Create Cron Job. ' + userName);
+                logger.info('Create Cron Job.' + userName);
             }
             else {
-                logger.info('Create Cron Job.' + userName);
+                logger.error('failed Create Cron Job. ' + userName);
             }
         });
 
@@ -153,10 +153,10 @@ module.exports.EndBreak = function (company, tenant, userName, logKey) {
 
         StopCronJob(company, tenant, userName, function (isSuccess) {
             if (isSuccess) {
-                logger.error('failed Stop Cron Job. ' + userName);
+                logger.info('Stop Cron Job.' + userName);
             }
             else {
-                logger.info('Stop Cron Job.' + userName);
+                logger.error('failed Stop Cron Job. ' + userName);
             }
         });
     }
@@ -185,10 +185,10 @@ module.exports.StartFreeze = function (company, tenant, userName, resourceId, lo
 
         RegisterCronJob(company, tenant, userName, callbackData, mainServer, 10, function (isSuccess) {
             if (isSuccess) {
-                logger.error('failed Create Cron Job. ' + userName);
+                logger.info('Create Cron Job.' + userName);
             }
             else {
-                logger.info('Create Cron Job.' + userName);
+                logger.error('failed Create Cron Job. ' + userName);
             }
         });
 
@@ -203,10 +203,10 @@ module.exports.EndFreeze = function (company, tenant, userName, logKey) {
 
         StopCronJob(company, tenant, userName, function (isSuccess) {
             if (isSuccess) {
-                logger.error('failed Stop Cron Job. ' + userName);
+                logger.info('Stop Cron Job.' + userName);
             }
             else {
-                logger.info('Stop Cron Job.' + userName);
+                logger.error('failed Stop Cron Job. ' + userName);
             }
         });
     }
