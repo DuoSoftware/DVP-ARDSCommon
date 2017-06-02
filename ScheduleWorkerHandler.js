@@ -24,7 +24,7 @@ function RegisterCronJob(company, tenant, reference, callbackData, mainServer, t
                 Description: "Direct message twitter",
                 CronePattern: format("*/{0} * * * *", time),
                 CallbackURL: mainServer,
-                CallbackData: callbackData
+                CallbackData: JSON.stringify(callbackData)
             };
 
 
