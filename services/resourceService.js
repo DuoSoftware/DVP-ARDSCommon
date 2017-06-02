@@ -12,6 +12,7 @@ var infoLogger = require('../InformationLogger.js');
 var deepcopy = require('deepcopy');
 var ardsMonitoringService = require('./ardsMonitoringService');
 
+
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
     try {
         var rUrl = util.format('http://%s', config.Services.resourceServiceHost);
@@ -105,7 +106,7 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
         param2 = util.format('%s%s', param2, otherData.Direction);
     }
 
-    if(reason && reason !== "EndBreak" && reason.toLowerCase().indexOf('break') > -1){
+    if(reason && reason.toLowerCase() !== "endbreak" && reason.toLowerCase().indexOf('break') > -1){
         dashBoardReason = 'Break';
     }
 

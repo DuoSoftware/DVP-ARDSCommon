@@ -1,6 +1,6 @@
 {
   "name": "dvp-ardscommon",
-  "version": "1.5.7",
+  "version": "1.5.9",
   "description": "",
   "main": "Authorization.js",
   "dependencies": {
@@ -13,6 +13,7 @@
     "redis-lock": "^0.1.0",
     "request": "^2.79.0",
     "restify": "^4.0.3",
+    "stringformat": "0.0.5",
     "validator": "^4.7.1",
     "winston": "^2.1.1"
   },

@@ -2,13 +2,14 @@
 var util = require('util');
 var infoLogger = require('./InformationLogger.js');
 var resourceService = require('./services/resourceService');
+var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
 
-var SetResourceState = function (logKey, company, tenant, resourceId, state, reason, callback) {
+var SetResourceState = function (logKey, company, tenant, resourceId, resourceName, state, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetResourceState *************************', logKey);
 
     var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
     var internalAccessToken = util.format('%d:%d', tenant,company);
-    processState(logKey, StateKey, internalAccessToken, resourceId, state, reason, function (err, resultObj) {
+    processState(logKey, StateKey, internalAccessToken, resourceId, resourceName, state, reason, function (err, resultObj) {
         if (err != null) {
             console.log(err);
         }
@@ -28,6 +29,13 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
                             console.log("AddResourceStatusChangeInfo Success.", obj);
                         }
                     });
+                    if(reason && reason.toLowerCase() !== "endbreak" && reason.toLowerCase().indexOf('break') > -1){
+                        scheduleWorkerHandler.StartBreak(company, tenant, resourceName,resourceId, logKey);
+                    }
+
+                    if(reason && reason.toLowerCase() !== "break" && reason.toLowerCase().indexOf('endbreak') > -1){
+                        scheduleWorkerHandler.EndBreak(resourceId);
+                    }
                 }
                 callback(err, result);
             });
@@ -35,8 +43,8 @@ var SetResourceState = function (logKey, company, tenant, resourceId, state, rea
     });
 };
 
-var processState = function (logKey, stateKey, internalAccessToken, resourceId, state, reason, callback) {
-    var statusObj = {State: state, Reason: reason};
+var processState = function (logKey, stateKey, internalAccessToken, resourceId, resourceName, state, reason, callback) {
+    var statusObj = {ResourceName: resourceName, State: state, Reason: reason};
 
     redisHandler.GetObj(logKey, stateKey, function (err, statusStrObj) {
         if(err){
