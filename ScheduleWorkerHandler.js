@@ -133,7 +133,7 @@ module.exports.StartBreak = function (company, tenant, userName, resourceId, log
             RoomName: "ARDS:break_exceeded"
         };
 
-        RegisterCronJob(company, tenant, userName, callbackData, mainServer, 10, function (isSuccess) {
+        RegisterCronJob(company, tenant, userName, callbackData, mainServer, 1, function (isSuccess) {
             if (isSuccess) {
                 logger.info('Create Cron Job.' + userName);
             }
@@ -183,7 +183,7 @@ module.exports.StartFreeze = function (company, tenant, userName, resourceId, lo
             RoomName: "ARDS:freeze_exceeded"
         };
 
-        RegisterCronJob(company, tenant, userName, callbackData, mainServer, 10, function (isSuccess) {
+        RegisterCronJob(company, tenant, userName, callbackData, mainServer, 1, function (isSuccess) {
             if (isSuccess) {
                 logger.info('Create Cron Job.' + userName);
             }
