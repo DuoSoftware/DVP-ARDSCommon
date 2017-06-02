@@ -203,7 +203,8 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
                                     ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
                                     MaxReservedTime: metaDataObj.MaxReservedTime,
                                     MaxRejectCount: metaDataObj.MaxRejectCount,
-                                    MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime
+                                    MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime,
+                                    MaxFreezeTime: metaDataObj.MaxFreezeTime
                                 }
                             ).then(function (results) {
                                     callback(null, "OK");
@@ -269,7 +270,8 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
                         ReqSelectionAlgo: metaDataObj.ReqSelectionAlgo,
                         MaxReservedTime: metaDataObj.MaxReservedTime,
                         MaxRejectCount: metaDataObj.MaxRejectCount,
-                        MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime
+                        MaxAfterWorkTime: metaDataObj.MaxAfterWorkTime,
+                        MaxFreezeTime: metaDataObj.MaxFreezeTime
                     }).then(function (results) {
                         callback(null, "OK");
                     }).error(function (err) {
@@ -362,7 +364,7 @@ var ReloadMetaData = function (company, tenant, serverType, requestType) {
                 tempAttributeGroupInfo.push(obj);
             });
             sagi.on('endgroupInfo', function() {
-                var metaDataObj = { Company: reqMeta.Company, Tenant: reqMeta.Tenant, ServerType: reqMeta.ServerType, RequestType: reqMeta.RequestType, ServingAlgo: reqMeta.ServingAlgo, HandlingAlgo: reqMeta.HandlingAlgo, SelectionAlgo: reqMeta.SelectionAlgo, MaxReservedTime: reqMeta.MaxReservedTime, MaxRejectCount: reqMeta.MaxRejectCount, ReqHandlingAlgo: reqMeta.ReqHandlingAlgo, ReqSelectionAlgo: reqMeta.ReqSelectionAlgo, MaxAfterWorkTime: reqMeta.MaxAfterWorkTime };
+                var metaDataObj = { Company: reqMeta.Company, Tenant: reqMeta.Tenant, ServerType: reqMeta.ServerType, RequestType: reqMeta.RequestType, ServingAlgo: reqMeta.ServingAlgo, HandlingAlgo: reqMeta.HandlingAlgo, SelectionAlgo: reqMeta.SelectionAlgo, MaxReservedTime: reqMeta.MaxReservedTime, MaxRejectCount: reqMeta.MaxRejectCount, ReqHandlingAlgo: reqMeta.ReqHandlingAlgo, ReqSelectionAlgo: reqMeta.ReqSelectionAlgo, MaxAfterWorkTime: reqMeta.MaxAfterWorkTime, MaxFreezeTime: reqMeta.MaxFreezeTime };
                 metaDataObj.AttributeMeta = tempAttributeGroupInfo;
                 ReaddMetaData(metaDataObj, function () { });
                 return metaDataObj;
