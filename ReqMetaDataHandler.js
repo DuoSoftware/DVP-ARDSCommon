@@ -292,8 +292,38 @@ var GetMeataData = function (logKey, company, tenant, serverType, requestType, c
 
     var key = util.format('ReqMETA:%s:%s:%s:%s', company, tenant, serverType, requestType);
     redisHandler.GetObj(logKey, key, function (err, result) {
-        infoLogger.DetailLogger.log('info', '%s Finished GetMeataData. Result: %s', logKey, result);
-        callback(err, result);
+        if(result){
+            infoLogger.DetailLogger.log('info', '%s Finished GetMetaData. Result: %s', logKey, result);
+            callback(undefined, result);
+        }else{
+            dbConn.ArdsRequestMetaData.find({
+                where: [{ Tenant: tenant }, { Company: company }, { ServerType: serverType }, { RequestType: requestType }]
+            }).then(function (reqMeta) {
+                if (reqMeta) {
+                    var accessToken = util.format('%d:%d', reqMeta.Tenant,reqMeta.Company);
+                    var attributeGroups = JSON.parse(reqMeta.AttributeGroups);
+                    var tempAttributeGroupInfo = [];
+                    var sagi = SetAttributeGroupInfo(accessToken, attributeGroups);
+
+                    sagi.on('groupInfo', function(obj){
+                        tempAttributeGroupInfo.push(obj);
+                    });
+                    sagi.on('endgroupInfo', function() {
+                        infoLogger.DetailLogger.log('info', '%s Finished GetMetaData. Result: %s', logKey, result);
+
+                        var metaDataObj = { Company: reqMeta.Company, Tenant: reqMeta.Tenant, ServerType: reqMeta.ServerType, RequestType: reqMeta.RequestType, ServingAlgo: reqMeta.ServingAlgo, HandlingAlgo: reqMeta.HandlingAlgo, SelectionAlgo: reqMeta.SelectionAlgo, MaxReservedTime: reqMeta.MaxReservedTime, MaxRejectCount: reqMeta.MaxRejectCount, ReqHandlingAlgo: reqMeta.ReqHandlingAlgo, ReqSelectionAlgo: reqMeta.ReqSelectionAlgo, MaxAfterWorkTime: reqMeta.MaxAfterWorkTime, MaxFreezeTime: reqMeta.MaxFreezeTime };
+                        metaDataObj.AttributeMeta = tempAttributeGroupInfo;
+                        ReaddMetaData(metaDataObj, function () { });
+                        callback(undefined, metaDataObj);
+                    });
+                }else{
+                    callback(undefined, undefined);
+                }
+            }).error(function (err) {
+                infoLogger.DetailLogger.log('error', '%s Error in GetMetaData. Error: %s', logKey, err);
+                callback(err, undefined);
+            });
+        }
     });
 };
 
