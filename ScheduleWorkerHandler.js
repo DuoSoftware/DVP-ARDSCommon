@@ -197,7 +197,7 @@ module.exports.endBreak = function (company, tenant, userName, logKey) {
     }
 };
 
-module.exports.startFreeze = function (company, tenant, userName, resourceId, time, logKey) {
+module.exports.startFreeze = function (company, tenant, userName, resourceId, time,sessionId, logKey) {
     try {
         var mainServer = format("http://{0}/DVP/API/{1}/ARDS/Notification/{2}", config.Host.LBIP, config.Host.Version, userName);
 
@@ -211,7 +211,8 @@ module.exports.startFreeze = function (company, tenant, userName, resourceId, ti
             ResourceId: resourceId,
             Message: "Freeze Time Exceeded!",
             Event: "freeze_exceeded",
-            RoomName: "ARDS:freeze_exceeded"
+            RoomName: "ARDS:freeze_exceeded",
+            SessionID:sessionId
         };
 
         registerCronJob(company, tenant, userName, callbackData, mainServer, time, function (isSuccess) {

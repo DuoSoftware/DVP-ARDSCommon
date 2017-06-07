@@ -1596,7 +1596,7 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
                                     console.log(err);
                                 }
                                 try {
-                                    scheduleWorkerHandler.startFreeze(company, tenant, resourceid, resourceid,tempObj.MaxFreezeTime, logKey);
+                                    scheduleWorkerHandler.startFreeze(company, tenant, resourceid, resourceid,tempObj.MaxFreezeTime,tempObj.HandlingRequest, logKey);
                                 }
                                 catch (ex){
                                     console.log('scheduleWorkerHandler.startFreeze :: ' + ex);
