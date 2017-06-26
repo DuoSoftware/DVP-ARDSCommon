@@ -7,7 +7,7 @@ var util = require('util');
 var infoLogger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 
 
-var queueHost = util.format('amqp://%s:%s@%s:%d', config.RabbitMQ.user, config.RabbitMQ.password, config.RabbitMQ.ip, config.RabbitMQ.port);
+var queueHost = util.format('amqp://%s:%s@%s:%d?heartbeat=10', config.RabbitMQ.user, config.RabbitMQ.password, config.RabbitMQ.ip, config.RabbitMQ.port);
 var queueConnection = amqp.createConnection({
     url: queueHost
 });
