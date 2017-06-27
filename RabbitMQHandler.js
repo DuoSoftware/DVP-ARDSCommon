@@ -7,10 +7,22 @@ var util = require('util');
 var infoLogger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 
 
-var queueHost = util.format('amqp://%s:%s@%s:%d?heartbeat=10', config.RabbitMQ.user, config.RabbitMQ.password, config.RabbitMQ.ip, config.RabbitMQ.port);
+//var queueHost = util.format('amqp://%s:%s@%s:%d?heartbeat=10', config.RabbitMQ.user, config.RabbitMQ.password, config.RabbitMQ.ip, config.RabbitMQ.port);
 var queueConnection = amqp.createConnection({
-    url: queueHost
+    host: config.RabbitMQ.ip,
+    port: config.RabbitMQ.port,
+    login: config.RabbitMQ.user,
+    password: config.RabbitMQ.password,
+    vhost: config.RabbitMQ.vhost,
+    noDelay: true,
+    heartbeat:10
+}, {
+    reconnect: true,
+    reconnectBackoffStrategy: 'linear',
+    reconnectExponentialLimit: 120000,
+    reconnectBackoffTime: 1000
 });
+
 queueConnection.on('ready', function () {
 
     infoLogger.info("Conection with the queue is OK");
