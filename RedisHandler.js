@@ -1,23 +1,121 @@
-﻿var redis = require('redis');
+﻿var redis = require('ioredis');
 var util = require('util');
 var EventEmiter = require('events').EventEmitter;
 var config = require('config');
 var infoLogger = require('./InformationLogger.js');
+var Redlock = require('redlock');
 
-client = redis.createClient(config.Redis.redisport, config.Redis.redisip);
-client.auth(config.Redis.password);
-client.select(config.Redis.redisdb, redis.print);
-//client.select(config.Redis.redisdb, function () { /* ... */ });
+var redisip = config.Redis.ip;
+var redisport = config.Redis.port;
+var redispass = config.Redis.password;
+var redismode = config.Redis.mode;
+var redisdb = config.Redis.db;
+
+
+
+var redisSetting =  {
+    port:redisport,
+    host:redisip,
+    family: 4,
+    password: redispass,
+    db: redisdb,
+    retryStrategy: function (times) {
+        var delay = Math.min(times * 50, 2000);
+        return delay;
+    },
+    reconnectOnError: function (err) {
+
+        return true;
+    }
+};
+
+if(redismode == 'sentinel'){
+
+    if(config.Redis.sentinels && config.Redis.sentinels.hosts && config.Redis.sentinels.port, config.Redis.sentinels.name){
+        var sentinelHosts = config.Redis.sentinels.hosts.split(',');
+        if(Array.isArray(sentinelHosts) && sentinelHosts.length > 2){
+            var sentinelConnections = [];
+
+            sentinelHosts.forEach(function(item){
+
+                sentinelConnections.push({host: item, port:config.Redis.sentinels.port})
+
+            })
+
+            redisSetting = {
+                sentinels:sentinelConnections,
+                name: config.Redis.sentinels.name,
+                password: redispass
+            }
+
+        }else{
+
+            console.log("No enough sentinel servers found .........");
+        }
+
+    }
+}
+
+var client = undefined;
+
+if(redismode != "cluster") {
+    client = new redis(redisSetting);
+}else{
+
+    var redisHosts = redisip.split(",");
+    if(Array.isArray(redisHosts)){
+
+
+        redisSetting = [];
+        redisHosts.forEach(function(item){
+            redisSetting.push({
+                host: item,
+                port: redisport,
+                family: 4,
+                password: redispass});
+        });
+
+        var client = new redis.Cluster([redisSetting]);
+
+    }else{
+
+        client = new redis(redisSetting);
+    }
+
+
+}
+
 client.on("error", function (err) {
-    infoLogger.DetailLogger.log('error', 'Redis connection error :: %s', err);
-    console.log("Error " + err);
+    console.log('error', 'Redis connection error :: %s', err);
 });
 
 client.on("connect", function (err) {
-    client.select(config.Redis.redisdb, redis.print);
+    //client.select(config.Redis.redisDB, redis.print);
+    console.log("Redis Connect Success");
 });
 
-var lock = require("redis-lock")(client);
+
+var redlock = new Redlock(
+    [client],
+    {
+        driftFactor: 0.01,
+
+        retryCount:  10000,
+
+        retryDelay:  200
+
+    }
+);
+
+redlock.on('clientError', function(err)
+{
+    //logger.error('[DVP-Common.AcquireLock] - [%s] - REDIS LOCK FAILED', err);
+
+});
+
+
+
+//var lock = require("redis-lock")(client);
 
 
 var SetTags = function (logKey, tagKey, objKey, callback) {
@@ -120,12 +218,15 @@ var RemoveTags = function(tags, objKey){
 };
 
 var SetObj = function (logKey, key, obj, callback) {
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj - key: %s :: obj: %s', logKey, key, obj);
 
         client.set(key, obj, function (error, reply) {
-            done();
+            lock.unlock()
+                .catch(function (err) {
+                    console.error(err);
+                });
             if (error) {
                 infoLogger.DetailLogger.log('error', '%s SetObj - key: %s :: Error: %s', logKey, key, error);
                 callback(error, null);
@@ -135,16 +236,20 @@ var SetObj = function (logKey, key, obj, callback) {
                 callback(null, reply);
             }
         });
+
     });
 };
 
 var SetObj_NX = function (logKey, key, obj, callback) {
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj_NX - key: %s :: obj: %s', logKey, key, obj);
 
         client.setnx(key, obj, function (error, reply) {
-            done();
+            lock.unlock()
+                .catch(function (err) {
+                    console.error(err);
+                });
             if (error) {
                 infoLogger.DetailLogger.log('error', '%s SetObj_NX - key: %s :: Error: %s', logKey, key, error);
                 callback(error, null);
@@ -154,20 +259,25 @@ var SetObj_NX = function (logKey, key, obj, callback) {
                 callback(null, reply);
             }
         });
+
+
     });
 };
 
 var RemoveObj = function (logKey, key, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s RemoveObj - key: %s', logKey, key);
 
         client.del(key, function (err, reply) {
-            done();
+            lock.unlock()
+                .catch(function (err) {
+                    console.error(err);
+                });
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s RemoveObj - key: %s :: Error: %s', logKey, key, err);
-                console.log(error);
+                console.log(err);
             }
             else if (reply === 1) {
                 infoLogger.DetailLogger.log('info', '%s RemoveObj - key: %s :: Reply: %s', logKey, key, reply);
@@ -178,6 +288,8 @@ var RemoveObj = function (logKey, key, callback) {
                 callback(null, "false");
             }
         });
+
+
     });
 };
 
@@ -217,7 +329,7 @@ var MGetObj = function (logKey, keys, callback) {
 
 var AddObj_T = function (logKey, key, obj, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s AddObj_T - key: %s :: obj: %s', logKey, key, obj);
 
@@ -227,12 +339,18 @@ var AddObj_T = function (logKey, key, obj, tags, callback) {
 
             SetTags(logKey,tagkey, key, function (err, reply) {
                 if (err) {
-                    done();
-                    console.log(error);
+                    lock.unlock()
+                        .catch(function (err) {
+                            console.error(err);
+                        });
+                    console.log(err);
                 }
                 else if (reply === "OK") {
                     client.set(key, obj, function (error, reply) {
-                        done();
+                        lock.unlock()
+                            .catch(function (err) {
+                                console.error(err);
+                            });
                         if (error) {
                             infoLogger.DetailLogger.log('error', '%s AddObj_T Error - key: %s :: Error: %s', logKey, key, error);
                             console.log(error);
@@ -249,12 +367,14 @@ var AddObj_T = function (logKey, key, obj, tags, callback) {
                 }
             });
         }
+
+
     });
 };
 
 var SetObj_T = function (logKey, key, obj, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj_T - key: %s :: obj: %s', logKey, key, obj);
 
@@ -262,13 +382,19 @@ var SetObj_T = function (logKey, key, obj, tags, callback) {
             var tagkey = util.format('tag:%s', tags.join(":"));
             SetTags(logKey, tagkey, key, function (err, reply) {
                 if (err) {
-                    done();
-                    console.log(error);
+                    lock.unlock()
+                        .catch(function (err) {
+                            console.error(err);
+                        });
+                    console.log(err);
                     callback(err, null);
                 }
                 else if (reply === "OK") {
                     client.set(key, obj, function (error, reply) {
-                        done();
+                        lock.unlock()
+                            .catch(function (err) {
+                                console.error(err);
+                            });
                         if (error) {
                             infoLogger.DetailLogger.log('error', '%s SetObj_T Error - key: %s :: Error: %s', logKey, key, error);
                             console.log(error);
@@ -286,12 +412,14 @@ var SetObj_T = function (logKey, key, obj, tags, callback) {
         }else{
             callback(new Error("emppty tag array"), null);
         }
+
+
     });
 };
 
 var RemoveObj_T = function (logKey, key, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s RemoveObj_T - key: %s', logKey, key);
 
@@ -311,7 +439,10 @@ var RemoveObj_T = function (logKey, key, tags, callback) {
         }
 
         client.del(key, function (err, reply) {
-            done();
+            lock.unlock()
+                .catch(function (err) {
+                    console.error(err);
+                });
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s RemoveObj_T Error - key: %s :: Error: %s', logKey, key, err);
                 console.log(err);
@@ -325,6 +456,8 @@ var RemoveObj_T = function (logKey, key, tags, callback) {
                 callback(null, "false");
             }
         });
+
+
     });
 };
 
@@ -383,7 +516,7 @@ var SearchObj_T = function (logKey, tags, callback) {
 
 var AddObj_V = function (logKey, key, obj, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s AddObj_V - key: %s :: obj: %s', logKey, key, obj);
 
@@ -393,13 +526,19 @@ var AddObj_V = function (logKey, key, obj, callback) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s AddObj_V SetVersion Error - key: %s :: Error: %s', logKey, key, err);
 
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 console.log(error);
                 callback(err, "SetVersion Failed", vid);
             }
             else if (reply === "OK") {
                 client.set(key, obj, function (error, reply) {
-                    done();
+                    lock.unlock()
+                        .catch(function (err) {
+                            console.error(err);
+                        });
                     if (error) {
                         console.log(error);
                         client.del(tagkey, function (err, reply) {
@@ -417,12 +556,14 @@ var AddObj_V = function (logKey, key, obj, callback) {
                 });
             }
         });
+
+
     });
 };
 
 var SetObj_V = function (logKey, key, obj, cvid, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj_V - key: %s :: obj: %s :: cvid: %s', logKey, key, obj, cvid);
 
@@ -430,11 +571,17 @@ var SetObj_V = function (logKey, key, obj, cvid, callback) {
         client.get(versionkey, function (err, reply) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s SetObj_V GetVersion Error - key: %s :: Error: %s', logKey, key, err);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 console.log(err);
             }
             else if (reply === null) {
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 AddObj_V(key, obj, callback);
             }
             else if (reply === cvid) {
@@ -442,13 +589,19 @@ var SetObj_V = function (logKey, key, obj, cvid, callback) {
                 client.incr(versionkey, function (err, reply) {
                     if (err) {
                         infoLogger.DetailLogger.log('error', '%s SetObj_V SetVersion Error - key: %s :: Error: %s', logKey, key, err);
-                        done();
+                        lock.unlock()
+                            .catch(function (err) {
+                                console.error(err);
+                            });
                         console.log(error);
                     }
                     else {
                         var vid = reply
                         client.set(key, obj, function (error, reply) {
-                            done();
+                            lock.unlock()
+                                .catch(function (err) {
+                                    console.error(err);
+                                });
                             if (error) {
                                 infoLogger.DetailLogger.log('error', '%s SetObj_V Error - key: %s :: Error: %s', logKey, key, error);
                                 console.log(error);
@@ -467,12 +620,14 @@ var SetObj_V = function (logKey, key, obj, cvid, callback) {
                 callback(null, "VERSION_MISMATCHED", cvid);
             }
         });
+
+
     });
 };
 
 var RemoveObj_V = function (logKey, key, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s RemoveObj_V - key: %s', logKey, key);
 
@@ -480,7 +635,10 @@ var RemoveObj_V = function (logKey, key, callback) {
         client.del(versionkey, function (err, reply) { });
 
         client.del(key, function (err, reply) {
-            done();
+            lock.unlock()
+                .catch(function (err) {
+                    console.error(err);
+                });
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s RemoveObj_V - key: %s :: Error: %s', logKey, key, err);
                 console.log(error);
@@ -494,6 +652,8 @@ var RemoveObj_V = function (logKey, key, callback) {
                 callback(null, "false");
             }
         });
+
+
     });
 };
 
@@ -524,7 +684,7 @@ var GetObj_V = function (logKey, key, callback) {
 
 var AddObj_V_T = function (logKey, key, obj, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s AddObj_V_T - key: %s :: obj: %s', logKey, key, obj);
 
@@ -533,7 +693,10 @@ var AddObj_V_T = function (logKey, key, obj, tags, callback) {
             var tagkey = util.format('tag:%s', tags.join(":"));
             SetTags(logKey, tagkey, key, function (err, reply) {
                 if (err) {
-                    done();
+                    lock.unlock()
+                        .catch(function (err) {
+                            console.error(err);
+                        });
                     console.log(error);
                 }
                 else if (reply === "OK") {
@@ -541,14 +704,20 @@ var AddObj_V_T = function (logKey, key, obj, tags, callback) {
                     client.set(versionkey, vid, function (err, reply) {
                         if (err) {
                             infoLogger.DetailLogger.log('error', '%s AddObj_V_T SetVersion Error - key: %s :: Error: %s', logKey, key, err);
-                            done();
+                            lock.unlock()
+                                .catch(function (err) {
+                                    console.error(err);
+                                });
                             console.log(error);
                             client.del(tagkey, function (err, reply) {
                             });
                         }
                         else if (reply === "OK") {
                             client.set(key, obj, function (error, reply) {
-                                done();
+                                lock.unlock()
+                                    .catch(function (err) {
+                                        console.error(err);
+                                    });
                                 if (error) {
                                     infoLogger.DetailLogger.log('error', '%s AddObj_V_T Error - key: %s :: Error: %s', logKey, key, error);
                                     console.log(error);
@@ -567,12 +736,14 @@ var AddObj_V_T = function (logKey, key, obj, tags, callback) {
                 }
             });
         }
+
+
     });
 };
 
 var SetObj_V_T = function (logKey, key, obj, tags, cvid, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj_V_T - key: %s :: obj: %s :: cvid: %s', logKey, key, obj, cvid);
 
@@ -580,11 +751,17 @@ var SetObj_V_T = function (logKey, key, obj, tags, cvid, callback) {
         client.get(versionkey, function (err, reply) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s SetObj_V_T GetVersion Error - key: %s :: Error: %s', logKey, key, err);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 console.log(err);
             }
             else if (reply === null) {
-                done();
+                dlock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 AddObj_V_T(key, obj, tags, callback);
             }
             else if (reply === cvid) {
@@ -592,7 +769,10 @@ var SetObj_V_T = function (logKey, key, obj, tags, cvid, callback) {
                     var tagkey = util.format('tag:%s', tags.join(":"));
                     SetTags(logKey, tagkey, key, function (err, reply) {
                         if (err) {
-                            done();
+                            lock.unlock()
+                                .catch(function (err) {
+                                    console.error(err);
+                                });
                             console.log(error);
                         }
                         else if (reply === "OK") {
@@ -600,13 +780,19 @@ var SetObj_V_T = function (logKey, key, obj, tags, cvid, callback) {
                             client.incr(versionkey, function (err, reply) {
                                 if (err) {
                                     infoLogger.DetailLogger.log('error', '%s SetObj_V_T SetVersion Error - key: %s :: Error: %s', logKey, key, err);
-                                    done();
+                                    lock.unlock()
+                                        .catch(function (err) {
+                                            console.error(err);
+                                        });
                                     console.log(error);
                                 }
                                 else {
                                     var vid = reply
                                     client.set(key, obj, function (error, reply) {
-                                        done();
+                                        lock.unlock()
+                                            .catch(function (err) {
+                                                console.error(err);
+                                            });
                                         if (error) {
                                             infoLogger.DetailLogger.log('error', '%s SetObj_V_T Error - key: %s :: Error: %s', logKey, key, error);
                                             console.log(error);
@@ -628,12 +814,14 @@ var SetObj_V_T = function (logKey, key, obj, tags, cvid, callback) {
                 callback(null, "VERSION_MISMATCHED", cvid);
             }
         });
+
+
     });
 };
 
 var RemoveObj_V_T = function (logKey, key, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    lock(key, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s RemoveObj_V_T - key: %s', logKey, key);
 
@@ -653,7 +841,10 @@ var RemoveObj_V_T = function (logKey, key, tags, callback) {
         client.del(versionkey, function (err, reply) { });
 
         client.del(key, function (err, reply) {
-            done();
+            lock.unlock()
+                .catch(function (err) {
+                    console.error(err);
+                });
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s RemoveObj_V_T - key: %s :: Error: %s', logKey, key, err);
                 console.log(error);
@@ -668,6 +859,8 @@ var RemoveObj_V_T = function (logKey, key, tags, callback) {
                 callback(null, "false");
             }
         });
+
+
     });
 };
 
@@ -742,38 +935,56 @@ var CheckObjExists = function (logKey, key, callback) {
 var AddItemToListR = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToListR - key: %s :: obj: %s', logKey, key, obj);
-    lock(key, 500, function (done) {
+
+    redlock.lock(key, 500).then(function(lock) {
         client.rpush(key, obj, function (error, reply) {
             if (error) {
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 infoLogger.DetailLogger.log('error', '%s AddItemToListR Error - key: %s :: Error: %s', logKey, key, error);
                 callback(error, null);
             }
             else {
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 infoLogger.DetailLogger.log('info', '%s AddItemToListR - key: %s :: Reply: %s', logKey, key, reply);
                 callback(null, reply);
             }
         });
+
+
     });
 };
 
 var AddItemToListL = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToListL - key: %s :: obj: %s', logKey, key, obj);
-    lock(key, 500, function (done) {
+
+    redlock.lock(key, 500).then(function(lock) {
         client.lpush(key, obj, function (error, reply) {
             if (error) {
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 infoLogger.DetailLogger.log('error', '%s AddItemToListL Error - key: %s :: Error: %s', logKey, key, error);
                 callback(error, null);
             }
             else {
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 infoLogger.DetailLogger.log('info', '%s AddItemToListL - key: %s :: Reply: %s', logKey, key, reply);
                 callback(null, reply);
             }
         });
+
+
     });
 };
 
@@ -828,19 +1039,28 @@ var GetRangeFromList = function (logKey, key, callback) {
 var RemoveItemFromList = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveItemFromList - key: %s :: obj: %s', logKey, key, obj);
-    lock(key, 500, function (done) {
+
+    redlock.lock(key, 500).then(function(lock) {
         client.lrem(key, 0, obj, function (err, result) {
             if (err) {
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 infoLogger.DetailLogger.log('error', '%s RemoveItemFromList Error - key: %s :: Error: %s', logKey, key, err);
                 console.log(err);
                 callback(err, null);
             } else {
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 infoLogger.DetailLogger.log('info', '%s RemoveItemFromList - key: %s :: Reply: %d', logKey, key, result);
                 callback(null, result);
             }
         });
+
+
     });
 };
 
@@ -848,57 +1068,83 @@ var RemoveItemFromList = function (logKey, key, obj, callback) {
 var AddItemToHash = function (logKey, hashKey, field, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s :: obj: %s', logKey, hashKey, field, obj);
-    lock(hashKey, 500, function (done) {
+
+    redlock.lock(key, 500).then(function(lock) {
         client.hset(hashKey, field, obj, function (err, result) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s AddItemToHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
                 console.log(err);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 callback(err, null);
             } else {
                 infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 callback(null, result);
             }
         });
+
+
     });
 };
 
 var RemoveItemFromHash = function (logKey, hashKey, field, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveItemFromHash - hashKey: %s :: field: %s', logKey, hashKey, field);
-    lock(hashKey, 500, function (done) {
+
+    redlock.lock(key, 500).then(function(lock) {
         client.hdel(hashKey, field, function (err, result) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s RemoveItemFromHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
                 console.log(err);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 callback(err, null);
             } else {
                 infoLogger.DetailLogger.log('info', '%s RemoveItemFromHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 callback(null, result);
             }
         });
+
+
     });
 };
 
 var RemoveHash = function (logKey, hashKey, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveHash - hashKey: %s', logKey, hashKey);
-    lock(hashKey, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         client.del(hashKey, function (err, result) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s RemoveHash Error - hashKey: %s :: Error: %s', logKey, hashKey, err);
                 console.log(err);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 callback(err, null);
             } else {
                 infoLogger.DetailLogger.log('info', '%s RemoveHash - hashKey: %s :: Reply: %s', logKey, hashKey, result);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 callback(null, result);
             }
         });
+
+
     });
 };
 
@@ -965,19 +1211,27 @@ var AddItemToHashNX = function (logKey, hashKey, field, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s :: obj: %s', logKey, hashKey, field, obj);
 
-    lock(hashKey, 500, function (done) {
+    redlock.lock(key, 500).then(function(lock) {
         client.hsetnx(hashKey, field, obj, function (err, result) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s AddItemToHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
                 console.log(err);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 callback(err, null);
             } else {
                 infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s  :: Reply: %s', logKey, hashKey, field, result);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 callback(null, result);
             }
         });
+
+
     });
 };
 
