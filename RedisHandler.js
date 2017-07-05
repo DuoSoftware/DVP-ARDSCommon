@@ -218,7 +218,7 @@ var RemoveTags = function(tags, objKey){
 };
 
 var SetObj = function (logKey, key, obj, callback) {
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj - key: %s :: obj: %s', logKey, key, obj);
 
@@ -241,7 +241,7 @@ var SetObj = function (logKey, key, obj, callback) {
 };
 
 var SetObj_NX = function (logKey, key, obj, callback) {
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj_NX - key: %s :: obj: %s', logKey, key, obj);
 
@@ -266,7 +266,7 @@ var SetObj_NX = function (logKey, key, obj, callback) {
 
 var RemoveObj = function (logKey, key, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s RemoveObj - key: %s', logKey, key);
 
@@ -329,7 +329,7 @@ var MGetObj = function (logKey, keys, callback) {
 
 var AddObj_T = function (logKey, key, obj, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s AddObj_T - key: %s :: obj: %s', logKey, key, obj);
 
@@ -374,7 +374,7 @@ var AddObj_T = function (logKey, key, obj, tags, callback) {
 
 var SetObj_T = function (logKey, key, obj, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj_T - key: %s :: obj: %s', logKey, key, obj);
 
@@ -419,7 +419,7 @@ var SetObj_T = function (logKey, key, obj, tags, callback) {
 
 var RemoveObj_T = function (logKey, key, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s RemoveObj_T - key: %s', logKey, key);
 
@@ -516,7 +516,7 @@ var SearchObj_T = function (logKey, tags, callback) {
 
 var AddObj_V = function (logKey, key, obj, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s AddObj_V - key: %s :: obj: %s', logKey, key, obj);
 
@@ -563,7 +563,7 @@ var AddObj_V = function (logKey, key, obj, callback) {
 
 var SetObj_V = function (logKey, key, obj, cvid, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj_V - key: %s :: obj: %s :: cvid: %s', logKey, key, obj, cvid);
 
@@ -627,7 +627,7 @@ var SetObj_V = function (logKey, key, obj, cvid, callback) {
 
 var RemoveObj_V = function (logKey, key, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s RemoveObj_V - key: %s', logKey, key);
 
@@ -684,7 +684,7 @@ var GetObj_V = function (logKey, key, callback) {
 
 var AddObj_V_T = function (logKey, key, obj, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s AddObj_V_T - key: %s :: obj: %s', logKey, key, obj);
 
@@ -743,7 +743,7 @@ var AddObj_V_T = function (logKey, key, obj, tags, callback) {
 
 var SetObj_V_T = function (logKey, key, obj, tags, cvid, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s SetObj_V_T - key: %s :: obj: %s :: cvid: %s', logKey, key, obj, cvid);
 
@@ -821,7 +821,7 @@ var SetObj_V_T = function (logKey, key, obj, tags, cvid, callback) {
 
 var RemoveObj_V_T = function (logKey, key, tags, callback) {
     //var lockKey = util.format('%s', key.split(":").join(""));
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
         infoLogger.DetailLogger.log('info', '%s RemoveObj_V_T - key: %s', logKey, key);
 
@@ -936,7 +936,7 @@ var AddItemToListR = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToListR - key: %s :: obj: %s', logKey, key, obj);
 
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         client.rpush(key, obj, function (error, reply) {
             if (error) {
                 lock.unlock()
@@ -964,7 +964,7 @@ var AddItemToListL = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToListL - key: %s :: obj: %s', logKey, key, obj);
 
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         client.lpush(key, obj, function (error, reply) {
             if (error) {
                 lock.unlock()
@@ -1040,7 +1040,7 @@ var RemoveItemFromList = function (logKey, key, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveItemFromList - key: %s :: obj: %s', logKey, key, obj);
 
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+key, 500).then(function(lock) {
         client.lrem(key, 0, obj, function (err, result) {
             if (err) {
                 lock.unlock()
@@ -1069,7 +1069,7 @@ var AddItemToHash = function (logKey, hashKey, field, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s :: obj: %s', logKey, hashKey, field, obj);
 
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+hashKey, 500).then(function(lock) {
         client.hset(hashKey, field, obj, function (err, result) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s AddItemToHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
@@ -1097,7 +1097,7 @@ var RemoveItemFromHash = function (logKey, hashKey, field, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveItemFromHash - hashKey: %s :: field: %s', logKey, hashKey, field);
 
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+hashKey, 500).then(function(lock) {
         client.hdel(hashKey, field, function (err, result) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s RemoveItemFromHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
@@ -1124,7 +1124,7 @@ var RemoveItemFromHash = function (logKey, hashKey, field, callback) {
 var RemoveHash = function (logKey, hashKey, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s RemoveHash - hashKey: %s', logKey, hashKey);
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+hashKey, 500).then(function(lock) {
         client.del(hashKey, function (err, result) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s RemoveHash Error - hashKey: %s :: Error: %s', logKey, hashKey, err);
@@ -1211,7 +1211,7 @@ var AddItemToHashNX = function (logKey, hashKey, field, obj, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
     infoLogger.DetailLogger.log('info', '%s AddItemToHash - hashKey: %s :: field: %s :: obj: %s', logKey, hashKey, field, obj);
 
-    redlock.lock(key, 500).then(function(lock) {
+    redlock.lock('lock:'+hashKey, 500).then(function(lock) {
         client.hsetnx(hashKey, field, obj, function (err, result) {
             if (err) {
                 infoLogger.DetailLogger.log('error', '%s AddItemToHash Error - hashKey: %s :: field: %s  :: Error: %s', logKey, hashKey, field, err);
