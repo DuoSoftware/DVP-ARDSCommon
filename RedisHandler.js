@@ -1294,4 +1294,4 @@ module.exports.AddItemToHashNX = AddItemToHashNX;
 
 module.exports.Publish = Publish;
 
-module.exports.RLock = lock;
+module.exports.RLock = redlock;
