@@ -33,7 +33,7 @@ var AddRequestToQueue = function (logKey, request, callback) {
                             callback(err, "OK", queuePosition + 1);
                         }else {
                             SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function(result){
-                                if((!hresult || hresult === "0") && config.Host.UseMsgQueue){
+                                if((!hresult || hresult === "0") && config.Host.UseMsgQueue === 'true'){
                                     rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
                                 }
                             });
@@ -116,7 +116,7 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
                             callback(err, "OK");
                         }else{
                             SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function(result){
-                                if((!hresult || hresult === "0") && config.Host.UseMsgQueue){
+                                if((!hresult || hresult === "0") && config.Host.UseMsgQueue === 'true'){
                                     rabbitMqHandler.Publish(logKey, "ARDS.Workers.Queue", hashKey);
                                 }
                             });
