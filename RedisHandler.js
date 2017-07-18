@@ -40,12 +40,13 @@ if(redismode == 'sentinel'){
 
                 sentinelConnections.push({host: item, port:config.Redis.sentinels.port})
 
-            })
+            });
 
             redisSetting = {
                 sentinels:sentinelConnections,
                 name: config.Redis.sentinels.name,
-                password: redispass
+                password: redispass,
+                db: redisdb
             }
 
         }else{
