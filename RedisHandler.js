@@ -73,7 +73,8 @@ if(redismode != "cluster") {
                 host: item,
                 port: redisport,
                 family: 4,
-                password: redispass});
+                password: redispass,
+                db: redisdb});
         });
 
         var client = new redis.Cluster([redisSetting]);
