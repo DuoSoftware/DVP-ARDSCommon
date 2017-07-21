@@ -1184,6 +1184,7 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
                                 Message: "Reject count Exceeded!, Account suspended for Task:: " + cObj.HandlingType
                             };
                             notificationService.SendNotificationInitiate(logKey, "message", "", notificationMsg, company, tenant);
+                            notificationService.SendNotificationInitiate(logKey, "agent_suspended", "", notificationMsg, company, tenant);
                         }
                         var jCObj = JSON.stringify(cObj);
                         var tags = ["tenant_" + cObj.Tenant, "handlingType_" + cObj.HandlingType, "resourceid_" + cObj.ResourceId, "objtype_ConcurrencyInfo"];
