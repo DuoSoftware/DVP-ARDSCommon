@@ -107,10 +107,16 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
                                                 if (results) {
 
                                                     var slotAvailability = true;
+
                                                     for (var i = 0; i < results.length; i++) {
 
                                                         var slotObj = JSON.parse(results[i]);
-                                                        slotAvailability = slotAvailability && slotObj.State.toLowerCase() !== "connected";
+                                                        slotAvailability = slotAvailability && (slotObj.State.toLowerCase() !== "connected" && !slotObj.FreezeAfterWorkTime);
+
+                                                        if(slotObj.State.toLowerCase() === "reserved"){
+                                                            var reservedTimeDiff = moment().diff(moment(slotObj.StateChangeTime), 'seconds');
+                                                            slotAvailability = slotAvailability && (reservedTimeDiff > slotObj.MaxReservedTime);
+                                                        }
 
                                                         if (!slotAvailability)
                                                             break;
