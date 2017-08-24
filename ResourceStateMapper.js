@@ -205,27 +205,47 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
 
                 if (state === "NotAvailable" && reason === "UnRegister") {
                     statusObj.Mode = "Offline";
-                    if (statusObjR && statusObjR.State === "NotAvailable" && statusObjR.Reason.toLowerCase().indexOf('break') > -1) {
-                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "endBreak", {
+
+                    if (statusObjR) {
+                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, "end" + statusObjR.Mode, {
                             SessionId: "",
                             Direction: ""
                         }, function (err, result, obj) {
                             callback(null, statusObj);
                         });
-                        var duration1 = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
-                        resourceService.AddResourceStatusDurationInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration1, function () {
-                            if (err) {
-                                console.log("AddResourceStatusDurationInfo Failed.", err);
-                            } else {
-                                console.log("AddResourceStatusDurationInfo Success.");
-                            }
-                        });
-                    } else {
+
+                        if (statusObjR.State === "NotAvailable" && statusObjR.Reason.toLowerCase().indexOf('break') > -1) {
+                            resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "endBreak", {
+                                SessionId: "",
+                                Direction: ""
+                            }, function (err, result, obj) {
+                                callback(null, statusObj);
+                            });
+                            var duration1 = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
+                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration1, function () {
+                                if (err) {
+                                    console.log("AddResourceStatusDurationInfo Failed.", err);
+                                } else {
+                                    console.log("AddResourceStatusDurationInfo Success.");
+                                }
+                            });
+                        } else {
+                            callback(null, statusObj);
+                        }
+                    }else {
                         callback(null, statusObj);
                     }
                 } else if (reason === "Outbound" || reason === "Inbound" || reason === "Offline") {
                     statusObj.Mode = reason;
-                    callback(null, statusObj);
+
+                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, "end"+statusObjR.Mode, {
+                        SessionId: "",
+                        Direction: ""
+                    }, function (err, result, obj) {
+                        callback(null, statusObj);
+                    });
+
+
                 } else {
                     callback(null, statusObj);
                 }

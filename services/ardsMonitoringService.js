@@ -25,7 +25,7 @@ function SendResourceStatus(accessToken, resourceId, additionalParams){
         if(err) {
             logger.error('SendResourceStatus - %s :: Error - %s ', resourceId, err);
         }else {
-            logger.info('SendResourceStatus - %s :: Message - %s ', resourceId, res);
+            logger.info('SendResourceStatus - %s :: Message - %s ', resourceId, obj);
         }
     });
 

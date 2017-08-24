@@ -1300,7 +1300,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
     });
 };
 
-var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, reason, otherInfo, callback) {
+var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, reason, otherInfo, direction, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateAfterWork *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -1340,7 +1340,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
                                     resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, {
                                         SessionId: sessionid,
-                                        Direction: ""
+                                        Direction: handlingType+direction
                                     }, function (err, result, obj) {
                                         if (err) {
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
@@ -1357,7 +1357,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
 
                                         resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", {
                                             SessionId: sessionid,
-                                            Direction: ""
+                                            Direction: handlingType+direction
                                         }, function (err, result, obj) {
                                             if (err) {
                                                 console.log("AddResourceStatusChangeInfo Failed.", err);
@@ -1520,8 +1520,8 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
     });
 };
 
-var UpdateSlotStateCompleted = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, callback) {
-    UpdateSlotStateAfterWork(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, "", "", function (err, reply) {
+var UpdateSlotStateCompleted = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, otherInfo, direction, callback) {
+    UpdateSlotStateAfterWork(logKey, company, tenant, handlingType, resourceid, slotid, sessionid, "", "", direction, function (err, reply) {
         console.log(reply);
     });
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -1735,7 +1735,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                     break;
 
                                 case "Completed":
-                                    UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result) {
+                                    UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, direction, function (err, result) {
                                         callback(err, result);
                                     });
                                     break;
