@@ -1717,7 +1717,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                         if (cs.HandlingRequest == sessionid) {
                             switch (state) {
                                 case "Reject":
-                                    UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, function (err, result) {
+                                    UpdateSlotStateCompleted(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, sessionid, otherInfo, direction, function (err, result) {
                                         callback(err, result);
                                     });
                                     break;
