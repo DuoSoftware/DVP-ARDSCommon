@@ -102,7 +102,7 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
     var pOtherData = otherData.SessionId? otherData.SessionId:"";
     var jObject = {StatusType:statusType, Status:status, Reason:reason, OtherData: pOtherData};
 
-    if(status === "Connected"){
+    if(status.toLowerCase() === "connected" || (status.toLowerCase() === 'completed' && reason.toLowerCase() === 'afterwork')){
         param2 = util.format('%s%s', param2, otherData.Direction);
     }
 

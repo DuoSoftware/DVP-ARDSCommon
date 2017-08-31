@@ -812,7 +812,10 @@ var SetObj_V_T = function (logKey, key, obj, tags, cvid, callback) {
             }
             else {
                 infoLogger.DetailLogger.log('info', '%s SetObj_V VERSION_MISMATCHED - key: %s :: cvid: %s', logKey, key, cvid);
-                done();
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
                 callback(null, "VERSION_MISMATCHED", cvid);
             }
         });
