@@ -186,7 +186,7 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
     redisHandler.GetObj(logKey, stateKey, function (err, statusStrObj) {
         if (err) {
             statusObj.Mode = 'Offline';
-            callback(null, statusObj);
+            return callback(null, statusObj);
         } else {
             if (statusStrObj) {
                 var statusObjR = JSON.parse(statusStrObj);
@@ -211,7 +211,7 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                             SessionId: "",
                             Direction: ""
                         }, function (err, result, obj) {
-                            callback(null, statusObj);
+
                         });
 
                         if (statusObjR.State === "NotAvailable" && statusObjR.Reason.toLowerCase().indexOf('break') > -1) {
@@ -219,7 +219,7 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                                 SessionId: "",
                                 Direction: ""
                             }, function (err, result, obj) {
-                                callback(null, statusObj);
+
                             });
                             var duration1 = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
                             resourceService.AddResourceStatusDurationInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration1, function () {
@@ -229,11 +229,13 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                                     console.log("AddResourceStatusDurationInfo Success.");
                                 }
                             });
+
+                            return callback(null, statusObj);
                         } else {
-                            callback(null, statusObj);
+                            return callback(null, statusObj);
                         }
                     }else {
-                        callback(null, statusObj);
+                        return callback(null, statusObj);
                     }
                 } else if (reason === "Outbound" || reason === "Inbound" || reason === "Offline") {
                     statusObj.Mode = reason;
@@ -242,16 +244,16 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                         SessionId: "",
                         Direction: ""
                     }, function (err, result, obj) {
-                        callback(null, statusObj);
+                        return callback(null, statusObj);
                     });
 
 
                 } else {
-                    callback(null, statusObj);
+                    return callback(null, statusObj);
                 }
             } else {
                 statusObj.Mode = 'Offline';
-                callback(null, statusObj);
+                return callback(null, statusObj);
             }
         }
 
