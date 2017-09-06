@@ -325,9 +325,10 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
 };
 
 var GetRejectedQueueId = function(queueId){
-    var splitQueueId = queueId.split(":");
-    splitQueueId.splice(-1, 1);
-    return util.format("%s:%s", splitQueueId.join(":"), "REJECTED");
+    //var splitQueueId = queueId.split(":");
+    //splitQueueId.splice(-1, 1);
+    //return util.format("%s:%s", splitQueueId.join(":"), "REJECTED");
+    return util.format("%s:%s", queueId, "REJECTED");
 };
 
 var SendQueuePositionInfo = function(logKey, url, queueId, callbackOption, callback){
