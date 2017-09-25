@@ -338,6 +338,35 @@ var SendQueuePositionInfo = function(logKey, url, queueId, callbackOption, callb
             console.log(err);
         }else{
             if(result) {
+                var RequestPositionList = [];
+                result.forEach(function (item, i) {
+                    if (item) {
+                        var queuePosition = i + 2;
+                        var requestPosition = {SessionId: item, QueueId: queueId, QueuePosition: queuePosition.toString()};
+                        RequestPositionList.push(requestPosition);
+
+                    }
+                });
+
+                if (callbackOption == "GET") {
+                    restClientHandler.DoGetDirect(url, RequestPositionList, function (err, res, result) {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            console.log("SendQueuePositionInfo: %s", result);
+                        }
+                    });
+                } else {
+                    restClientHandler.DoPostDirect(url, RequestPositionList, function (err, res, result) {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            console.log("SendQueuePositionInfo: %s", result);
+                        }
+                    });
+                }
+
+                /*
                 for (var i = 0; i < result.length; i++) {
                     var item = result[i];
                     if (item) {
@@ -361,7 +390,7 @@ var SendQueuePositionInfo = function(logKey, url, queueId, callbackOption, callb
                             });
                         }
                     }
-                }
+                }*/
             }
         }
     });
