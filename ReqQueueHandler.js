@@ -407,7 +407,7 @@ var SendProcessingQueueInfo = function(logKey, queueId, sessionId, callback){
             if(!err && strObj) {
                 var obj = JSON.parse(strObj);
                 if(obj) {
-                    var body = {SessionId: sessionId, QueueId: queueId, QueuePosition: "1"};
+                    var body = [{SessionId: sessionId, QueueId: queueId, QueuePosition: "1"}];
                     if (obj.CallbackOption == "GET") {
                         restClientHandler.DoGetDirect(obj.QPositionUrl, body, function (err, res, result) {
                             if (err) {
