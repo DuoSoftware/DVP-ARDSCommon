@@ -6,6 +6,7 @@ var sort = require('./CommonMethods.js');
 var infoLogger = require('./InformationLogger.js');
 var reqMetaDataHandler = require('./ReqMetaDataHandler.js');
 var config = require('config');
+var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 
 var execute = function (logKey, data, callback) {
     infoLogger.DetailLogger.log('info', '%s +++++++++++++++++++++++++ Start PreProcessor +++++++++++++++++++++++++', logKey);
@@ -48,14 +49,38 @@ var execute = function (logKey, data, callback) {
                 }
 
                 var attributeDataString = util.format('attribute_%s', sortedAttributes.join(":attribute_"));
-                var attributeNameString = util.format('%s', reqSkills.join("-"));
+                //var attributeNameString = util.format('%s', reqSkills.join("-"));
                 var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority);
-                redisHandler.AddItemToHashNX(logKey, "QueueNameHash",queueId,attributeNameString,function(){});
-                var date = new Date();
-                var requestObj = { Company: data.Company, Tenant: data.Tenant, ServerType: data.ServerType, RequestType: data.RequestType, SessionId: data.SessionId, AttributeInfo: attributeInfo, RequestServerId: data.RequestServerId, Priority: data.Priority, ArriveTime: date.toISOString(), OtherInfo: data.OtherInfo, ResourceCount: data.ResourceCount, ServingAlgo: metaObj.ServingAlgo, HandlingAlgo: metaObj.HandlingAlgo, SelectionAlgo: metaObj.SelectionAlgo, RequestServerUrl: url, CallbackOption: option, QPositionUrl: qpUrl, QPositionEnable: qpEnable, QueueId: queueId, ReqHandlingAlgo: metaObj.ReqHandlingAlgo, ReqSelectionAlgo: metaObj.ReqSelectionAlgo, LbIp: config.Host.LBIP, LbPort:config.Host.LBPort};
-                infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
-                infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
-                callback(null, requestObj);
+                var queueSettingId = util.format('Queue:%d:%d:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString);
+                //redisHandler.AddItemToHashNX(logKey, "QueueNameHash",queueId,attributeNameString,function(){});
+
+                var accessToken = util.format('bearer %s', config.Services.accessToken);
+                resource.GetQueueSetting(accessToken, queueSettingId).then(function (err, res, queueSetting) {
+
+                    var publishQueuePosition;
+                    if(err){
+                        publishQueuePosition = false;
+                    }else{
+                        if(queueSetting && queueSetting.PublishPosition){
+                            publishQueuePosition = queueSetting.PublishPosition;
+                        }else{
+                            publishQueuePosition = false;
+                        }
+                    }
+                    logger.info('Queue Setting:: %s', JSON.stringify(queueSetting));
+
+                    var date = new Date();
+                    var requestObj = { Company: data.Company, Tenant: data.Tenant, ServerType: data.ServerType, RequestType: data.RequestType, SessionId: data.SessionId, AttributeInfo: attributeInfo, RequestServerId: data.RequestServerId, Priority: data.Priority, ArriveTime: date.toISOString(), OtherInfo: data.OtherInfo, ResourceCount: data.ResourceCount, ServingAlgo: metaObj.ServingAlgo, HandlingAlgo: metaObj.HandlingAlgo, SelectionAlgo: metaObj.SelectionAlgo, RequestServerUrl: url, CallbackOption: option, QPositionUrl: qpUrl, QPositionEnable: publishQueuePosition, QueueId: queueId, ReqHandlingAlgo: metaObj.ReqHandlingAlgo, ReqSelectionAlgo: metaObj.ReqSelectionAlgo, LbIp: config.Host.LBIP, LbPort:config.Host.LBPort};
+                    infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
+                    infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
+                    callback(null, requestObj);
+
+                }).catch(function(err){
+
+                    logger.error('Get Queue Settings Failed:: %s', JSON.stringify(err));
+                });
+
+
             }
         });
     });

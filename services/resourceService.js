@@ -11,6 +11,7 @@ var redisHandler = require('../RedisHandler.js');
 var infoLogger = require('../InformationLogger.js');
 var deepcopy = require('deepcopy');
 var ardsMonitoringService = require('./ardsMonitoringService');
+var Q = require('q');
 
 
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
@@ -192,6 +193,27 @@ var GetAttribute = function(accessToken, attId, callback){
         callback(new error(ex2), null, null);
     }
 };
+
+var GetQueueSetting = function(accessToken, queueId){
+    var deferred = Q.defer();
+
+    try {
+        var rUrl = util.format('http://%s', config.Services.resourceServiceHost);
+        if (validator.isIP(config.Services.resourceServiceHost)) {
+            rUrl = util.format('http://%s:%s', config.Services.resourceServiceHost, config.Services.resourceServicePort);
+        }
+        var params = util.format('/DVP/API/%s/ResourceManager/QueueSetting/%s', config.Services.resourceServiceVersion, queueId);
+        restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
+            infoLogger.DetailLogger.log('info', 'GetQueueSetting Result:: ', obj);
+            deferred.resolve(err, res, obj);
+        });
+    }catch (ex2) {
+        deferred.resolve(new error(ex2), undefined, undefined);
+    }
+
+    return deferred.promise;
+};
+
 module.exports.GetAttributeGroupWithDetails = GetAttributeGroupWithDetails;
 module.exports.GetResourceDetails = GetResourceDetails;
 module.exports.GetResourceTaskDetails = GetResourceTaskDetails;
@@ -200,5 +222,6 @@ module.exports.AddResourceStatusChangeInfo = AddResourceStatusChangeInfo;
 module.exports.GetAttribute = GetAttribute;
 module.exports.AddResourceStatusDurationInfo = AddResourceStatusDurationInfo;
 module.exports.AddResourceTaskRejectInfo = AddResourceTaskRejectInfo;
+module.exports.GetQueueSetting = GetQueueSetting;
 
 //-------------End ResourceService Integration--------------------------------------
