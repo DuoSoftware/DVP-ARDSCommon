@@ -55,8 +55,15 @@ var execute = function (logKey, data, callback) {
                 var queueSettingId = util.format('Queue:%d:%d:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString);
                 //redisHandler.AddItemToHashNX(logKey, "QueueNameHash",queueId,attributeNameString,function(){});
 
+
+                var date = new Date();
                 var accessToken = util.format('%d:%d', data.Tenant, data.Company);
+                var requestObj = { Company: data.Company, Tenant: data.Tenant, ServerType: data.ServerType, RequestType: data.RequestType, SessionId: data.SessionId, AttributeInfo: attributeInfo, RequestServerId: data.RequestServerId, Priority: data.Priority, ArriveTime: date.toISOString(), OtherInfo: data.OtherInfo, ResourceCount: data.ResourceCount, ServingAlgo: metaObj.ServingAlgo, HandlingAlgo: metaObj.HandlingAlgo, SelectionAlgo: metaObj.SelectionAlgo, RequestServerUrl: url, CallbackOption: option, QPositionUrl: qpUrl, QPositionEnable: false, QueueId: queueId, ReqHandlingAlgo: metaObj.ReqHandlingAlgo, ReqSelectionAlgo: metaObj.ReqSelectionAlgo, LbIp: config.Host.LBIP, LbPort:config.Host.LBPort};
+
+
                 resourceService.GetQueueSetting(accessToken, queueSettingId).then(function (queueSetting) {
+
+                    logger.info('Queue Setting:: %s', JSON.stringify(queueSetting));
 
                     var publishQueuePosition;
                     if(err){
@@ -68,10 +75,9 @@ var execute = function (logKey, data, callback) {
                             publishQueuePosition = false;
                         }
                     }
-                    logger.info('Queue Setting:: %s', JSON.stringify(queueSetting));
 
-                    var date = new Date();
-                    var requestObj = { Company: data.Company, Tenant: data.Tenant, ServerType: data.ServerType, RequestType: data.RequestType, SessionId: data.SessionId, AttributeInfo: attributeInfo, RequestServerId: data.RequestServerId, Priority: data.Priority, ArriveTime: date.toISOString(), OtherInfo: data.OtherInfo, ResourceCount: data.ResourceCount, ServingAlgo: metaObj.ServingAlgo, HandlingAlgo: metaObj.HandlingAlgo, SelectionAlgo: metaObj.SelectionAlgo, RequestServerUrl: url, CallbackOption: option, QPositionUrl: qpUrl, QPositionEnable: publishQueuePosition, QueueId: queueId, ReqHandlingAlgo: metaObj.ReqHandlingAlgo, ReqSelectionAlgo: metaObj.ReqSelectionAlgo, LbIp: config.Host.LBIP, LbPort:config.Host.LBPort};
+                    requestObj.QPositionEnable = publishQueuePosition;
+
                     infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
                     infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
                     callback(null, requestObj);
@@ -79,6 +85,10 @@ var execute = function (logKey, data, callback) {
                 }).catch(function(err){
 
                     logger.error('Get Queue Settings Failed:: %s', JSON.stringify(err));
+
+                    infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
+                    infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
+                    callback(null, requestObj);
                 });
 
 
