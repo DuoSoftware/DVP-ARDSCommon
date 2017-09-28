@@ -45,20 +45,21 @@ var execute = function (logKey, data, callback) {
 
 
 
-                /* --------------Set Name for QueueId--------------------------
-                //var reqSkills = [];
-                //for (var k=attributeInfo.length-1; k>=0; k--) {
-                //    for (var l=attributeInfo[k].AttributeNames.length-1; l>=0; l--) {
-                //        reqSkills.push(attributeInfo[k].AttributeNames[l]);
-                //    }
-                //}
 
-                //var attributeNameString = util.format('%s', reqSkills.join("-"));
-
-                //redisHandler.AddItemToHashNX(logKey, "QueueNameHash",queueId,attributeNameString,function(){});
-                */
                 if(attributeInfo && attributeInfo.length >0) {
-                    var attributeDataString = util.format('attribute_%s', sortedAttributes.join(":attribute_"));
+
+                    var requestAttributes = [];
+                    attributeInfo.forEach(function (attrInfo) {
+                        if(attrInfo){
+                            attrInfo.AttributeCode.forEach(function (attrCode) {
+                                requestAttributes.push(attrCode);
+                            });
+                        }
+                    });
+
+                    var sortedRequestAttributes = sort.sortData(requestAttributes);
+
+                    var attributeDataString = util.format('attribute_%s', sortedRequestAttributes.join(":attribute_"));
                     var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority);
                     var queueSettingId = util.format('Queue:%d:%d:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString);
 
@@ -96,15 +97,33 @@ var execute = function (logKey, data, callback) {
 
                         logger.info('Queue Setting:: %s', JSON.stringify(queueSetting));
 
-                        var publishQueuePosition;
+                        var publishQueuePosition = false;
+                        var addQueueSettings = false;
                         if (err) {
                             publishQueuePosition = false;
                         } else {
-                            if (queueSetting && queueSetting.PublishPosition) {
-                                publishQueuePosition = queueSetting.PublishPosition;
+                            if (queueSetting) {
+                                publishQueuePosition = queueSetting.PublishPosition? queueSetting.PublishPosition: false;
                             } else {
                                 publishQueuePosition = false;
+                                addQueueSettings = true;
                             }
+                        }
+
+                        if(addQueueSettings){
+                            // --------------Set Name for QueueId--------------------------
+                             var reqSkills = [];
+                             for (var k=attributeInfo.length-1; k>=0; k--) {
+                                 for (var l=attributeInfo[k].AttributeNames.length-1; l>=0; l--) {
+                                     reqSkills.push(attributeInfo[k].AttributeNames[l]);
+                                 }
+                             }
+
+                             var attributeNameString = util.format('%s', reqSkills.join("-"));
+
+                            resourceService.AddQueueSetting(accessToken, attributeNameString, sortedRequestAttributes, data.ServerType, data.RequestType,function(){});
+                             //redisHandler.AddItemToHashNX(logKey, "QueueNameHash",queueId,attributeNameString,function(){});
+
                         }
 
                         requestObj.QPositionEnable = publishQueuePosition;

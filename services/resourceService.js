@@ -224,6 +224,30 @@ var GetQueueSetting = function(accessToken, queueId){
     return deferred.promise;
 };
 
+var AddQueueSetting = function(accessToken, queueName, skills, serverType, requestType, callback){
+    var jObject = {QueueName :queueName,MaxWaitTime:"0",Skills:skills,PublishPosition:"false",CallAbandonedThreshold:"0",serverType:serverType,reqType:requestType};
+
+    try {
+        var serverUrl = util.format("http://%s/DVP/API/%s/ResourceManager/QueueSetting", config.Services.resourceServiceHost, config.Services.resourceServiceVersion);
+        if (validator.isIP(config.Services.resourceServiceHost)) {
+            serverUrl = util.format("http://%s:%s/DVP/API/%s/ResourceManager/QueueSetting", config.Services.resourceServiceHost, config.Services.resourceServicePort, config.Services.resourceServiceVersion);
+        }
+        restClientHandler.DoPost(serverUrl,jObject, accessToken,function(err, res1, result){
+            if(err){
+                callback(err, undefined);
+            }else{
+                if(res1.statusCode === 200) {
+                    callback(undefined, JSON.parse(result));
+                }else{
+                    callback(new Error(result), undefined);
+                }
+            }
+        });
+    }catch(ex){
+        callback(ex, undefined);
+    }
+};
+
 module.exports.GetAttributeGroupWithDetails = GetAttributeGroupWithDetails;
 module.exports.GetResourceDetails = GetResourceDetails;
 module.exports.GetResourceTaskDetails = GetResourceTaskDetails;
@@ -233,5 +257,6 @@ module.exports.GetAttribute = GetAttribute;
 module.exports.AddResourceStatusDurationInfo = AddResourceStatusDurationInfo;
 module.exports.AddResourceTaskRejectInfo = AddResourceTaskRejectInfo;
 module.exports.GetQueueSetting = GetQueueSetting;
+module.exports.AddQueueSetting = AddQueueSetting;
 
 //-------------End ResourceService Integration--------------------------------------
