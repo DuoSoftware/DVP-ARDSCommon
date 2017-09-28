@@ -225,7 +225,7 @@ var GetQueueSetting = function(accessToken, queueId){
 };
 
 var AddQueueSetting = function(accessToken, queueName, skills, serverType, requestType, callback){
-    var jObject = {QueueName :queueName,MaxWaitTime:"0",Skills:skills,PublishPosition:"false",CallAbandonedThreshold:"0",serverType:serverType,reqType:requestType};
+    var jObject = {QueueName :queueName,MaxWaitTime:"0",Skills:skills,PublishPosition:"false",CallAbandonedThreshold:"0",ServerType:serverType,RequestType:requestType};
 
     try {
         var serverUrl = util.format("http://%s/DVP/API/%s/ResourceManager/QueueSetting", config.Services.resourceServiceHost, config.Services.resourceServiceVersion);
