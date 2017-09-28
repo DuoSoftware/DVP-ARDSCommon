@@ -7,6 +7,7 @@ var infoLogger = require('./InformationLogger.js');
 var reqMetaDataHandler = require('./ReqMetaDataHandler.js');
 var config = require('config');
 var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
+var resourceService = require('dvp-ardscommon/services/resourceService');
 
 var execute = function (logKey, data, callback) {
     infoLogger.DetailLogger.log('info', '%s +++++++++++++++++++++++++ Start PreProcessor +++++++++++++++++++++++++', logKey);
@@ -54,8 +55,8 @@ var execute = function (logKey, data, callback) {
                 var queueSettingId = util.format('Queue:%d:%d:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString);
                 //redisHandler.AddItemToHashNX(logKey, "QueueNameHash",queueId,attributeNameString,function(){});
 
-                var accessToken = util.format('bearer %s', config.Services.accessToken);
-                resource.GetQueueSetting(accessToken, queueSettingId).then(function (err, res, queueSetting) {
+                var accessToken = util.format('%d:%d', data.Tenant, data.Company);
+                resourceService.GetQueueSetting(accessToken, queueSettingId).then(function (queueSetting) {
 
                     var publishQueuePosition;
                     if(err){

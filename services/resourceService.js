@@ -205,7 +205,17 @@ var GetQueueSetting = function(accessToken, queueId){
         var params = util.format('/DVP/API/%s/ResourceManager/QueueSetting/%s', config.Services.resourceServiceVersion, queueId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
             infoLogger.DetailLogger.log('info', 'GetQueueSetting Result:: ', obj);
-            deferred.resolve(err, res, obj);
+
+            if(err){
+                deferred.resolve(undefined);
+            }else{
+                if(obj && obj.Result){
+                    deferred.resolve(obj.Result);
+                }else{
+                    deferred.resolve(undefined);
+                }
+            }
+
         });
     }catch (ex2) {
         deferred.resolve(new error(ex2), undefined, undefined);
