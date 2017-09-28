@@ -37,60 +37,93 @@ var execute = function (logKey, data, callback) {
 
                 var attributeInfo = [];
                 var sortedAttributes = sort.sortData(data.Attributes);
-                var attributeNames = [];
+                //var attributeNames = [];
                 for (var i in sortedAttributes) {
                     var val = sortedAttributes[i];
                     attributeInfo = AppendAttributeInfo(attributeInfo, metaObj.AttributeMeta, val);
                 }
-                var reqSkills = [];
-                for (var k=attributeInfo.length-1; k>=0; k--) {
-                    for (var l=attributeInfo[k].AttributeNames.length-1; l>=0; l--) {
-                        reqSkills.push(attributeInfo[k].AttributeNames[l]);
-                    }
-                }
 
-                var attributeDataString = util.format('attribute_%s', sortedAttributes.join(":attribute_"));
+
+
+                /* --------------Set Name for QueueId--------------------------
+                //var reqSkills = [];
+                //for (var k=attributeInfo.length-1; k>=0; k--) {
+                //    for (var l=attributeInfo[k].AttributeNames.length-1; l>=0; l--) {
+                //        reqSkills.push(attributeInfo[k].AttributeNames[l]);
+                //    }
+                //}
+
                 //var attributeNameString = util.format('%s', reqSkills.join("-"));
-                var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority);
-                var queueSettingId = util.format('Queue:%d:%d:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString);
+
                 //redisHandler.AddItemToHashNX(logKey, "QueueNameHash",queueId,attributeNameString,function(){});
+                */
+                if(attributeInfo && attributeInfo.length >0) {
+                    var attributeDataString = util.format('attribute_%s', sortedAttributes.join(":attribute_"));
+                    var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority);
+                    var queueSettingId = util.format('Queue:%d:%d:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString);
 
 
-                var date = new Date();
-                var accessToken = util.format('%d:%d', data.Tenant, data.Company);
-                var requestObj = { Company: data.Company, Tenant: data.Tenant, ServerType: data.ServerType, RequestType: data.RequestType, SessionId: data.SessionId, AttributeInfo: attributeInfo, RequestServerId: data.RequestServerId, Priority: data.Priority, ArriveTime: date.toISOString(), OtherInfo: data.OtherInfo, ResourceCount: data.ResourceCount, ServingAlgo: metaObj.ServingAlgo, HandlingAlgo: metaObj.HandlingAlgo, SelectionAlgo: metaObj.SelectionAlgo, RequestServerUrl: url, CallbackOption: option, QPositionUrl: qpUrl, QPositionEnable: false, QueueId: queueId, ReqHandlingAlgo: metaObj.ReqHandlingAlgo, ReqSelectionAlgo: metaObj.ReqSelectionAlgo, LbIp: config.Host.LBIP, LbPort:config.Host.LBPort};
+                    var date = new Date();
+                    var accessToken = util.format('%d:%d', data.Tenant, data.Company);
+                    var requestObj = {
+                        Company: data.Company,
+                        Tenant: data.Tenant,
+                        ServerType: data.ServerType,
+                        RequestType: data.RequestType,
+                        SessionId: data.SessionId,
+                        AttributeInfo: attributeInfo,
+                        RequestServerId: data.RequestServerId,
+                        Priority: data.Priority,
+                        ArriveTime: date.toISOString(),
+                        OtherInfo: data.OtherInfo,
+                        ResourceCount: data.ResourceCount,
+                        ServingAlgo: metaObj.ServingAlgo,
+                        HandlingAlgo: metaObj.HandlingAlgo,
+                        SelectionAlgo: metaObj.SelectionAlgo,
+                        RequestServerUrl: url,
+                        CallbackOption: option,
+                        QPositionUrl: qpUrl,
+                        QPositionEnable: false,
+                        QueueId: queueId,
+                        ReqHandlingAlgo: metaObj.ReqHandlingAlgo,
+                        ReqSelectionAlgo: metaObj.ReqSelectionAlgo,
+                        LbIp: config.Host.LBIP,
+                        LbPort: config.Host.LBPort
+                    };
 
 
-                resourceService.GetQueueSetting(accessToken, queueSettingId).then(function (queueSetting) {
+                    resourceService.GetQueueSetting(accessToken, queueSettingId).then(function (queueSetting) {
 
-                    logger.info('Queue Setting:: %s', JSON.stringify(queueSetting));
+                        logger.info('Queue Setting:: %s', JSON.stringify(queueSetting));
 
-                    var publishQueuePosition;
-                    if(err){
-                        publishQueuePosition = false;
-                    }else{
-                        if(queueSetting && queueSetting.PublishPosition){
-                            publishQueuePosition = queueSetting.PublishPosition;
-                        }else{
+                        var publishQueuePosition;
+                        if (err) {
                             publishQueuePosition = false;
+                        } else {
+                            if (queueSetting && queueSetting.PublishPosition) {
+                                publishQueuePosition = queueSetting.PublishPosition;
+                            } else {
+                                publishQueuePosition = false;
+                            }
                         }
-                    }
 
-                    requestObj.QPositionEnable = publishQueuePosition;
+                        requestObj.QPositionEnable = publishQueuePosition;
 
-                    infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
-                    infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
-                    callback(null, requestObj);
+                        infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
+                        infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
+                        callback(null, requestObj);
 
-                }).catch(function(err){
+                    }).catch(function (err) {
 
-                    logger.error('Get Queue Settings Failed:: %s', JSON.stringify(err));
+                        logger.error('Get Queue Settings Failed:: %s', JSON.stringify(err));
 
-                    infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
-                    infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
-                    callback(null, requestObj);
-                });
-
+                        infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
+                        infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
+                        callback(null, requestObj);
+                    });
+                }else{
+                    callback(new Error("Invalid Attributes"), null);
+                }
 
             }
         });
