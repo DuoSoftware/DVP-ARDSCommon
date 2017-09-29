@@ -406,7 +406,7 @@ var SendProcessingQueueInfo = function(logKey, queueId, sessionId, callback){
         redisHandler.GetObj(logKey, reqKey, function(err, strObj){
             if(!err && strObj) {
                 var obj = JSON.parse(strObj);
-                if(obj) {
+                if(obj && obj.QPositionEnable) {
                     var body = [{SessionId: sessionId, QueueId: queueId, QueuePosition: "1"}];
                     if (obj.CallbackOption == "GET") {
                         restClientHandler.DoGetDirect(obj.QPositionUrl, body, function (err, res, result) {
