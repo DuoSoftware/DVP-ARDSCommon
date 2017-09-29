@@ -44,13 +44,11 @@ var execute = function (logKey, data, callback) {
                 }
 
 
-
-
-                if(attributeInfo && attributeInfo.length >0) {
+                if (attributeInfo && attributeInfo.length > 0) {
 
                     var requestAttributes = [];
                     attributeInfo.forEach(function (attrInfo) {
-                        if(attrInfo){
+                        if (attrInfo) {
                             attrInfo.AttributeCode.forEach(function (attrCode) {
                                 requestAttributes.push(attrCode);
                             });
@@ -98,35 +96,42 @@ var execute = function (logKey, data, callback) {
                         logger.info('Queue Setting:: %s', JSON.stringify(queueSetting));
 
                         var publishQueuePosition = false;
+                        var queueName = undefined;
                         var addQueueSettings = false;
                         if (err) {
                             publishQueuePosition = false;
                         } else {
                             if (queueSetting) {
-                                publishQueuePosition = queueSetting.PublishPosition? queueSetting.PublishPosition: false;
+                                publishQueuePosition = queueSetting.PublishPosition ? queueSetting.PublishPosition : false;
+                                queueName = queueSetting.QueueName ? queueSetting.QueueName : undefined;
                             } else {
                                 publishQueuePosition = false;
                                 addQueueSettings = true;
                             }
                         }
 
-                        if(addQueueSettings){
+                        if (addQueueSettings || !queueName) {
                             // --------------Set Name for QueueId--------------------------
-                             var reqSkills = [];
-                             for (var k=attributeInfo.length-1; k>=0; k--) {
-                                 for (var l=attributeInfo[k].AttributeNames.length-1; l>=0; l--) {
-                                     reqSkills.push(attributeInfo[k].AttributeNames[l]);
-                                 }
-                             }
+                            var reqSkills = [];
+                            for (var k = attributeInfo.length - 1; k >= 0; k--) {
+                                for (var l = attributeInfo[k].AttributeNames.length - 1; l >= 0; l--) {
+                                    reqSkills.push(attributeInfo[k].AttributeNames[l]);
+                                }
+                            }
 
-                             var attributeNameString = util.format('%s', reqSkills.join("-"));
+                            var attributeNameString = util.format('%s', reqSkills.join("-"));
 
-                            resourceService.AddQueueSetting(accessToken, attributeNameString, sortedRequestAttributes, data.ServerType, data.RequestType,function(){});
-                             //redisHandler.AddItemToHashNX(logKey, "QueueNameHash",queueId,attributeNameString,function(){});
+                            if (addQueueSettings)
+                                resourceService.AddQueueSetting(accessToken, attributeNameString, sortedRequestAttributes, data.ServerType, data.RequestType, function () {
+                                });
+
+                            queueName = attributeNameString;
+                            //redisHandler.AddItemToHashNX(logKey, "QueueNameHash",queueId,attributeNameString,function(){});
 
                         }
 
                         requestObj.QPositionEnable = publishQueuePosition;
+                        requestObj.QueueName = queueName;
 
                         infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
                         infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
@@ -138,9 +143,19 @@ var execute = function (logKey, data, callback) {
 
                         infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
                         infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
+
+                        var reqSkills = [];
+                        for (var k = attributeInfo.length - 1; k >= 0; k--) {
+                            for (var l = attributeInfo[k].AttributeNames.length - 1; l >= 0; l--) {
+                                reqSkills.push(attributeInfo[k].AttributeNames[l]);
+                            }
+                        }
+
+                        requestObj.QueueName = util.format('%s', reqSkills.join("-"));
+
                         callback(null, requestObj);
                     });
-                }else{
+                } else {
                     callback(new Error("Invalid Attributes"), null);
                 }
 
@@ -155,10 +170,10 @@ var AppendAttributeInfo = function (attInfo, attMetaData, att) {
         for (var j in attMetaData) {
             var attMeta = attMetaData[j];
             if (attMeta.AttributeCode.indexOf(att) >= 0) {
-                var attName = sort.FilterByID(attMeta.AttributeDetails,'Id', att);
+                var attName = sort.FilterByID(attMeta.AttributeDetails, 'Id', att);
                 if (info.AttributeGroupName == attMeta.AttributeGroupName && info.HandlingType == attMeta.HandlingType) {
                     info.AttributeCode.push(att);
-                    if(attName != null){
+                    if (attName != null) {
                         info.AttributeNames.push(attName.Name);
                     }
                     return attInfo;
@@ -181,10 +196,15 @@ var AppendAttributeInfo = function (attInfo, attMetaData, att) {
     for (var j in attMetaData) {
         var attMeta = attMetaData[j];
         if (attMeta.AttributeCode.indexOf(att) >= 0) {
-            var tempObj = { AttributeGroupName: attMeta.AttributeGroupName, HandlingType: attMeta.HandlingType, AttributeCode: [att], WeightPrecentage: attMeta.WeightPrecentage };
-            var attName = sort.FilterByID(attMeta.AttributeDetails,'Id', att);
-            if(attName != null){
-                tempObj.AttributeNames=  [attName.Name];
+            var tempObj = {
+                AttributeGroupName: attMeta.AttributeGroupName,
+                HandlingType: attMeta.HandlingType,
+                AttributeCode: [att],
+                WeightPrecentage: attMeta.WeightPrecentage
+            };
+            var attName = sort.FilterByID(attMeta.AttributeDetails, 'Id', att);
+            if (attName != null) {
+                tempObj.AttributeNames = [attName.Name];
             }
             attInfo.push(tempObj);
             return attInfo;
@@ -197,7 +217,7 @@ var SetRequestServer = function (logKey, data) {
     var e = new EventEmitter();
     process.nextTick(function () {
         if (data.RequestServerId == "0") {
-            var tags = ["company_"+data.Company, "tenant_" + data.Tenant, "serverType_" + data.ServerType, "requestType_" + data.RequestType];
+            var tags = ["company_" + data.Company, "tenant_" + data.Tenant, "serverType_" + data.ServerType, "requestType_" + data.RequestType];
             reqServerHandler.SearchReqServerByTags(logKey, tags, function (err, result) {
                 if (err) {
                     e.emit('server', "");
