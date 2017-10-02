@@ -185,7 +185,7 @@ var RemoveItemFromObjectArray = function(array, field, value) {
         if (array[i].hasOwnProperty(field)) {
             if (array[i][field] == value) {
                 array.splice(i, 1);
-                break;
+                //break;
             }
         }
     }
