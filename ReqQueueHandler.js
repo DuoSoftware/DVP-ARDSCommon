@@ -284,7 +284,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                             else {
                                                 if (result === 1 || result === 0) {
                                                     console.log("Set HashField Success.." + processingHashId + "::" + queueId + "::" + nextQueueItem);
-                                                    SendProcessingQueueInfo(logKey, queueId, nextQueueItem, function(){});
+                                                    //SendProcessingQueueInfo(logKey, queueId, nextQueueItem, function(){});
                                                 }
                                                 else {
                                                     console.log("Set HashField Failed.." + processingHashId + "::" + queueId + "::" + nextQueueItem);
@@ -333,47 +333,33 @@ var GetRejectedQueueId = function(queueId){
 
 var SendQueuePositionInfo = function(logKey, url, queueId, callbackOption, callback){
     infoLogger.DetailLogger.log('info', '%s:Queue: %s ************************* Start SendQueuePositionInfo *************************', logKey, queueId);
-    redisHandler.GetRangeFromList(logKey, queueId, function(err, result){
-        if(err){
-            console.log(err);
-        }else{
-            if(result) {
-                var RequestPositionList = [];
-                result.forEach(function (item, i) {
-                    if (item) {
-                        var queuePosition = i + 2;
-                        var requestPosition = {SessionId: item, QueueId: queueId, QueuePosition: queuePosition.toString()};
-                        RequestPositionList.push(requestPosition);
+    GetProcessingQueueInfo(logKey, queueId, function (err, processingHashItem) {
 
-                    }
-                });
+        var RequestPositionList = [];
 
-                if (callbackOption == "GET") {
-                    restClientHandler.DoGetDirect(url, RequestPositionList, function (err, res, result) {
-                        if (err) {
-                            console.log(err);
-                        } else {
-                            console.log("SendQueuePositionInfo: %s", result);
-                        }
-                    });
+        if(processingHashItem) {
+            RequestPositionList.push(processingHashItem);
+
+            redisHandler.GetRangeFromList(logKey, queueId, function (err, result) {
+                if (err) {
+                    console.log(err);
                 } else {
-                    restClientHandler.DoPostDirect(url, RequestPositionList, function (err, res, result) {
-                        if (err) {
-                            console.log(err);
-                        } else {
-                            console.log("SendQueuePositionInfo: %s", result);
-                        }
-                    });
-                }
+                    if (result) {
+                        result.forEach(function (item, i) {
+                            if (item) {
+                                var queuePosition = i + 2;
+                                var requestPosition = {
+                                    SessionId: item,
+                                    QueueId: queueId,
+                                    QueuePosition: queuePosition.toString()
+                                };
+                                RequestPositionList.push(requestPosition);
 
-                /*
-                for (var i = 0; i < result.length; i++) {
-                    var item = result[i];
-                    if (item) {
-                        var queuePosition = i + 2;
-                        var body = {SessionId: item, QueueId: queueId, QueuePosition: queuePosition.toString()};
+                            }
+                        });
+
                         if (callbackOption == "GET") {
-                            restClientHandler.DoGetDirect(url, body, function (err, res, result) {
+                            restClientHandler.DoGetDirect(url, RequestPositionList, function (err, res, result) {
                                 if (err) {
                                     console.log(err);
                                 } else {
@@ -381,7 +367,7 @@ var SendQueuePositionInfo = function(logKey, url, queueId, callbackOption, callb
                                 }
                             });
                         } else {
-                            restClientHandler.DoPostDirect(url, body, function (err, res, result) {
+                            restClientHandler.DoPostDirect(url, RequestPositionList, function (err, res, result) {
                                 if (err) {
                                     console.log(err);
                                 } else {
@@ -390,49 +376,71 @@ var SendQueuePositionInfo = function(logKey, url, queueId, callbackOption, callb
                             });
                         }
                     }
-                }*/
-            }
+                }
+            });
         }
     });
+
     callback("done");
 };
 
-var SendProcessingQueueInfo = function(logKey, queueId, sessionId, callback){
+var GetProcessingQueueInfo = function(logKey, queueId, callback){
     infoLogger.DetailLogger.log('info', '%s:Queue: %s ************************* Start SendProcessingQueueInfo *************************', logKey, queueId);
 
     var splitQueueId = queueId.split(":");
-    if(splitQueueId && splitQueueId.length > 3) {
-        var reqKey = util.format('Request:%s:%s:%s', splitQueueId[1], splitQueueId[2], sessionId);
-        redisHandler.GetObj(logKey, reqKey, function(err, strObj){
-            if(!err && strObj) {
-                var obj = JSON.parse(strObj);
-                if(obj && obj.QPositionEnable) {
-                    var body = [{SessionId: sessionId, QueueId: queueId, QueuePosition: "1"}];
-                    if (obj.CallbackOption == "GET") {
-                        restClientHandler.DoGetDirect(obj.QPositionUrl, body, function (err, res, result) {
-                            if (err) {
-                                console.log(err);
-                            } else {
-                                console.log("SendQueuePositionInfo: %s", result);
-                            }
-                        });
-                    } else {
-                        restClientHandler.DoPostDirect(url, body, function (err, res, result) {
-                            if (err) {
-                                console.log(err);
-                            } else {
-                                console.log("SendQueuePositionInfo: %s", result);
-                            }
-                        });
-                    }
-                }
+    if(splitQueueId && splitQueueId.length > 5) {
+        var hashKey = util.format('ProcessingHash:%s:%s:%s', splitQueueId[1], splitQueueId[2], splitQueueId[4]);
+
+        redisHandler.GetHashValue(logKey, hashKey, queueId, function(err, sessionId){
+            if(!err && sessionId) {
+                var positionInfo ={SessionId: sessionId, QueueId: queueId, QueuePosition: "1"};
+                callback(null, positionInfo);
+            }else{
+                callback(null, null);
             }
         });
 
+    }else{
+        callback(null, null);
     }
-
-    callback("done");
 };
+
+//var SendProcessingQueueInfo = function(logKey, queueId, sessionId, callback){
+//    infoLogger.DetailLogger.log('info', '%s:Queue: %s ************************* Start SendProcessingQueueInfo *************************', logKey, queueId);
+//
+//    var splitQueueId = queueId.split(":");
+//    if(splitQueueId && splitQueueId.length > 3) {
+//        var reqKey = util.format('Request:%s:%s:%s', splitQueueId[1], splitQueueId[2], sessionId);
+//        redisHandler.GetObj(logKey, reqKey, function(err, strObj){
+//            if(!err && strObj) {
+//                var obj = JSON.parse(strObj);
+//                if(obj && obj.QPositionEnable) {
+//                    var body = [{SessionId: sessionId, QueueId: queueId, QueuePosition: "1"}];
+//                    if (obj.CallbackOption == "GET") {
+//                        restClientHandler.DoGetDirect(obj.QPositionUrl, body, function (err, res, result) {
+//                            if (err) {
+//                                console.log(err);
+//                            } else {
+//                                console.log("SendQueuePositionInfo: %s", result);
+//                            }
+//                        });
+//                    } else {
+//                        restClientHandler.DoPostDirect(url, body, function (err, res, result) {
+//                            if (err) {
+//                                console.log(err);
+//                            } else {
+//                                console.log("SendQueuePositionInfo: %s", result);
+//                            }
+//                        });
+//                    }
+//                }
+//            }
+//        });
+//
+//    }
+//
+//    callback("done");
+//};
 
 module.exports.AddRequestToQueue = AddRequestToQueue;
 module.exports.ReAddRequestToQueue = ReAddRequestToQueue;
