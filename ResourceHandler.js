@@ -1127,7 +1127,8 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, r
                     commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
                         var cObj = JSON.parse(obj);
                         if (event == "reserved") {
-                            cObj.MaxRejectCount = maxRejectCount;
+                            if (maxRejectCount)
+                                cObj.MaxRejectCount = maxRejectCount;
                             cObj.LastConnectedTime = date.toISOString();
                         } else if (event == "connected") {
                             cObj.RejectCount = 0;
@@ -1340,7 +1341,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
                                     resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, {
                                         SessionId: sessionid,
-                                        Direction: handlingType+direction
+                                        Direction: handlingType + direction
                                     }, function (err, result, obj) {
                                         if (err) {
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
@@ -1357,7 +1358,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
 
                                         resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", {
                                             SessionId: sessionid,
-                                            Direction: handlingType+direction
+                                            Direction: handlingType + direction
                                         }, function (err, result, obj) {
                                             if (err) {
                                                 console.log("AddResourceStatusChangeInfo Failed.", err);
@@ -1404,9 +1405,12 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                         tempObj.HandlingRequest = sessionid;
                         tempObj.LastReservedTime = date.toISOString();
                         tempObj.OtherInfo = otherInfo;
-                        tempObj.MaxReservedTime = maxReservedTime;
-                        tempObj.MaxAfterWorkTime = maxAfterWorkTime;
-                        tempObj.MaxFreezeTime = maxFreezeTime;
+                        if (maxReservedTime)
+                            tempObj.MaxReservedTime = maxReservedTime;
+                        if (maxAfterWorkTime)
+                            tempObj.MaxAfterWorkTime = maxAfterWorkTime;
+                        if (maxFreezeTime)
+                            tempObj.MaxFreezeTime = maxFreezeTime;
                         var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
                         var slotInfoTags = companyTags.concat(tags);
                         var jsonObj = JSON.stringify(tempObj);
@@ -1597,9 +1601,9 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
                                     console.log(err);
                                 }
                                 try {
-                                    scheduleWorkerHandler.startFreeze(company, tenant, resourceid, resourceid,tempObj.MaxFreezeTime,tempObj.HandlingRequest, logKey);
+                                    scheduleWorkerHandler.startFreeze(company, tenant, resourceid, resourceid, tempObj.MaxFreezeTime, tempObj.HandlingRequest, logKey);
                                 }
-                                catch (ex){
+                                catch (ex) {
                                     console.log('scheduleWorkerHandler.startFreeze :: ' + ex);
                                 }
                                 callback(err, reply);
@@ -1622,7 +1626,7 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
 var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, reason, otherInfo, direction, callback) {
     var slotInfoTags = [];
 
-    if (direction === "outbound" && state === "Connected") {
+    if (direction === "outbound" && state.toLowerCase() === "reserved") {
 
         slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "resourceid_" + resourceid];
 
@@ -1676,7 +1680,10 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
 
 
                     if (selectedSlot) {
-                        UpdateSlotStateConnected(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, otherInfo, direction, function (err, result) {
+                        // UpdateSlotStateConnected(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, otherInfo, direction, function (err, result) {
+                        //     callback(err, result);
+                        // });
+                        UpdateSlotStateReserved(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, null, null, null, null, otherInfo, function (err, result) {
                             callback(err, result);
                         });
                     } else {
