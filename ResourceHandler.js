@@ -1626,7 +1626,7 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
 var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, reason, otherInfo, direction, callback) {
     var slotInfoTags = [];
 
-    if (direction === "outbound" && state.toLowerCase() === "reserved") {
+    if (direction === "outbound" && (state.toLowerCase() === "reserved" ||state.toLowerCase() === "connected")) {
 
         slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "resourceid_" + resourceid];
 
@@ -1658,9 +1658,9 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                     case "AfterWork":
                                         afterWorkSlots.push(cs);
                                         break;
-                                    case "Connected":
-                                        connectedSlots.push(cs);
-                                        break;
+                                    // case "Connected":
+                                    //     connectedSlots.push(cs);
+                                    //     break;
                                     default :
                                         break;
                                 }
@@ -1680,12 +1680,17 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
 
 
                     if (selectedSlot) {
-                        // UpdateSlotStateConnected(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, otherInfo, direction, function (err, result) {
-                        //     callback(err, result);
-                        // });
-                        UpdateSlotStateReserved(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, null, null, null, null, otherInfo, function (err, result) {
-                            callback(err, result);
-                        });
+                        if(state.toLowerCase() === "connected") {
+                            UpdateSlotStateConnected(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, otherInfo, direction, function (err, result) {
+                                callback(err, result);
+                            });
+                        }else if(state.toLowerCase() === "reserved" && selectedSlot.State !== "Connected") {
+                            UpdateSlotStateReserved(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, null, null, null, null, otherInfo, function (err, result) {
+                                callback(err, result);
+                            });
+                        }else {
+                            callback(new Error("Invalid outbound status change request"), undefined);
+                        }
                     } else {
                         callback(new Error("No Resource CSlot found"), undefined);
                     }
