@@ -1182,7 +1182,7 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
                                 From: "ARDS",
                                 Direction: "STATELESS",
                                 To: cObj.UserName,
-                                Message: "Reject Count Exceeded!, Account Suspended for Task " + cObj.HandlingType
+                                Message: "Reject Count Exceeded!, Account Suspended for Task: " + cObj.HandlingType
                             };
                             notificationService.SendNotificationInitiate(logKey, "message", "", notificationMsg, company, tenant);
                             notificationService.SendNotificationInitiate(logKey, "agent_suspended", "", notificationMsg, company, tenant);
