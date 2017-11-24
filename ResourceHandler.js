@@ -29,6 +29,8 @@ var SetProductivityData = function (logKey, company, tenant, resourceId, eventTy
             else {
 
                 var eventTime = new Date().toISOString();
+                var tenantInt = parseInt(tenant);
+                var companyInt = parseInt(company);
                 //var pubMessage;
                 var productiveItems = [];
                 for (var i in cslots) {
@@ -43,14 +45,14 @@ var SetProductivityData = function (logKey, company, tenant, resourceId, eventTy
                         if (productiveItems.length === 1) {
                             //pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId);
                             //console.log("Start publish Message: " + pubMessage);
-                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenant, company, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId, eventTime);
+                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenantInt, companyInt, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId, eventTime);
                         }
                         break;
                     case "Completed":
                         if (productiveItems.length === 0) {
                             //pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId);
                             //console.log("Start publish Message: " + pubMessage);
-                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenant, company, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId, eventTime);
+                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenantInt, companyInt, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId, eventTime);
                         }
                         break;
                     default :
@@ -1722,7 +1724,9 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                     });
                     //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
                     var eventTime = new Date().toISOString();
-                    dashboardEventHandler.PublishEvent(logKey, tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid, eventTime);
+                    var tenantInt = parseInt(tenant);
+                    var companyInt = parseInt(company);
+                    dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid, eventTime);
                 }
                 if (cslots && cslots.length > 0) {
                     for (var i in cslots) {

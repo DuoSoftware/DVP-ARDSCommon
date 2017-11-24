@@ -173,6 +173,8 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
 var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, sessionId, requestType, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequestFromQueue *************************', logKey);
 
+    var tenantInt = parseInt(tenant);
+    var companyInt = parseInt(company);
     redisHandler.RemoveItemFromList(logKey, queueId, sessionId, function (err, result) {
         if (err) {
             console.log(err);
@@ -183,7 +185,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                 var pubQueueId = queueId.replace(/:/g, "-");
                 //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
 
-                dashboardEventHandler.PublishEvent(logKey, tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
+                dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
                 var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
                 redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
                     if(eSession && eSession == sessionId){
@@ -199,8 +201,8 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                         console.log(err);
                     }else{
                         var pubQueueId = queueId.replace(/:/g, "-");
-                        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
-                        dashboardEventHandler.PublishEvent(logKey, tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
+                        //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
+                        dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
                         var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
                         redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
                             if(eSession && eSession == sessionId){
