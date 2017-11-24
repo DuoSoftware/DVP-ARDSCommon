@@ -38,7 +38,7 @@ queueConnection.on('ready', function () {
 var Publish = function(logKey, messageType, sendObj){
 
     infoLogger.info('%s --------------------------------------------------', logKey);
-    infoLogger.info('%s RabbitMQ Publish - queue: %s - message: %s', logKey, messageType, sendObj);
+    infoLogger.info('%s RabbitMQ Publish - queue: %s - message: %s', logKey, messageType, JSON.stringify(sendObj));
 
     try {
         queueConnection.publish(messageType, sendObj, {

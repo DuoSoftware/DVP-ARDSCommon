@@ -115,7 +115,7 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
                     var pubQueueId = requestObj.QueueId.replace(/:/g, "-");
                     //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "ANSWERED", pubQueueId, "", requestObj.SessionId);
 
-                    dashboardEventHandler.PublishEvent.Publish(logKey, tenant, company, "ARDS", "QUEUE", "ANSWERED", pubQueueId, "", requestObj.SessionId, eventTime);
+                    dashboardEventHandler.PublishEvent(logKey, tenant, company, "ARDS", "QUEUE", "ANSWERED", pubQueueId, "", requestObj.SessionId, eventTime);
                 }
 
                 reqQueueHandler.RemoveRequestFromQueue(logKey, company, tenant, requestObj.QueueId, requestObj.SessionId, requestObj.RequestType, reason, function (err, result) {
@@ -134,7 +134,7 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
                 }
                 else {
                     //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId);
-                    dashboardEventHandler.PublishEvent.Publish(logKey, tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId, eventTime);
+                    dashboardEventHandler.PublishEvent(logKey, tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId, eventTime);
                     var reqStateKey = util.format('RequestState:%s:%s:%s', company, tenant, sessionId);
                     redisHandler.RemoveObj(logKey, reqStateKey, function () { });
                     callback(null, result);
