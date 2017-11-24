@@ -1,5 +1,6 @@
 ﻿var util = require('util');
 var redisHandler = require('./RedisHandler.js');
+var dashboardEventHandler = require('./DashboardEventHandler');
 var requestHandler = require('./RequestHandler.js');
 var infoLogger = require('./InformationLogger.js');
 var rabbitMqHandler = require('./RabbitMQHandler.js');
@@ -77,8 +78,10 @@ var AddRequestToQueue = function (logKey, request, callback) {
 
 
                 var pubQueueId = request.QueueId.replace(/:/g, "-");
-                var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
-                redisHandler.Publish(logKey, "events", pubMessage, function(){});
+                //var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
+
+                var eventTime = new Date().toISOString();
+                dashboardEventHandler.PublishEvent(logKey, request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId, eventTime);
             }
             else {
                 callback(err, "Failed");
@@ -174,11 +177,13 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
         if (err) {
             console.log(err);
         }else{
+            var eventTime = new Date().toISOString();
+
             if(result >0) {
                 var pubQueueId = queueId.replace(/:/g, "-");
-                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
-                redisHandler.Publish(logKey, "events", pubMessage, function () {
-                });
+                //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
+
+                dashboardEventHandler.PublishEvent(logKey, tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
                 var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
                 redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
                     if(eSession && eSession == sessionId){
@@ -195,8 +200,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                     }else{
                         var pubQueueId = queueId.replace(/:/g, "-");
                         var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
-                        redisHandler.Publish(logKey, "events", pubMessage, function () {
-                        });
+                        dashboardEventHandler.PublishEvent(logKey, tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
                         var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
                         redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
                             if(eSession && eSession == sessionId){

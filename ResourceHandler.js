@@ -1,5 +1,6 @@
 ﻿var util = require('util');
 var redisHandler = require('./RedisHandler.js');
+var dashboardEventHandler = require('./DashboardEventHandler');
 var EventEmitter = require('events').EventEmitter;
 var sortArray = require('./CommonMethods.js');
 var restClientHandler = require('./RestClient.js');
@@ -26,7 +27,9 @@ var SetProductivityData = function (logKey, company, tenant, resourceId, eventTy
                 console.log(err);
             }
             else {
-                var pubMessage;
+
+                var eventTime = new Date().toISOString();
+                //var pubMessage;
                 var productiveItems = [];
                 for (var i in cslots) {
                     var cs = cslots[i].Obj;
@@ -38,18 +41,16 @@ var SetProductivityData = function (logKey, company, tenant, resourceId, eventTy
                 switch (eventType) {
                     case "Connected":
                         if (productiveItems.length === 1) {
-                            pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId);
-                            console.log("Start publish Message: " + pubMessage);
-                            redisHandler.Publish("DashBoardEvent", "events", pubMessage, function () {
-                            });
+                            //pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId);
+                            //console.log("Start publish Message: " + pubMessage);
+                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenant, company, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId, eventTime);
                         }
                         break;
                     case "Completed":
                         if (productiveItems.length === 0) {
-                            pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId);
-                            console.log("Start publish Message: " + pubMessage);
-                            redisHandler.Publish("DashBoardEvent", "events", pubMessage, function () {
-                            });
+                            //pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId);
+                            //console.log("Start publish Message: " + pubMessage);
+                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenant, company, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId, eventTime);
                         }
                         break;
                     default :
@@ -1719,9 +1720,9 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                     UpdateRejectCount(logKey, company, tenant, handlingType, resourceid, sessionid, reason, function (err, result, vid) {
                         //callback(err, result);
                     });
-                    var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
-                    redisHandler.Publish(logKey, "events", pubMessage, function () {
-                    });
+                    //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid);
+                    var eventTime = new Date().toISOString();
+                    dashboardEventHandler.PublishEvent(logKey, tenant, company, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid, eventTime);
                 }
                 if (cslots && cslots.length > 0) {
                     for (var i in cslots) {

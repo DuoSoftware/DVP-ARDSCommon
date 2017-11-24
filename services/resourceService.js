@@ -7,7 +7,7 @@ var restClientHandler = require('../RestClient.js');
 var config = require('config');
 var validator = require('validator');
 var util = require('util');
-var redisHandler = require('../RedisHandler.js');
+var dashboardEventHandler = require('../DashboardEventHandler');
 var infoLogger = require('../InformationLogger.js');
 var deepcopy = require('deepcopy');
 var ardsMonitoringService = require('./ardsMonitoringService');
@@ -112,9 +112,11 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
     }
 
     if(splitData.length == 2) {
-        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", splitData[0], splitData[1], statusType, status, dashBoardReason, resourceId, param2, resourceId);
-        redisHandler.Publish("DashBoardEvent", "events", pubMessage, function () {
-        });
+        var tenant = parseInt(splitData[0]);
+        var company = parseInt(splitData[1]);
+        var eventTime = new Date().toISOString();
+        //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", splitData[0], splitData[1], statusType, status, dashBoardReason, resourceId, param2, resourceId);
+        dashboardEventHandler.PublishEvent(resourceId, tenant, company, statusType, status, dashBoardReason, resourceId, param2, resourceId, eventTime);
     }
 
     ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
