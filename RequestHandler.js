@@ -134,7 +134,7 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
                 }
                 else {
                     //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId);
-                    dashboardEventHandler.PublishEvent.Publish(logKey, , tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId, eventTime);
+                    dashboardEventHandler.PublishEvent.Publish(logKey, tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId, eventTime);
                     var reqStateKey = util.format('RequestState:%s:%s:%s', company, tenant, sessionId);
                     redisHandler.RemoveObj(logKey, reqStateKey, function () { });
                     callback(null, result);
