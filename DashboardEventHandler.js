@@ -13,7 +13,7 @@ var publishEvent = function (logKey, tenant, company, eventClass, eventType, eve
         if(config.Host.UseDashboardMsgQueue === 'true'){
 
             var eventData = {
-                Tenent: tenant,
+                Tenant: tenant,
                 Company: company,
                 EventClass: eventClass,
                 EventType: eventType,
