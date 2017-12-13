@@ -173,44 +173,51 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
 var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, sessionId, requestType, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequestFromQueue *************************', logKey);
 
-    var tenantInt = parseInt(tenant);
-    var companyInt = parseInt(company);
     redisHandler.RemoveItemFromList(logKey, queueId, sessionId, function (err, result) {
         if (err) {
             console.log(err);
+            callback(err, result);
         }else{
-            var eventTime = new Date().toISOString();
-
             if(result >0) {
                 var pubQueueId = queueId.replace(/:/g, "-");
-                //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
-
-                dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
+                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
+                redisHandler.Publish(logKey, "events", pubMessage, function () {
+                });
                 var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
                 redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
-                    if(eSession && eSession == sessionId){
+                    if(eSession && eSession === sessionId){
                         //redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
-                        SetNextProcessingItem(logKey,queueId,hashKey, sessionId, function(result){});
+                        SetNextProcessingItem(logKey,queueId,hashKey, sessionId, function(result){
+                            callback(err, result);
+                        });
+                    }else{
+
+                        callback(err, result);
                     }
                 });
-                callback(err, result);
             }else{
                 var rejectedQueueId = GetRejectedQueueId(queueId);
                 redisHandler.RemoveItemFromList(logKey, rejectedQueueId, sessionId, function (err, result) {
                     if (err) {
                         console.log(err);
+                        callback(err, result);
                     }else{
                         var pubQueueId = queueId.replace(/:/g, "-");
-                        //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
-                        dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
+                        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
+                        redisHandler.Publish(logKey, "events", pubMessage, function () {
+                        });
                         var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
                         redisHandler.GetHashValue(logKey,hashKey, queueId, function(err, eSession){
-                            if(eSession && eSession == sessionId){
+                            if(eSession && eSession === sessionId){
                                 //redisHandler.RemoveItemFromHash(logKey,hashKey,queueId,function(){});
-                                SetNextProcessingItem(logKey,queueId,hashKey, sessionId, function(result){});
+                                SetNextProcessingItem(logKey,queueId,hashKey, sessionId, function(result){
+                                    callback(err, result);
+                                });
+                            }else{
+
+                                callback(err, result);
                             }
                         });
-                        callback(err, result);
                     }
                 });
             }
@@ -290,7 +297,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                             else {
                                                 if (result === 1 || result === 0) {
                                                     console.log("Set HashField Success.." + processingHashId + "::" + queueId + "::" + nextQueueItem);
-                                                    //SendProcessingQueueInfo(logKey, queueId, nextQueueItem, function(){});
+                                                    SendProcessingQueueInfo(logKey, queueId, nextQueueItem, function(){});
                                                 }
                                                 else {
                                                     console.log("Set HashField Failed.." + processingHashId + "::" + queueId + "::" + nextQueueItem);

@@ -87,9 +87,6 @@ var SetRequest = function (logKey, requestObj, cVid, callback) {
 var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequest *************************', logKey);
 
-
-    var tenantInt = parseInt(tenant);
-    var companyInt = parseInt(company);
     var key = util.format('Request:%s:%s:%s', company, tenant, sessionId);
     redisHandler.GetObj(logKey, key, function (err, obj) {
         if (err) {
@@ -98,7 +95,6 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
             callback("Error", "No Request found");
         }
         else {
-            var eventTime = new Date().toISOString();
             var requestObj = JSON.parse(obj);
             var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "serverType_" + requestObj.ServerType, "requestType_" + requestObj.RequestType, "objtype_Request", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo_" + requestObj.HandlingAlgo, "selectionalgo_" + requestObj.SelectionAlgo];
             var tempAttributeList = [];
@@ -116,33 +112,50 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
             if (requestObj.ReqHandlingAlgo === "QUEUE") {
                 if(reason == "NONE") {
                     var pubQueueId = requestObj.QueueId.replace(/:/g, "-");
-                    //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "ANSWERED", pubQueueId, "", requestObj.SessionId);
-
-                    dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "QUEUE", "ANSWERED", pubQueueId, "", requestObj.SessionId, eventTime);
+                    var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "ANSWERED", pubQueueId, "", requestObj.SessionId);
                 }
-
+                redisHandler.Publish(logKey, "events", pubMessage, function(){});
                 reqQueueHandler.RemoveRequestFromQueue(logKey, company, tenant, requestObj.QueueId, requestObj.SessionId, requestObj.RequestType, reason, function (err, result) {
                     if (err) {
                         console.log(err);
+                        callback(err, "false");
+                    }else {
+                        redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
+                            if (err) {
+                                callback(err, "false");
+                            }
+                            else {
+                                var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId);
+                                redisHandler.Publish(logKey, "events", pubMessage, function () {
+                                });
+                                var reqStateKey = util.format('RequestState:%s:%s:%s', company, tenant, sessionId);
+                                redisHandler.RemoveObj(logKey, reqStateKey, function () {
+                                });
+                                callback(null, result);
+                            }
+                        });
                     }
                     if(requestObj.QPositionEnable) {
                         reqQueueHandler.SendQueuePositionInfo(logKey, requestObj.QPositionUrl, requestObj.QueueId, requestObj.CallbackOption, function () {
                         });
                     }
                 });
+            }else {
+                redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
+                    if (err) {
+                        callback(err, "false");
+                    }
+                    else {
+                        var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId);
+                        redisHandler.Publish(logKey, "events", pubMessage, function () {
+                        });
+                        var reqStateKey = util.format('RequestState:%s:%s:%s', company, tenant, sessionId);
+                        redisHandler.RemoveObj(logKey, reqStateKey, function () {
+                        });
+                        callback(null, result);
+                    }
+                });
             }
-            redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
-                if (err) {
-                    callback(err, "false");
-                }
-                else {
-                    //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId);
-                    dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "REQUEST", "REMOVED", reason, "", sessionId, eventTime);
-                    var reqStateKey = util.format('RequestState:%s:%s:%s', company, tenant, sessionId);
-                    redisHandler.RemoveObj(logKey, reqStateKey, function () { });
-                    callback(null, result);
-                }
-            });
         }
     });
 };
