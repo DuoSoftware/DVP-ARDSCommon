@@ -1182,7 +1182,7 @@ var CheckHashFieldExists = function (logKey, hashkey, field, callback) {
 
 var GetHashValue = function(logKey, hashKey, field, callback) {
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
-    infoLogger.DetailLogger.log('info', '%S GetHashValue - hashKey: %s :: field: %s', logKey, hashKey, field);
+    infoLogger.DetailLogger.log('info', '%s GetHashValue - hashKey: %s :: field: %s', logKey, hashKey, field);
 
     client.hget(hashKey, field, function (err, result) {
         if (err) {
