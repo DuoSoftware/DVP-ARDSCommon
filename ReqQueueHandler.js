@@ -301,7 +301,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                             else {
                                                 if (result === 1 || result === 0) {
                                                     console.log("Set HashField Success.." + processingHashId + "::" + queueId + "::" + nextQueueItem);
-                                                    SendProcessingQueueInfo(logKey, queueId, nextQueueItem, function(){});
+                                                    //SendProcessingQueueInfo(logKey, queueId, nextQueueItem, function(){});
                                                 }
                                                 else {
                                                     console.log("Set HashField Failed.." + processingHashId + "::" + queueId + "::" + nextQueueItem);
