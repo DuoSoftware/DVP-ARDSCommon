@@ -1135,6 +1135,7 @@ var UpdateLastConnectedTime = function (logKey, company, tenant, handlingType, r
                             cObj.LastConnectedTime = date.toISOString();
                         } else if (event == "connected") {
                             cObj.RejectCount = 0;
+                            cObj.IsRejectCountExceeded = false;
                         } else {
                             callback(new Error("Invalied event"), null, null);
                         }
