@@ -1,6 +1,6 @@
 {
   "name": "dvp-ardscommon",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "description": "",
   "main": "Authorization.js",
   "dependencies": {
@@ -8,7 +8,7 @@
     "async": "^2.1.5",
     "config": "^1.19.0",
     "deepcopy": "^0.6.1",
-    "dvp-dbmodels": "^1.2.7",
+    "dvp-dbmodels": "2.1.0",
     "ioredis": "^3.1.1",
     "moment": "^2.18.1",
     "q": "^1.5.0",
