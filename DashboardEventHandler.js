@@ -15,7 +15,7 @@ var publishEvent = function (logKey, tenant, company, businessUnit, eventClass, 
             var eventData = {
                 Tenant: tenant,
                 Company: company,
-                BusinessUnit: businessUnit
+                BusinessUnit: businessUnit,
                 EventClass: eventClass,
                 EventType: eventType,
                 EventCategory: eventCategory,
