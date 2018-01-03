@@ -839,6 +839,7 @@ var RemoveShareResource = function (logKey, company, tenant, resourceId, handlin
                             var resourceObj = {
                                 Company: preProcessResData.Company,
                                 Tenant: preProcessResData.Tenant,
+                                BusinessUnit: preProcessResData.BusinessUnit,
                                 Class: preProcessResData.Class,
                                 Type: preProcessResData.Type,
                                 Category: preProcessResData.Category,
