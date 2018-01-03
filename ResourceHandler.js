@@ -18,7 +18,7 @@ var async = require('async');
 var ardsMonitoringService = require('./services/ardsMonitoringService');
 var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
 
-var SetProductivityData = function (logKey, company, tenant, resourceId, eventType) {
+var SetProductivityData = function (logKey, company, businessUnit, tenant, resourceId, eventType) {
     try {
         console.log("Start SetProductivityData:: eventType: " + eventType);
         var slotInfoTags = ["company_" + company, "tenant_" + tenant, "state_Connected", "resourceid_" + resourceId];
@@ -45,14 +45,14 @@ var SetProductivityData = function (logKey, company, tenant, resourceId, eventTy
                         if (productiveItems.length === 1) {
                             //pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId);
                             //console.log("Start publish Message: " + pubMessage);
-                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenantInt, companyInt, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId, eventTime);
+                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenantInt, companyInt, businessUnit, "Resource", "Productivity", "StartWorking", resourceId, "param2", resourceId, eventTime);
                         }
                         break;
                     case "Completed":
                         if (productiveItems.length === 0) {
                             //pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId);
                             //console.log("Start publish Message: " + pubMessage);
-                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenantInt, companyInt, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId, eventTime);
+                            dashboardEventHandler.PublishEvent("DashBoardEvent", tenantInt, companyInt, businessUnit, "Resource", "Productivity", "EndWorking", resourceId, "param2", resourceId, eventTime);
                         }
                         break;
                     default :
@@ -282,6 +282,7 @@ var SetResourceLogin = function (logKey, basicData, callback) {
                 preResourceData = {
                     Company: resObj.Result.CompanyId,
                     Tenant: resObj.Result.TenantId,
+                    BusinessUnit: (basicData.BusinessUnit)? basicData.BusinessUnit: 'default',
                     Class: resObj.Result.ResClass,
                     Type: resObj.Result.ResType,
                     Category: resObj.Result.ResCategory,
@@ -313,6 +314,7 @@ var SetResourceLogin = function (logKey, basicData, callback) {
                                     var slotInfo = {
                                         Company: preProcessResData.Company,
                                         Tenant: preProcessResData.Tenant,
+                                        BusinessUnit: preProcessResData.BusinessUnit,
                                         HandlingType: obj.HandlingType,
                                         State: "Available",
                                         StateChangeTime: date.toISOString(),
@@ -350,6 +352,7 @@ var SetResourceLogin = function (logKey, basicData, callback) {
                                 var concurrencyObj = {
                                     Company: preProcessResData.Company,
                                     Tenant: preProcessResData.Tenant,
+                                    BusinessUnit: preProcessResData.BusinessUnit,
                                     HandlingType: obj.HandlingType,
                                     LastConnectedTime: "",
                                     LastRejectedSession: "",
@@ -378,6 +381,7 @@ var SetResourceLogin = function (logKey, basicData, callback) {
                             var resourceObj = {
                                 Company: preProcessResData.Company,
                                 Tenant: preProcessResData.Tenant,
+                                BusinessUnit: preProcessResData.BusinessUnit,
                                 Class: preProcessResData.Class,
                                 Type: preProcessResData.Type,
                                 Category: preProcessResData.Category,
@@ -479,6 +483,7 @@ var EditResource = function (logKey, editType, accessToken, basicData, resourceD
                         var concurrencyObj = {
                             Company: preProcessResData.Company,
                             Tenant: preProcessResData.Tenant,
+                            BusinessUnit: preProcessResData.BusinessUnit,
                             HandlingType: obj.HandlingType,
                             LastConnectedTime: "",
                             LastRejectedSession: "",
@@ -534,6 +539,7 @@ var EditResource = function (logKey, editType, accessToken, basicData, resourceD
                             var slotInfo = {
                                 Company: preProcessResData.Company,
                                 Tenant: preProcessResData.Tenant,
+                                BusinessUnit: preProcessResData.BusinessUnit,
                                 HandlingType: obj.HandlingType,
                                 State: "Available",
                                 StateChangeTime: date.toISOString(),
@@ -586,6 +592,7 @@ var EditResource = function (logKey, editType, accessToken, basicData, resourceD
                 var resourceObj = {
                     Company: preProcessResData.Company,
                     Tenant: preProcessResData.Tenant,
+                    BusinessUnit: preProcessResData.BusinessUnit,
                     Class: preProcessResData.Class,
                     Type: preProcessResData.Type,
                     Category: preProcessResData.Category,
@@ -1201,7 +1208,7 @@ var UpdateRejectCount = function (logKey, company, tenant, handlingType, resourc
                         });
 
                         var internalToken = util.format("%d:%d", tenant, company);
-                        resourceService.AddResourceTaskRejectInfo(internalToken, cObj.ResourceId, cObj.HandlingType, reason, "", rejectedSession, function () {
+                        resourceService.AddResourceTaskRejectInfo(internalToken, cObj.BusinessUnit, cObj.ResourceId, cObj.HandlingType, reason, "", rejectedSession, function () {
                         });
                     });
                 } else {
@@ -1275,7 +1282,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                                 else {
                                     var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
-                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, {
+                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, {
                                         SessionId: handledRequest,
                                         Direction: ""
                                     }, function (err, result, obj) {
@@ -1283,7 +1290,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
                                         } else {
                                             console.log("AddResourceStatusChangeInfo Success.", obj);
-                                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
+                                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
                                                 if (err) {
                                                     console.log("AddResourceStatusDurationInfo Failed.", err);
                                                 } else {
@@ -1341,9 +1348,9 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                 }
                                 else {
                                     var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
-                                    SetProductivityData(logKey, company, tenant, resourceid, "Completed");
+                                    SetProductivityData(logKey, company, tenant, tempObj.BusinessUnit, resourceid, "Completed");
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
-                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", handlingType, {
+                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, resourceid, "SloatStatus", "Completed", handlingType, {
                                         SessionId: sessionid,
                                         Direction: handlingType + direction
                                     }, function (err, result, obj) {
@@ -1351,7 +1358,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
                                         } else {
                                             console.log("AddResourceStatusChangeInfo Success.", obj);
-                                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
+                                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
                                                 if (err) {
                                                     console.log("AddResourceStatusDurationInfo Failed.", err);
                                                 } else {
@@ -1360,7 +1367,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                             });
                                         }
 
-                                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceid, "SloatStatus", "Completed", "AfterWork", {
+                                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, resourceid, "SloatStatus", "Completed", "AfterWork", {
                                             SessionId: sessionid,
                                             Direction: handlingType + direction
                                         }, function (err, result, obj) {
@@ -1429,7 +1436,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
 
                                 var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                 var internalAccessToken = util.format('%s:%s', tenant, company);
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, {
+                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, {
                                     SessionId: sessionid,
                                     Direction: ""
                                 }, function (err, result, obj) {
@@ -1437,7 +1444,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
                                     } else {
                                         console.log("AddResourceStatusChangeInfo Success.", obj);
-                                        resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
+                                        resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
                                             if (err) {
                                                 console.log("AddResourceStatusDurationInfo Failed.", err);
                                             } else {
@@ -1493,13 +1500,13 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                             else {
                                 UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "connected", function () {
                                 });
-                                SetProductivityData(logKey, company, tenant, resourceid, "Connected");
+                                SetProductivityData(logKey, company, tenant, tempObj.BusinessUnit, resourceid, "Connected");
                                 var internalAccessToken = util.format('%s:%s', tenant, company);
                                 var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                 if (otherInfo == "" || otherInfo == null) {
                                     otherInfo = "Connected";
                                 }
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObj.State, handlingType, {
+                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObj.State, handlingType, {
                                     SessionId: sessionid,
                                     Direction: direction
                                 }, function (err, result, obj) {
@@ -1507,7 +1514,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
                                         console.log("AddResourceStatusChangeInfo Failed.", err);
                                     } else {
                                         console.log("AddResourceStatusChangeInfo Success.", obj);
-                                        resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
+                                        resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
                                             if (err) {
                                                 console.log("AddResourceStatusDurationInfo Failed.", err);
                                             } else {
@@ -1727,7 +1734,8 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                     var eventTime = new Date().toISOString();
                     var tenantInt = parseInt(tenant);
                     var companyInt = parseInt(company);
-                    dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid, eventTime);
+                    var businessUnit = (cslots && cslots.length > 0 && cslots[0] && cslots[0].Obj)? cslots[0].Obj.BusinessUnit : 'default';
+                    dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, businessUnit, "ARDS", "REQUEST", "REJECT", reason, resourceid, sessionid, eventTime);
                 }
                 if (cslots && cslots.length > 0) {
                     for (var i in cslots) {

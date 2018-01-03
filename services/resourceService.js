@@ -94,14 +94,14 @@ var GetResourceAttributeDetails = function(accessToken, taskInfo, callback){
     }
 };
 
-var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, status, reason, otherData, callback){
+var AddResourceStatusChangeInfo = function(accessToken, businessUnit, resourceId, statusType, status, reason, otherData, callback){
 
     var splitData = accessToken.split(':');
     var param2 = deepcopy(reason);
     var dashBoardReason = deepcopy(reason);
 
     var pOtherData = otherData.SessionId? otherData.SessionId:"";
-    var jObject = {StatusType:statusType, Status:status, Reason:reason, OtherData: pOtherData};
+    var jObject = {BusinessUnit: businessUnit, StatusType:statusType, Status:status, Reason:reason, OtherData: pOtherData};
 
     if(status.toLowerCase() === "connected" || (status.toLowerCase() === 'completed' && reason.toLowerCase() === 'afterwork')){
         param2 = util.format('%s%s', param2, otherData.Direction);
@@ -116,7 +116,7 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
         var company = parseInt(splitData[1]);
         var eventTime = new Date().toISOString();
         //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", splitData[0], splitData[1], statusType, status, dashBoardReason, resourceId, param2, resourceId);
-        dashboardEventHandler.PublishEvent(resourceId, tenant, company, statusType, status, dashBoardReason, resourceId, param2, resourceId, eventTime);
+        dashboardEventHandler.PublishEvent(resourceId, tenant, company, businessUnit, statusType, status, dashBoardReason, resourceId, param2, resourceId, eventTime);
     }
 
     ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
@@ -132,8 +132,8 @@ var AddResourceStatusChangeInfo = function(accessToken, resourceId, statusType, 
     });
 };
 
-var AddResourceStatusDurationInfo = function(accessToken, resourceId, statusType, status, reason, otherData, sessionId, duration, callback){
-    var jObject = {StatusType:statusType, Status:status, Reason:reason, OtherData: otherData, SessionId: sessionId, Duration: duration};
+var AddResourceStatusDurationInfo = function(accessToken, businessUnit, resourceId, statusType, status, reason, otherData, sessionId, duration, callback){
+    var jObject = {BusinessUnit: businessUnit, StatusType:statusType, Status:status, Reason:reason, OtherData: otherData, SessionId: sessionId, Duration: duration};
 
     try {
         var serverUrl = util.format("http://%s/DVP/API/%s/ResourceManager/Resource/%s/StatusDuration", config.Services.resourceServiceHost, config.Services.resourceServiceVersion, resourceId);
@@ -156,8 +156,8 @@ var AddResourceStatusDurationInfo = function(accessToken, resourceId, statusType
     }
 };
 
-var AddResourceTaskRejectInfo = function(accessToken, resourceId, task, reason, otherData, sessionId, callback){
-    var jObject = {Task:task, Reason:reason, OtherData: otherData, SessionId: sessionId};
+var AddResourceTaskRejectInfo = function(accessToken, businessUnit, resourceId, task, reason, otherData, sessionId, callback){
+    var jObject = {BusinessUnit: businessUnit, Task:task, Reason:reason, OtherData: otherData, SessionId: sessionId};
 
     try {
         var serverUrl = util.format("http://%s/DVP/API/%s/ResourceManager/Resource/%s/TaskRejectInfo", config.Services.resourceServiceHost, config.Services.resourceServiceVersion, resourceId);

@@ -68,7 +68,7 @@ var AddRequestToQueue = function (logKey, request, callback) {
                 //var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId);
 
                 var eventTime = new Date().toISOString();
-                dashboardEventHandler.PublishEvent(logKey, request.Tenant, request.Company, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId, eventTime);
+                dashboardEventHandler.PublishEvent(logKey, request.Tenant, request.Company, request.BusinessUnit, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId, eventTime);
             }
             else {
                 callback(err, "Failed");
@@ -146,7 +146,7 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
 
 };
 
-var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, sessionId, requestType, reason, callback) {
+var RemoveRequestFromQueue = function (logKey, company, tenant, businessUnit, queueId, sessionId, requestType, reason, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequestFromQueue *************************', logKey);
 
     var tenantInt = parseInt(tenant);
@@ -161,7 +161,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
             if(result >0) {
                 var pubQueueId = queueId.replace(/:/g, "-");
                 //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
-                dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
+                dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, businessUnit, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
 
                 var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
                 var redLokKey = util.format('lock:%s:%s', hashKey, queueId);
@@ -195,7 +195,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, queueId, session
                     }else{
                         var pubQueueId = queueId.replace(/:/g, "-");
                         //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", tenant, company, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId);
-                        dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
+                        dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, businessUnit, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
 
                         var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
                         var redLokKey = util.format('lock:%s:%s', hashKey, queueId);

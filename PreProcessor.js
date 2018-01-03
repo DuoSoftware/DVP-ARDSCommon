@@ -67,6 +67,7 @@ var execute = function (logKey, data, callback) {
                     var requestObj = {
                         Company: data.Company,
                         Tenant: data.Tenant,
+                        BusinessUnit: (data.BusinessUnit)? data.BusinessUnit: 'default',
                         ServerType: data.ServerType,
                         RequestType: data.RequestType,
                         SessionId: data.SessionId,

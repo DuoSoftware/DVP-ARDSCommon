@@ -11,11 +11,11 @@ var SetResourceState = function (logKey, company, tenant, resourceId, resourceNa
     var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
     var internalAccessToken = util.format('%d:%d', tenant, company);
 
-    validateState(logKey, tenant, company, resourceId, reason, function (isRequestValid, message) {
+    validateState(logKey, tenant, company, resourceId, reason, function (isRequestValid, message, businessUnit) {
 
         if(isRequestValid){
-            processState(logKey, StateKey, internalAccessToken, resourceId, resourceName, state, reason, function (err, resultObj) {
-                if (err != null) {
+            processState(logKey, StateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, function (err, resultObj) {
+                if (err !== null) {
                     console.log(err);
                     callback(err, undefined);
                 }
@@ -23,12 +23,12 @@ var SetResourceState = function (logKey, company, tenant, resourceId, resourceNa
 
                     var strObj = JSON.stringify(resultObj);
                     redisHandler.SetObj(logKey, StateKey, strObj, function (err, result) {
-                        if (err != null) {
+                        if (err !== null) {
                             console.log(err);
                             callback(err, undefined);
                         }
                         else {
-                            resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", state, reason, {
+                            resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", state, reason, {
                                 SessionId: "",
                                 Direction: ""
                             }, function (err, result, obj) {
@@ -65,7 +65,7 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
         var reasonValue = reason.toLowerCase();
         if (reasonValue === "register" || reasonValue === "offline" || reasonValue === "unregister") {
 
-            callback(true, undefined);
+            callback(true, null, 'default');
 
         } else {
 
@@ -73,7 +73,7 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
             redisHandler.GetObj(logKey, resourceKey, function (err, result) {
                 if (err) {
 
-                    callback(false, "Error occurred in processing state change request");
+                    callback(false, "Error occurred in processing state change request", 'default');
 
                 } else {
 
@@ -84,7 +84,7 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
 
                             if (resourceObj.LoginTasks && (resourceObj.LoginTasks.length === 0 || resourceObj.LoginTasks.indexOf("CALL") === -1)) {
 
-                                callback(true, "No login task found, proceed to state change");
+                                callback(true, "No login task found, proceed to state change", resourceObj.BusinessUnit);
 
                             } else {
 
@@ -100,7 +100,7 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
                                         redisHandler.MGetObj(logKey, callSlots, function (err, results) {
                                             if (err) {
 
-                                                callback(false, "Error occurred in processing state change request");
+                                                callback(false, "Error occurred in processing state change request", resourceObj.BusinessUnit);
 
                                             } else {
 
@@ -125,17 +125,17 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
 
                                                     if(slotAvailability){
 
-                                                        callback(true, "All slots are free to accept the request");
+                                                        callback(true, "All slots are free to accept the request", resourceObj.BusinessUnit);
 
                                                     }else{
 
-                                                        callback(false, "Can't accept the request while on call");
+                                                        callback(false, "Can't accept the request while on call", resourceObj.BusinessUnit);
 
                                                     }
 
                                                 } else {
 
-                                                    callback(false, "Error occurred in processing state change request");
+                                                    callback(false, "Error occurred in processing state change request", resourceObj.BusinessUnit);
 
                                                 }
 
@@ -144,13 +144,13 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
 
                                     } else {
 
-                                        callback(true, "No call slot found, proceed to state change");
+                                        callback(true, "No call slot found, proceed to state change", resourceObj.BusinessUnit);
 
                                     }
 
                                 } else {
 
-                                    callback(true, "No concurrency info  found, proceed to state change");
+                                    callback(true, "No concurrency info  found, proceed to state change", resourceObj.BusinessUnit);
 
                                 }
 
@@ -158,13 +158,13 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
 
                         } else {
 
-                            callback(false, "Error occurred in processing state change request");
+                            callback(false, "Error occurred in processing state change request", 'default');
 
                         }
 
                     } else {
 
-                        callback(false, "Error occurred in processing state change request");
+                        callback(false, "Error occurred in processing state change request", 'default');
 
                     }
 
@@ -174,12 +174,12 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
         }
 
     } catch (ex) {
-
+        callback(false, "Error occurred in processing state change request", 'default');
     }
 
 };
 
-var processState = function (logKey, stateKey, internalAccessToken, resourceId, resourceName, state, reason, callback) {
+var processState = function (logKey, stateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, callback) {
 
     var date = new Date();
     var statusObj = {ResourceName: resourceName, State: state, Reason: reason, StateChangeTime: date.toISOString()};
@@ -194,7 +194,7 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
 
                 if (statusObjR && statusObjR.State === "NotAvailable" && statusObjR.Reason.toLowerCase().indexOf('break') > -1) {
                     var duration = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
-                    resourceService.AddResourceStatusDurationInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
+                    resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
                         if (err) {
                             console.log("AddResourceStatusDurationInfo Failed.", err);
                         } else {
@@ -207,7 +207,7 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                     statusObj.Mode = "Offline";
 
                     if (statusObjR) {
-                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, "end" + statusObjR.Mode, {
+                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, "end" + statusObjR.Mode, {
                             SessionId: "",
                             Direction: ""
                         }, function (err, result, obj) {
@@ -215,14 +215,14 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                         });
 
                         if (statusObjR.State === "NotAvailable" && statusObjR.Reason.toLowerCase().indexOf('break') > -1) {
-                            resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", "Available", "endBreak", {
+                            resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", "Available", "endBreak", {
                                 SessionId: "",
                                 Direction: ""
                             }, function (err, result, obj) {
 
                             });
                             var duration1 = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
-                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration1, function () {
+                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration1, function () {
                                 if (err) {
                                     console.log("AddResourceStatusDurationInfo Failed.", err);
                                 } else {
@@ -240,7 +240,7 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                 } else if (reason === "Outbound" || reason === "Inbound" || reason === "Offline") {
                     statusObj.Mode = reason;
 
-                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, "end"+statusObjR.Mode, {
+                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, "end"+statusObjR.Mode, {
                         SessionId: "",
                         Direction: ""
                     }, function (err, result, obj) {
