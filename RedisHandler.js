@@ -490,7 +490,7 @@ var GetObjByTagKey_T = function (logKey, tagKeys) {
 
 var SearchObj_T = function (logKey, tags, callback) {
     var result = [];
-    var searchKey = util.format('tag:*%s*', tags.join("*"));
+    var searchKey = util.format('tag*%s*', tags.join(":*"));
 
     client.keys(searchKey, function (err, replies) {
         if (err) {
@@ -896,7 +896,7 @@ var GetObjByTagKey_V_T = function (logKey, tagKeys) {
 
 var SearchObj_V_T = function (logKey, tags, callback) {
     var result = [];
-    var searchKey = util.format('tag:*%s*', tags.join(":*"));
+    var searchKey = util.format('tag*%s*', tags.join(":*"));
 
     client.keys(searchKey, function (err, replies) {
         console.log(replies.length + " replies:");
