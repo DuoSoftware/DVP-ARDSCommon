@@ -1366,43 +1366,170 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateAfterWork *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-    redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
-        if (err) {
-            console.log(err);
-            callback(err, false);
-        }
-        else {
-            var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
-            redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
-                if (err) {
-                    callback(err, null);
-                }
-                if (ceTags) {
-                    commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
-                        var date = new Date();
-                        var tempObj = JSON.parse(obj);
-                        var tempObjCopy = deepcopy(tempObj);
-                        if (tempObj.State === "Connected" || tempObj.State === "Reserved") {
-                            var handledRequest = tempObj.HandlingRequest;
+    var redLokKey = util.format('lock:%s', slotInfokey);
 
-                            tempObj.State = "AfterWork";
+    redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
+        redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
+            if (err) {
+                console.log(err);
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
+                callback(err, false);
+            }
+            else {
+                var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
+                redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
+                    if (err) {
+                        lock.unlock()
+                            .catch(function (err) {
+                                console.error(err);
+                            });
+                        callback(err, null);
+                    }
+                    if (ceTags) {
+                        commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
+                            var date = new Date();
+                            var tempObj = JSON.parse(obj);
+                            var tempObjCopy = deepcopy(tempObj);
+                            if (tempObj.State === "Connected" || tempObj.State === "Reserved") {
+                                var handledRequest = tempObj.HandlingRequest;
+
+                                tempObj.State = "AfterWork";
+                                tempObj.StateChangeTime = date.toISOString();
+                                tempObj.OtherInfo = "";
+                                var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
+                                var slotInfoTags = companyTags.concat(tags);
+                                var jsonObj = JSON.stringify(tempObj);
+                                redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
+                                    infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateAfterWork. Result: %s', logKey, reply);
+                                    if (err != null) {
+                                        lock.unlock()
+                                            .catch(function (err) {
+                                                console.error(err);
+                                            });
+                                        console.log(err);
+                                    }
+                                    else {
+                                        var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
+                                        SetProductivityData(logKey, company, tenant, tempObj.BusinessUnit, resourceid, "Completed");
+                                        var internalAccessToken = util.format('%s:%s', tenant, company);
+                                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, resourceid, "SloatStatus", "Completed", handlingType, {
+                                            SessionId: sessionid,
+                                            Direction: handlingType + direction
+                                        }, function (err, result, obj) {
+                                            if (err) {
+                                                console.log("AddResourceStatusChangeInfo Failed.", err);
+                                            } else {
+                                                console.log("AddResourceStatusChangeInfo Success.", obj);
+                                                resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
+                                                    if (err) {
+                                                        console.log("AddResourceStatusDurationInfo Failed.", err);
+                                                    } else {
+                                                        console.log("AddResourceStatusDurationInfo Success.", obj);
+                                                    }
+                                                });
+                                            }
+
+                                            resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, resourceid, "SloatStatus", "Completed", "AfterWork", {
+                                                SessionId: sessionid,
+                                                Direction: handlingType + direction
+                                            }, function (err, result, obj) {
+                                                if (err) {
+                                                    console.log("AddResourceStatusChangeInfo Failed.", err);
+                                                } else {
+                                                    console.log("AddResourceStatusChangeInfo Success.", obj);
+                                                }
+                                            });
+                                        });
+                                    }
+                                    lock.unlock()
+                                        .catch(function (err) {
+                                            console.error(err);
+                                        });
+                                    callback(err, reply);
+                                });
+                            }else {
+                                lock.unlock()
+                                    .catch(function (err) {
+                                        console.error(err);
+                                    });
+                                callback(new Error("Slot in Invalid State"), null);
+                            }
+                        });
+                    } else {
+                        lock.unlock()
+                            .catch(function (err) {
+                                console.error(err);
+                            });
+                        callback(new Error("Update Redis tags failed"), null);
+                    }
+                });
+            }
+        });
+    });
+};
+
+var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, maxAfterWorkTime, maxFreezeTime, maxRejectCount, otherInfo, callback) {
+    infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateReserved *************************', logKey);
+
+    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
+    var redLokKey = util.format('lock:%s', slotInfokey);
+
+    redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
+        redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
+            if (err) {
+                console.log(err);
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
+                callback(err, false);
+            }
+            else {
+                var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
+                redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
+                    if (err) {
+                        lock.unlock()
+                            .catch(function (err) {
+                                console.error(err);
+                            });
+                        callback(err, null, null);
+                    }
+                    if (ceTags) {
+                        commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
+                            var date = new Date();
+                            var tempObj = JSON.parse(obj);
+                            var tempObjCopy = deepcopy(tempObj);
+                            tempObj.State = "Reserved";
                             tempObj.StateChangeTime = date.toISOString();
-                            tempObj.OtherInfo = "";
+                            tempObj.HandlingRequest = sessionid;
+                            tempObj.LastReservedTime = date.toISOString();
+                            tempObj.OtherInfo = otherInfo;
+                            if (maxReservedTime)
+                                tempObj.MaxReservedTime = maxReservedTime;
+                            if (maxAfterWorkTime)
+                                tempObj.MaxAfterWorkTime = maxAfterWorkTime;
+                            if (maxFreezeTime)
+                                tempObj.MaxFreezeTime = maxFreezeTime;
                             var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
                             var slotInfoTags = companyTags.concat(tags);
                             var jsonObj = JSON.stringify(tempObj);
                             redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
-                                infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateAfterWork. Result: %s', logKey, reply);
+                                infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateReserved. Result: %s', logKey, reply);
                                 if (err != null) {
                                     console.log(err);
                                 }
                                 else {
+                                    UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "reserved", maxRejectCount, function () {
+                                    });
+
                                     var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
-                                    SetProductivityData(logKey, company, tenant, tempObj.BusinessUnit, resourceid, "Completed");
                                     var internalAccessToken = util.format('%s:%s', tenant, company);
-                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, resourceid, "SloatStatus", "Completed", handlingType, {
+                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, {
                                         SessionId: sessionid,
-                                        Direction: handlingType + direction
+                                        Direction: ""
                                     }, function (err, result, obj) {
                                         if (err) {
                                             console.log("AddResourceStatusChangeInfo Failed.", err);
@@ -1416,102 +1543,25 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                                 }
                                             });
                                         }
-
-                                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, resourceid, "SloatStatus", "Completed", "AfterWork", {
-                                            SessionId: sessionid,
-                                            Direction: handlingType + direction
-                                        }, function (err, result, obj) {
-                                            if (err) {
-                                                console.log("AddResourceStatusChangeInfo Failed.", err);
-                                            } else {
-                                                console.log("AddResourceStatusChangeInfo Success.", obj);
-                                            }
-                                        });
                                     });
                                 }
+                                lock.unlock()
+                                    .catch(function (err) {
+                                        console.error(err);
+                                    });
                                 callback(err, reply);
                             });
-                        }
-                    });
-                } else {
-                    callback(new Error("Update Redis tags failed"), null);
-                }
-            });
-        }
-    });
-};
-
-var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, maxAfterWorkTime, maxFreezeTime, maxRejectCount, otherInfo, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateReserved *************************', logKey);
-
-    var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-    redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
-        if (err) {
-            console.log(err);
-            callback(err, false);
-        }
-        else {
-            var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
-            redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
-                if (err) {
-                    callback(err, null, null);
-                }
-                if (ceTags) {
-                    commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
-                        var date = new Date();
-                        var tempObj = JSON.parse(obj);
-                        var tempObjCopy = deepcopy(tempObj);
-                        tempObj.State = "Reserved";
-                        tempObj.StateChangeTime = date.toISOString();
-                        tempObj.HandlingRequest = sessionid;
-                        tempObj.LastReservedTime = date.toISOString();
-                        tempObj.OtherInfo = otherInfo;
-                        if (maxReservedTime)
-                            tempObj.MaxReservedTime = maxReservedTime;
-                        if (maxAfterWorkTime)
-                            tempObj.MaxAfterWorkTime = maxAfterWorkTime;
-                        if (maxFreezeTime)
-                            tempObj.MaxFreezeTime = maxFreezeTime;
-                        var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
-                        var slotInfoTags = companyTags.concat(tags);
-                        var jsonObj = JSON.stringify(tempObj);
-                        redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
-                            infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateReserved. Result: %s', logKey, reply);
-                            if (err != null) {
-                                console.log(err);
-                            }
-                            else {
-                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "reserved", maxRejectCount, function () {
-                                });
-
-                                var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
-                                var internalAccessToken = util.format('%s:%s', tenant, company);
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, {
-                                    SessionId: sessionid,
-                                    Direction: ""
-                                }, function (err, result, obj) {
-                                    if (err) {
-                                        console.log("AddResourceStatusChangeInfo Failed.", err);
-                                    } else {
-                                        console.log("AddResourceStatusChangeInfo Success.", obj);
-                                        resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
-                                            if (err) {
-                                                console.log("AddResourceStatusDurationInfo Failed.", err);
-                                            } else {
-                                                console.log("AddResourceStatusDurationInfo Success.", obj);
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                            callback(err, reply);
                         });
-                    });
-                } else {
-                    callback(new Error("Update Redis tags failed"), null, null);
-                }
-            });
-        }
+                    } else {
+                        lock.unlock()
+                            .catch(function (err) {
+                                console.error(err);
+                            });
+                        callback(new Error("Update Redis tags failed"), null, null);
+                    }
+                });
+            }
+        });
     });
 };
 
@@ -1519,69 +1569,89 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateConnected *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-    redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
-        if (err) {
-            console.log(err);
-            callback(err, false);
-        }
-        else {
-            var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
-            redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
-                if (err) {
-                    callback(err, null, null);
-                }
-                if (ceTags) {
-                    commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
-                        var date = new Date();
-                        var tempObj = JSON.parse(obj);
-                        var tempObjCopy = deepcopy(tempObj);
-                        tempObj.State = "Connected";
-                        tempObj.StateChangeTime = date.toISOString();
-                        tempObj.HandlingRequest = sessionid;
-                        tempObj.OtherInfo = otherInfo;
-                        var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
-                        var slotInfoTags = companyTags.concat(tags);
-                        var jsonObj = JSON.stringify(tempObj);
-                        redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
-                            infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateConnected. Result: %s', logKey, reply);
-                            if (err != null) {
-                                console.log(err);
-                            }
-                            else {
-                                UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "connected", function () {
-                                });
-                                SetProductivityData(logKey, company, tenant, tempObj.BusinessUnit, resourceid, "Connected");
-                                var internalAccessToken = util.format('%s:%s', tenant, company);
-                                var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
-                                if (otherInfo == "" || otherInfo == null) {
-                                    otherInfo = "Connected";
-                                }
-                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObj.State, handlingType, {
-                                    SessionId: sessionid,
-                                    Direction: direction
-                                }, function (err, result, obj) {
-                                    if (err) {
-                                        console.log("AddResourceStatusChangeInfo Failed.", err);
-                                    } else {
-                                        console.log("AddResourceStatusChangeInfo Success.", obj);
-                                        resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
-                                            if (err) {
-                                                console.log("AddResourceStatusDurationInfo Failed.", err);
-                                            } else {
-                                                console.log("AddResourceStatusDurationInfo Success.", obj);
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                            callback(err, reply);
-                        });
+    var redLokKey = util.format('lock:%s', slotInfokey);
+
+    redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
+        redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
+            if (err) {
+                console.log(err);
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
                     });
-                } else {
-                    callback(new Error("Update Redis tags failed"), null, null);
-                }
-            });
-        }
+                callback(err, false);
+            }
+            else {
+                var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
+                redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
+                    if (err) {
+                        lock.unlock()
+                            .catch(function (err) {
+                                console.error(err);
+                            });
+                        callback(err, null, null);
+                    }
+                    if (ceTags) {
+                        commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
+                            var date = new Date();
+                            var tempObj = JSON.parse(obj);
+                            var tempObjCopy = deepcopy(tempObj);
+                            tempObj.State = "Connected";
+                            tempObj.StateChangeTime = date.toISOString();
+                            tempObj.HandlingRequest = sessionid;
+                            tempObj.OtherInfo = otherInfo;
+                            var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
+                            var slotInfoTags = companyTags.concat(tags);
+                            var jsonObj = JSON.stringify(tempObj);
+                            redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
+                                infoLogger.DetailLogger.log('info', '%s Finished UpdateSlotStateConnected. Result: %s', logKey, reply);
+                                if (err != null) {
+                                    console.log(err);
+                                }
+                                else {
+                                    UpdateLastConnectedTime(logKey, tempObj.Company, tempObj.Tenant, tempObj.HandlingType, resourceid, "connected", function () {
+                                    });
+                                    SetProductivityData(logKey, company, tenant, tempObj.BusinessUnit, resourceid, "Connected");
+                                    var internalAccessToken = util.format('%s:%s', tenant, company);
+                                    var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
+                                    if (otherInfo == "" || otherInfo == null) {
+                                        otherInfo = "Connected";
+                                    }
+                                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObj.State, handlingType, {
+                                        SessionId: sessionid,
+                                        Direction: direction
+                                    }, function (err, result, obj) {
+                                        if (err) {
+                                            console.log("AddResourceStatusChangeInfo Failed.", err);
+                                        } else {
+                                            console.log("AddResourceStatusChangeInfo Success.", obj);
+                                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObjCopy.State, "", tempObjCopy.OtherInfo, tempObjCopy.HandlingRequest, duration, function () {
+                                                if (err) {
+                                                    console.log("AddResourceStatusDurationInfo Failed.", err);
+                                                } else {
+                                                    console.log("AddResourceStatusDurationInfo Success.", obj);
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                                lock.unlock()
+                                    .catch(function (err) {
+                                        console.error(err);
+                                    });
+                                callback(err, reply);
+                            });
+                        });
+                    } else {
+                        lock.unlock()
+                            .catch(function (err) {
+                                console.error(err);
+                            });
+                        callback(new Error("Update Redis tags failed"), null, null);
+                    }
+                });
+            }
+        });
     });
 };
 
@@ -1635,51 +1705,75 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetSlotStateFreeze *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-    redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
-        if (err) {
-            console.log(err);
-            callback(err, false);
-        }
-        else {
-            var tempObj = JSON.parse(obj);
-            if (tempObj.State === "AfterWork") {
-                var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
-                redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
-                    if (err) {
-                        callback(err, null, null);
-                    }
-                    if (ceTags) {
-                        commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
+    var redLokKey = util.format('lock:%s', slotInfokey);
 
-                            tempObj.FreezeAfterWorkTime = true;
-
-                            var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
-                            var slotInfoTags = companyTags.concat(tags);
-                            var jsonObj = JSON.stringify(tempObj);
-                            redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
-                                infoLogger.DetailLogger.log('info', '%s Finished SetSlotStateFreeze. Result: %s', logKey, reply);
-                                if (err != null) {
-                                    console.log(err);
-                                }
-                                try {
-                                    scheduleWorkerHandler.startFreeze(company, tenant, resourceid, resourceid, tempObj.MaxFreezeTime, tempObj.HandlingRequest, logKey);
-                                }
-                                catch (ex) {
-                                    console.log('scheduleWorkerHandler.startFreeze :: ' + ex);
-                                }
-                                callback(err, reply);
-                            });
-
-                        });
-                    } else {
-                        callback(new Error("Update Redis tags failed"), null, null);
-                    }
-                });
-
-            } else {
-                callback(new Error("Cannot Freeze, Resource not in AfterWork State"), null);
+    redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
+        redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
+            if (err) {
+                console.log(err);
+                lock.unlock()
+                    .catch(function (err) {
+                        console.error(err);
+                    });
+                callback(err, false);
             }
-        }
+            else {
+                var tempObj = JSON.parse(obj);
+                if (tempObj.State === "AfterWork") {
+                    var tagMetaKey = util.format('tagMeta:%s', slotInfokey);
+                    redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
+                        if (err) {
+                            lock.unlock()
+                                .catch(function (err) {
+                                    console.error(err);
+                                });
+                            callback(err, null, null);
+                        }
+                        if (ceTags) {
+                            commonMethods.GetSortedCompanyTagArray(ceTags, function (companyTags) {
+
+                                tempObj.FreezeAfterWorkTime = true;
+
+                                var tags = ["tenant_" + tempObj.Tenant, "handlingType_" + tempObj.HandlingType, "state_" + tempObj.State, "resourceid_" + tempObj.ResourceId, "slotid_" + tempObj.SlotId, "handlingrequest_" + tempObj.HandlingRequest, "objtype_CSlotInfo"];
+                                var slotInfoTags = companyTags.concat(tags);
+                                var jsonObj = JSON.stringify(tempObj);
+                                redisHandler.SetObj_V_T(logKey, slotInfokey, jsonObj, slotInfoTags, vid, function (err, reply, vid) {
+                                    infoLogger.DetailLogger.log('info', '%s Finished SetSlotStateFreeze. Result: %s', logKey, reply);
+                                    if (err != null) {
+                                        console.log(err);
+                                    }
+                                    try {
+                                        scheduleWorkerHandler.startFreeze(company, tenant, resourceid, resourceid, tempObj.MaxFreezeTime, tempObj.HandlingRequest, logKey);
+                                    }
+                                    catch (ex) {
+                                        console.log('scheduleWorkerHandler.startFreeze :: ' + ex);
+                                    }
+                                    lock.unlock()
+                                        .catch(function (err) {
+                                            console.error(err);
+                                        });
+                                    callback(err, reply);
+                                });
+
+                            });
+                        } else {
+                            lock.unlock()
+                                .catch(function (err) {
+                                    console.error(err);
+                                });
+                            callback(new Error("Update Redis tags failed"), null, null);
+                        }
+                    });
+
+                } else {
+                    lock.unlock()
+                        .catch(function (err) {
+                            console.error(err);
+                        });
+                    callback(new Error("Cannot Freeze, Resource not in AfterWork State"), null);
+                }
+            }
+        });
     });
 };
 
