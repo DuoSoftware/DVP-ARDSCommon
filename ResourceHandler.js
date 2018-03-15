@@ -1224,7 +1224,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateAvailable *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-    var redLokKey = util.format('lock:%s', slotInfokey);
+    var redLokKey = util.format('lockM:%s', slotInfokey);
 
     redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
         redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
@@ -1366,7 +1366,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateAfterWork *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-    var redLokKey = util.format('lock:%s', slotInfokey);
+    var redLokKey = util.format('lockM:%s', slotInfokey);
 
     redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
         redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
@@ -1450,6 +1450,12 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                         });
                                     callback(err, reply);
                                 });
+                            }else if (tempObj.State === "AfterWork") {
+                                lock.unlock()
+                                    .catch(function (err) {
+                                        console.error(err);
+                                    });
+                                callback(null, "OK");
                             }else {
                                 lock.unlock()
                                     .catch(function (err) {
@@ -1475,7 +1481,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateReserved *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-    var redLokKey = util.format('lock:%s', slotInfokey);
+    var redLokKey = util.format('lockM:%s', slotInfokey);
 
     redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
         redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
@@ -1569,7 +1575,7 @@ var UpdateSlotStateConnected = function (logKey, company, tenant, handlingType, 
     infoLogger.DetailLogger.log('info', '%s ************************* Start UpdateSlotStateConnected *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-    var redLokKey = util.format('lock:%s', slotInfokey);
+    var redLokKey = util.format('lockM:%s', slotInfokey);
 
     redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
         redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
@@ -1714,7 +1720,7 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
     infoLogger.DetailLogger.log('info', '%s ************************* Start SetSlotStateFreeze *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
-    var redLokKey = util.format('lock:%s', slotInfokey);
+    var redLokKey = util.format('lockM:%s', slotInfokey);
 
     redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
         redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
