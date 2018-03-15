@@ -1455,7 +1455,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
                                     .catch(function (err) {
                                         console.error(err);
                                     });
-                                callback(null, "OK");
+                                callback(null, "Slot_in_Afterwork_State");
                             }else {
                                 lock.unlock()
                                     .catch(function (err) {
@@ -1669,7 +1669,9 @@ var UpdateSlotStateCompleted = function (logKey, company, tenant, handlingType, 
             console.log("******************Update Slot State 'AfreWork' Failed, Forcefully Put in Resource to Available State");
             UpdateSlotStateAvailable(logKey, company, tenant, handlingType, resourceid, slotid, "", "AfterWork", "Available", function (err, result) {
             });
-        }else{
+        }else if(reply === "Slot_in_Afterwork_State") {
+            console.log("******************Update Slot State 'AfreWork', Slot already in Afterwork State");
+        }else {
             var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
             console.log("AfterWorkStart: " + Date.now());
             redisHandler.GetObj(logKey, slotInfokey, function (err, slotObjStr) {
