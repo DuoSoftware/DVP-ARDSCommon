@@ -1811,7 +1811,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                 if (cslots != null && cslots.length > 0) {
                     var selectedSlot = undefined;
 
-                    if (cslots.length === 1) {
+                    if (cslots.length === 1 && direction === "outbound") {
                         selectedSlot = cslots[0].Obj;
                     } else {
                         var reservedSlots = [];
