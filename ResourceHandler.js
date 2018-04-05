@@ -1798,7 +1798,7 @@ var SetSlotStateFreeze = function (logKey, company, tenant, handlingType, resour
 var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType, resourceid, sessionid, state, reason, otherInfo, direction, callback) {
     var slotInfoTags = [];
 
-    if (direction === "outbound" && (state.toLowerCase() === "reserved" || state.toLowerCase() === "connected")) {
+    if ((direction === "outbound" || direction === "inbound_internal") && (state.toLowerCase() === "reserved" || state.toLowerCase() === "connected")) {
 
         slotInfoTags = ["company_" + company, "tenant_" + tenant, "handlingType_" + handlingType, "resourceid_" + resourceid];
 
@@ -1819,22 +1819,29 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                         var connectedSlots = [];
                         for (var i = 0; i < cslots.length; i++) {
                             var cs = cslots[i].Obj;
-                            if (cs.State === "Available") {
-                                selectedSlot = cs;
-                                break;
-                            } else {
-                                switch (cs.State) {
-                                    case "Reserved":
-                                        reservedSlots.push(cs);
-                                        break;
-                                    case "AfterWork":
-                                        afterWorkSlots.push(cs);
-                                        break;
-                                    // case "Connected":
-                                    //     connectedSlots.push(cs);
-                                    //     break;
-                                    default :
-                                        break;
+                            if(direction === "outbound") {
+                                if (cs.State === "Available") {
+                                    selectedSlot = cs;
+                                    break;
+                                } else {
+                                    switch (cs.State) {
+                                        case "Reserved":
+                                            reservedSlots.push(cs);
+                                            break;
+                                        case "AfterWork":
+                                            afterWorkSlots.push(cs);
+                                            break;
+                                        // case "Connected":
+                                        //     connectedSlots.push(cs);
+                                        //     break;
+                                        default :
+                                            break;
+                                    }
+                                }
+                            }else {
+                                if (cs.State === "Available") {
+                                    selectedSlot = cs;
+                                    break;
                                 }
                             }
                         }
