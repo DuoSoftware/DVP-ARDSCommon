@@ -200,6 +200,9 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
                 var eventTime = new Date().toISOString();
                 dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, requestObj.BusinessUnit, "ARDS", "QUEUE", "DROPPED", pubQueueId, "", requestObj.SessionId, eventTime);
                 RemoveRequest(logKey, company, tenant, sessionId, reason, function (err, result) {
+                    if(reason == "NoSession"){
+                        resourceHandler.UpdateSlotStateBySessionId(logKey, requestObj.Company, requestObj.Tenant, requestObj.RequestType, "", requestObj.SessionId, "Available", "NoSession", "", "inbound");
+                    }
                     callback(err, result);
                 });
             } else {

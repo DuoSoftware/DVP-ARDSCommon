@@ -119,7 +119,12 @@ var AddResourceStatusChangeInfo = function(accessToken, businessUnit, resourceId
         dashboardEventHandler.PublishEvent(resourceId, tenant, company, businessUnit, statusType, status, dashBoardReason, resourceId, param2, resourceId, eventTime);
     }
 
-    ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
+    if(reason) {
+        if(reason.toLowerCase().indexOf('end') === -1)
+            ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
+    }else {
+        ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
+    }
 
     var rUrl = util.format('http://%s',config.Services.resourceServiceHost);
     if(validator.isIP(config.Services.resourceServiceHost)) {
