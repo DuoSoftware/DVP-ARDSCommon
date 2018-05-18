@@ -6,6 +6,9 @@ var infoLogger = require('./InformationLogger.js');
 var rabbitMqHandler = require('./RabbitMQHandler.js');
 var restClientHandler = require('./RestClient.js');
 var config = require('config');
+var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
+var async = require('async');
+
 
 var AddRequestToQueue = function (logKey, request, callback) {
     infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestToQueue *************************', logKey);
@@ -337,6 +340,229 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
         }
     });
     //});
+};
+
+var SetNextProcessingItem_Dev = function (logKey, queueId, processingHashId, currentSession, callback) {
+
+    var redLokKey = util.format('lock:%s:%s', processingHashId, request.QueueId);
+
+    redisHandler.RLock.lock(redLokKey, 500).then(function(lock) {
+
+        var queueExecuteCount = util.format('ExecCount:%s', queueId);
+        redisHandler.GetObj(logKey, queueExecuteCount, function (err, exeCountStr) {
+
+            var exeCount = (err || !exeCountStr)? 1 : parseInt(exeCountStr);
+
+            var hscanPattern = util.format('%s:*');
+            redisHandler.HScanHash(logKey, processingHashId, hscanPattern, function (processingHashDetail) {
+
+                if(processingHashDetail){
+
+                    var RemoveItemFromProcessingHash = function (field, callback) {
+                        redisHandler.RemoveItemFromHash(logKey, processingHashId, field, function (err, result) {
+                            if (err) {
+                                logger.error('RemoveItemFromHash failed:: '+ err);
+                                callback("done");
+                            }
+                            else {
+                                if (result === 1) {
+                                    logger.info("Remove HashField Success.." + processingHashId + "::" + field);
+                                }
+                                else {
+                                    logger.info("Remove HashField Failed.." + processingHashId + "::" + field);
+                                }
+
+                                callback("done");
+                            }
+                        });
+                    };
+
+                    var AddItemToProcessingHash = function (field, value, callback) {
+                        redisHandler.AddItemToHash(logKey, processingHashId, field, value, function (err, result) {
+                            if (err) {
+                                logger.error('AddItemToHash failed:: '+ err);
+                                callback("done");
+                            }
+                            else {
+                                if (result === 1 || result === 0) {
+                                    logger.info("Set HashField Success.." + processingHashId + "::" + field + "::" + value);
+                                }
+                                else {
+                                    logger.info("Set HashField Failed.." + processingHashId + "::" + field + "::" + value);
+                                }
+
+                                callback("done");
+                            }
+                        });
+                    };
+                        
+                    var GetNextItemToProcess = function (callback) {
+
+                        var rejectedQueueId = GetRejectedQueueId(queueId);
+                        redisHandler.GetItemFromList(logKey, rejectedQueueId, function (err, nextRejectQueueItem) {
+                            if (err) {
+                                logger.error('GetNextItemToProcess failed:: '+ err);
+                                callback(null);
+                            }
+                            else {
+                                if (nextRejectQueueItem == "" || nextRejectQueueItem == null) {
+                                    redisHandler.GetItemFromList(logKey, queueId, function (err, nextQueueItem) {
+                                        if (err) {
+                                            logger.error('GetNextItemToProcess failed:: '+ err);
+                                            callback(null);
+                                        }
+                                        else {
+                                            callback(nextQueueItem);
+                                        }
+                                    });
+                                } else {
+                                    callback(nextRejectQueueItem);
+                                }
+                            }
+                        });
+                    };
+                    
+                    var SetNextItem = function (callback) {
+
+                        if(processingHashDetail.MatchingValues && processingHashDetail.MatchingValues.indexOf(currentSession) > -1){
+
+                            var hashRecords = processingHashDetail.MatchingKeyValues.filter(function (item) {
+                                return item.Value === currentSession;
+                            });
+
+                            if(hashRecords && hashRecords.length > 0){
+
+                                var fieldKey = hashRecords[0].Field;
+
+                                GetNextItemToProcess(function (nextItem) {
+
+                                    if(nextItem){
+                                        AddItemToProcessingHash(fieldKey, nextItem, function (addToHashStatus) {
+                                            callback('Add item to processing hash '+addToHashStatus)
+                                        });
+                                    }else {
+                                        RemoveItemFromProcessingHash(fieldKey, function (removeFromHashStatus) {
+                                            callback('Remove item from processing hash '+removeFromHashStatus)
+                                        });
+                                    }
+
+                                });
+                                
+                            }else {
+                                callback('No session found ,ignore SetNextItem')
+                            }
+
+                        }else {
+                            callback('Session Mismatched ,ignore SetNextItem')
+                        }
+
+                    };
+                    
+                    var AddNewItem = function (callback) {
+                        var fieldKey = util.format('%s:Test', queueId);
+
+                        GetNextItemToProcess(function (nextItem) {
+
+                            if(nextItem){
+                                AddItemToProcessingHash(fieldKey, nextItem, function (addToHashStatus) {
+                                    callback('Add item to processing hash '+addToHashStatus)
+                                });
+                            }else {
+                                callback('No new item found in queue')
+                            }
+
+                        });
+                    };
+
+                    var RemoveItem = function (callback) {
+                        if(processingHashDetail.MatchingValues && processingHashDetail.MatchingValues.indexOf(currentSession) > -1){
+
+                            var hashRecords = processingHashDetail.MatchingKeyValues.filter(function (item) {
+                                return item.Value === currentSession;
+                            });
+
+                            if(hashRecords && hashRecords.length > 0){
+
+                                var fieldKey = hashRecords[0].Field;
+
+                                RemoveItemFromProcessingHash(fieldKey, function (removeFromHashStatus) {
+                                    callback('Remove item from processing hash '+removeFromHashStatus)
+                                });
+
+                            }else {
+                                callback('No session found ,ignore RemoveItem')
+                            }
+
+                        }else {
+                            callback('Session Mismatched ,ignore RemoveItem')
+                        }
+                    };
+
+                    if(exeCount === processingHashDetail.ItemCount){
+
+                        SetNextItem(function (setNextStatus) {
+                            lock.unlock()
+                                .catch(function (err) {
+                                    console.error(err);
+                                });
+                            logger.info('SetNextItem process finished :: '+ setNextStatus);
+                            callback('done');
+                        });
+
+                    }else if(exeCount > processingHashDetail.ItemCount){
+
+                        SetNextItem(function (setNextStatus) {
+                            logger.info('SetNextItem process finished :: '+ setNextStatus);
+
+                            var addCount = exeCount - processingHashDetail.ItemCount;
+                            var asyncFuncList = [];
+                            for(var i = 0; i < addCount; i++){
+                                asyncFuncList.push(function (callback) {
+                                    AddNewItem(function (addNewStatus) {
+                                        callback(null, addNewStatus);
+                                    })
+                                });
+                            }
+
+                            if(asyncFuncList.length > 0) {
+                                async.series(asyncFuncList, function (err, results) {
+                                    logger.info('Add new item process finished :: ' + results);
+                                    lock.unlock()
+                                        .catch(function (err) {
+                                            console.error(err);
+                                        });
+                                    callback('done');
+                                });
+                            }else {
+                                callback('done');
+                            }
+
+                        });
+
+                    }else {
+                        RemoveItem(function (removeStatus) {
+                            lock.unlock()
+                                .catch(function (err) {
+                                    console.error(err);
+                                });
+                            logger.info('SetNextItem process finished :: '+ removeStatus);
+                            callback('done');
+                        });
+                    }
+
+                }else {
+                    logger.info("No processing hash detail found, ignore set next item");
+                    lock.unlock()
+                        .catch(function (err) {
+                            console.error(err);
+                        });
+                    callback("done");
+                }
+
+            });
+
+        });
+    });
 };
 
 var GetRejectedQueueId = function(queueId){

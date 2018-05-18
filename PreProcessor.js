@@ -60,7 +60,9 @@ var execute = function (logKey, data, callback) {
                     var attributeDataString = util.format('attribute_%s', sortedRequestAttributes.join(":attribute_"));
                     var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority);
                     var queueSettingId = util.format('Queue:%d:%d:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString);
+                    var queueExecuteCount = util.format('ExecCount:%s', queueId);
 
+                    redisHandler.SetObj_NX(logKey, queueExecuteCount, 1, function () {});
 
                     var date = new Date();
                     var accessToken = util.format('%d:%d', data.Tenant, data.Company);

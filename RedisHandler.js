@@ -1240,6 +1240,31 @@ var AddItemToHashNX = function (logKey, hashKey, field, obj, callback) {
     });
 };
 
+var HScanHash = function (logKey, hashKey, pattern, callback) {
+    infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
+    infoLogger.DetailLogger.log('info', '%s HScanHash - hashKey: %s :: pattern: %s', logKey, hashKey, pattern);
+
+    var response = {
+        MatchingKeyValues: [],
+        MatchingValues: [],
+        ItemCount: 0
+    };
+    var stream = client.hscanStream(hashKey, {
+        match: pattern
+    });
+
+    stream.on('data', function (resultKeys) {
+        for (var i = 0; i < resultKeys.length; i+=2) {
+            response.MatchingKeyValues.push({Field: resultKeys[i], Value: resultKeys[i+1]});
+            response.MatchingValues.push(resultKeys[i+1]);
+        }
+        response.ItemCount = response.MatchingKeyValues.length;
+    });
+    stream.on('end', function () {
+        callback(response);
+    });
+};
+
 
 var Publish = function(logKey, pattern, message, callback){
     infoLogger.DetailLogger.log('info', '%s --------------------------------------------------', logKey);
@@ -1296,6 +1321,7 @@ module.exports.GetHashValue = GetHashValue;
 module.exports.GetAllHashValue = GetAllHashValue;
 module.exports.RemoveHash = RemoveHash;
 module.exports.AddItemToHashNX = AddItemToHashNX;
+module.exports.HScanHash = HScanHash;
 
 module.exports.Publish = Publish;
 
