@@ -361,7 +361,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
 
 var SetNextProcessingItem = function (logKey, queueId, processingHashId, currentSession, callback) {
 
-    var redLokKey = util.format('lock:%s:%s', processingHashId, request.QueueId);
+    var redLokKey = util.format('lock:%s:%s', processingHashId, queueId);
 
     redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
 
