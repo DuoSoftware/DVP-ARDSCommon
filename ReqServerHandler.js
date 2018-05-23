@@ -3,10 +3,10 @@ var redisHandler = require('./RedisHandler.js');
 var restClientHandler = require('./RestClient.js');
 var reqQueueHandler = require('./ReqQueueHandler.js');
 var url = require("url");
-var infoLogger = require('./InformationLogger.js');
+var logger = require("dvp-common/LogHandler/CommonLogHandler.js").logger;
 
 var AddRequestServer = function (logKey, reqServerObj, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestServer *************************', logKey);
+    logger.info('%s ************************* Start AddRequestServer *************************', logKey);
 
     if(!reqServerObj.QueuePositionCallbackUrl){
         reqServerObj.QueuePositionCallbackUrl = "";
@@ -22,13 +22,13 @@ var AddRequestServer = function (logKey, reqServerObj, callback) {
     var obj = JSON.stringify(reqServerObj);
 
     redisHandler.AddObj_T(logKey, key, obj, tag, function (err, result) {
-        infoLogger.DetailLogger.log('info', '%s Finished AddRequestServer. Result: %s', logKey, result);
+        logger.info('%s Finished AddRequestServer. Result: %s', logKey, result);
         callback(err, result);
     });
 };
 
 var SetRequestServer = function (logKey, reqServerObj, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SetRequestServer *************************', logKey);
+    logger.info('%s ************************* Start SetRequestServer *************************', logKey);
 
     if(!reqServerObj.QueuePositionCallbackUrl){
         reqServerObj.QueuePositionCallbackUrl = "";
@@ -44,41 +44,41 @@ var SetRequestServer = function (logKey, reqServerObj, callback) {
     var obj = JSON.stringify(reqServerObj);
 
     redisHandler.SetObj_T(logKey, key, obj, tag, function (err, result) {
-        infoLogger.DetailLogger.log('info', '%s Finished SetRequestServer. Result: %s', logKey, result);
+        logger.info('%s Finished SetRequestServer. Result: %s', logKey, result);
         callback(err, result);
     });
 };
 
 var GetRequestServer = function (logKey, company, tenant, serverId, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start GetRequestServer *************************', logKey);
+    logger.info('%s ************************* Start GetRequestServer *************************', logKey);
 
     var key = util.format('ReqServer:%s:%s:%s', "*", "*", serverId);
     redisHandler.GetObj(logKey, key, function (err, result) {
-        infoLogger.DetailLogger.log('info', '%s Finished GetRequestServer. Result: %s', logKey, result);
+        logger.info('%s Finished GetRequestServer. Result: %s', logKey, result);
         callback(err, result);
     });
 };
 
 var SearchReqServerByTags = function (logKey, tags, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SearchReqServerByTags *************************', logKey);
+    logger.info('%s ************************* Start SearchReqServerByTags *************************', logKey);
 
     if (Array.isArray(tags)) {
         tags.push("objtype_ReqServer");
         redisHandler.SearchObj_T(logKey, tags, function (err, result) {
-            infoLogger.DetailLogger.log('info', '%s Finished SearchReqServerByTags. Result: %s', logKey, result);
+            logger.info('%s Finished SearchReqServerByTags. Result: %s', logKey, result);
             callback(err, result);
         });
     }
     else {
         var e = new Error();
         e.message = "tags must be a string array";
-        infoLogger.DetailLogger.log('info', '%s Finished SearchReqServerByTags. Result: tags must be a string array', logKey);
+        logger.info('%s Finished SearchReqServerByTags. Result: tags must be a string array', logKey);
         callback(e, null);
     }
 };
 
 var RemoveRequestServer = function (logKey, company, tenant, serverId, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequestServer *************************', logKey);
+    logger.info('%s ************************* Start RemoveRequestServer *************************', logKey);
 
     var key = util.format('ReqServer:%s:%s:%s', "*", "*", serverId);
 
@@ -90,14 +90,14 @@ var RemoveRequestServer = function (logKey, company, tenant, serverId, callback)
             var reqServerObj = JSON.parse(obj);
             if (reqServerObj == null) {
                 var res = util.format('ReqServer %s does not exists!', serverId);
-                infoLogger.DetailLogger.log('info', '%s Finished RemoveRequestServer. Result: %s', logKey, res);
+                logger.info('%s Finished RemoveRequestServer. Result: %s', logKey, res);
                 callback(err, res);
             }
             else {
                 var tag = ["company_*", "tenant_*", "serverType_" + reqServerObj.ServerType, "requestType_" + reqServerObj.RequestType, "objtype_ReqServer", "serverid_" + reqServerObj.ServerID];
 
                 redisHandler.RemoveObj_T(logKey, key, tag, function (err, result) {
-                    infoLogger.DetailLogger.log('info', '%s Finished RemoveRequestServer. Result: %s', logKey, result);
+                    logger.info('%s Finished RemoveRequestServer. Result: %s', logKey, result);
                     callback(err, result);
                 });
             }
@@ -106,33 +106,31 @@ var RemoveRequestServer = function (logKey, company, tenant, serverId, callback)
 };
 
 var SendCallBack = function (logKey, serverurl, callbackOption, resultToSend, callback) {
-    infoLogger.DetailLogger.log('info', '%s +++++++++++++++++++++++++ Start SendCallBack Server +++++++++++++++++++++++++', logKey);
-    infoLogger.DetailLogger.log('info', '%s SendCallBack Server Url: %s :: ResultToSend: %s', logKey, serverurl, resultToSend);
+    logger.info('%s +++++++++++++++++++++++++ Start SendCallBack Server +++++++++++++++++++++++++', logKey);
+    logger.info('%s SendCallBack Server Url: %s :: ResultToSend: %s', logKey, serverurl, resultToSend);
 
     //var surl = util.format('%s//%s', url.parse(serverurl).protocol, url.parse(serverurl).host);
     var internalAccessToken = util.format("%d:%d", resultToSend.Tenant, resultToSend.Company);
     if(callbackOption == "GET") {
         restClientHandler.DoGetDirect(serverurl, resultToSend, function (err, res, result) {
             if(result) {
-                console.log(result);
+                logger.info(result);
             }
             if (err) {
-                infoLogger.DetailLogger.log('error', '%s Finished SendCallBack. Error: %s', logKey, err);
-                console.log(err);
+                logger.error('%s Finished SendCallBack. Error: %s', logKey, err);
                 callback(false, "error");
             }
             else {
                 if (res.statusCode == "503" || result.startsWith("-ERR")) {
-                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
-                    console.log(result);
+                    logger.info('%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
                     callback(true, "readdRequired");
                 }
                 else if (res.statusCode == "200") {
-                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "setNext");
+                    logger.info('%s Finished SendCallBack. Result: %s', logKey, "setNext");
                     callback(true, "setNext");
                 }
                 else {
-                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "error");
+                    logger.info('%s Finished SendCallBack. Result: %s', logKey, "error");
                     callback(false, "error");
                 }
             }
@@ -140,22 +138,20 @@ var SendCallBack = function (logKey, serverurl, callbackOption, resultToSend, ca
     }else{
         restClientHandler.DoPost(serverurl, resultToSend, internalAccessToken, function (err, res, result) {
             if (err) {
-                infoLogger.DetailLogger.log('error', '%s Finished SendCallBack. Error: %s', logKey, err);
-                console.log(err);
+                logger.error('%s Finished SendCallBack. Error: %s', logKey, err);
                 callback(false, "error");
             }
             else {
                 if (res.statusCode == "503" || result.startsWith("-ERR")) {
-                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
-                    console.log(result);
+                    logger.info('%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
                     callback(true, "readdRequired");
                 }
                 else if (res.statusCode == "200") {
-                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "setNext");
+                    logger.info('%s Finished SendCallBack. Result: %s', logKey, "setNext");
                     callback(true, "setNext");
                 }
                 else {
-                    infoLogger.DetailLogger.log('info', '%s Finished SendCallBack. Result: %s', logKey, "error");
+                    logger.info('%s Finished SendCallBack. Result: %s', logKey, "error");
                     callback(false, "error");
                 }
             }

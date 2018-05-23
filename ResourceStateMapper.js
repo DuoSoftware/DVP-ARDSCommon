@@ -1,12 +1,12 @@
 ﻿var redisHandler = require('./RedisHandler.js');
 var util = require('util');
-var infoLogger = require('./InformationLogger.js');
+var logger = require("dvp-common/LogHandler/CommonLogHandler.js").logger;
 var resourceService = require('./services/resourceService');
 var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
 var moment = require('moment');
 
 var SetResourceState = function (logKey, company, tenant, resourceId, resourceName, state, reason, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SetResourceState *************************', logKey);
+    logger.info('%s ************************* Start SetResourceState *************************', logKey);
 
     var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
     var internalAccessToken = util.format('%d:%d', tenant, company);
@@ -16,7 +16,7 @@ var SetResourceState = function (logKey, company, tenant, resourceId, resourceNa
         if(isRequestValid){
             processState(logKey, StateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, function (err, resultObj) {
                 if (err !== null) {
-                    console.log(err);
+                    logger.error(err);
                     callback(err, undefined);
                 }
                 else {
@@ -24,7 +24,7 @@ var SetResourceState = function (logKey, company, tenant, resourceId, resourceNa
                     var strObj = JSON.stringify(resultObj);
                     redisHandler.SetObj(logKey, StateKey, strObj, function (err, result) {
                         if (err !== null) {
-                            console.log(err);
+                            logger.error(err);
                             callback(err, undefined);
                         }
                         else {
@@ -33,9 +33,9 @@ var SetResourceState = function (logKey, company, tenant, resourceId, resourceNa
                                 Direction: ""
                             }, function (err, result, obj) {
                                 if (err) {
-                                    console.log("AddResourceStatusChangeInfo Failed.", err);
+                                    logger.error("AddResourceStatusChangeInfo Failed.", err);
                                 } else {
-                                    console.log("AddResourceStatusChangeInfo Success.", obj);
+                                    logger.info("AddResourceStatusChangeInfo Success.", obj);
                                 }
                             });
                             if (reason && reason.toLowerCase() !== "endbreak" && reason.toLowerCase().indexOf('break') > -1) {
@@ -196,9 +196,9 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                     var duration = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
                     resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
                         if (err) {
-                            console.log("AddResourceStatusDurationInfo Failed.", err);
+                            logger.error("AddResourceStatusDurationInfo Failed.", err);
                         } else {
-                            console.log("AddResourceStatusDurationInfo Success.");
+                            logger.info("AddResourceStatusDurationInfo Success.");
                         }
                     });
                 }
@@ -224,9 +224,9 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                             var duration1 = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
                             resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration1, function () {
                                 if (err) {
-                                    console.log("AddResourceStatusDurationInfo Failed.", err);
+                                    logger.error("AddResourceStatusDurationInfo Failed.", err);
                                 } else {
-                                    console.log("AddResourceStatusDurationInfo Success.");
+                                    logger.info("AddResourceStatusDurationInfo Success.");
                                 }
                             });
 

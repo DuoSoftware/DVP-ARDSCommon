@@ -3,14 +3,13 @@ var reqServerHandler = require('./ReqServerHandler.js');
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 var sort = require('./CommonMethods.js');
-var infoLogger = require('./InformationLogger.js');
 var reqMetaDataHandler = require('./ReqMetaDataHandler.js');
 var config = require('config');
 var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 var resourceService = require('dvp-ardscommon/services/resourceService');
 
 var execute = function (logKey, data, callback) {
-    infoLogger.DetailLogger.log('info', '%s +++++++++++++++++++++++++ Start PreProcessor +++++++++++++++++++++++++', logKey);
+    logger.info('%s +++++++++++++++++++++++++ Start PreProcessor +++++++++++++++++++++++++', logKey);
 
     var srs = SetRequestServer(logKey, data);
     var key = util.format('ReqMETA:%d:%d:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType);
@@ -60,7 +59,9 @@ var execute = function (logKey, data, callback) {
                     var attributeDataString = util.format('attribute_%s', sortedRequestAttributes.join(":attribute_"));
                     var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority);
                     var queueSettingId = util.format('Queue:%d:%d:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString);
+                    var queueExecuteCount = util.format('ExecCount:%s', queueId);
 
+                    redisHandler.SetObj_NX(logKey, queueExecuteCount, 1, function () {});
 
                     var date = new Date();
                     var accessToken = util.format('%d:%d', data.Tenant, data.Company);
@@ -134,16 +135,16 @@ var execute = function (logKey, data, callback) {
                         requestObj.QPositionEnable = publishQueuePosition;
                         requestObj.QueueName = queueName;
 
-                        infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
-                        infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
+                        logger.info('%s PreProcessor Request Queue Id: %s', logKey, queueId);
+                        logger.info('%s Finished PreProcessor. Result: %s', logKey, requestObj);
                         callback(null, requestObj);
 
                     }).catch(function (err) {
 
                         logger.error('Get Queue Settings Failed:: %s', JSON.stringify(err));
 
-                        infoLogger.DetailLogger.log('info', '%s PreProcessor Request Queue Id: %s', logKey, queueId);
-                        infoLogger.DetailLogger.log('info', '%s Finished PreProcessor. Result: %s', logKey, requestObj);
+                        logger.info('%s PreProcessor Request Queue Id: %s', logKey, queueId);
+                        logger.info('%s Finished PreProcessor. Result: %s', logKey, requestObj);
 
                         var reqSkills = [];
                         for (var k = attributeInfo.length - 1; k >= 0; k--) {

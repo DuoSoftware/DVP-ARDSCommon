@@ -4,10 +4,10 @@ var dashboardEventHandler = require('./DashboardEventHandler');
 var sortArray = require('./CommonMethods.js');
 var reqQueueHandler = require('./ReqQueueHandler.js');
 var resourceHandler = require('./ResourceHandler.js');
-var infoLogger = require('./InformationLogger.js');
+var logger = require("dvp-common/LogHandler/CommonLogHandler.js").logger;
 
 var AddRequest = function (logKey, requestObj, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequest *************************', logKey);
+    logger.info('%s ************************* Start AddRequest *************************', logKey);
 
     var key = util.format('Request:%d:%d:%s', requestObj.Company, requestObj.Tenant, requestObj.SessionId);
     var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "serverType_" + requestObj.ServerType, "requestType_" + requestObj.RequestType, "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo_" + requestObj.HandlingAlgo, "selectionalgo_" + requestObj.SelectionAlgo, "objtype_Request"];
@@ -32,7 +32,7 @@ var AddRequest = function (logKey, requestObj, callback) {
 
     redisHandler.AddObj_V_T(key, jsonObj, tag, function (err, reply, vid) {
         if (err) {
-            console.log(err);
+            logger.error(err);
         }
         SetRequestState(requestObj.Company, requestObj.Tenant, requestObj.SessionId, "N/A", function (err, result) {
             //var pubMessage = util.format("EVENT:%d:%d:%s:%s:%s:%s:%s:%s:YYYY", requestObj.Tenant, requestObj.Company, "ARDS", "REQUEST", "ADDED", "", "", requestObj.SessionId);
@@ -45,12 +45,12 @@ var AddRequest = function (logKey, requestObj, callback) {
 };
 
 var SetRequest = function (logKey, requestObj, cVid, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SetRequest *************************', logKey);
+    logger.info('%s ************************* Start SetRequest *************************', logKey);
 
     var key = util.format('Request:%d:%d:%s', requestObj.Company, requestObj.Tenant, requestObj.SessionId);
     redisHandler.CheckObjExists(logKey, key, function (err, result) {
         if (err) {
-            console.log(err);
+            logger.error(err);
             callback(err, null, 0);
         }
         else if (result == "1") {
@@ -73,19 +73,19 @@ var SetRequest = function (logKey, requestObj, cVid, callback) {
             var jsonObj = JSON.stringify(requestObj);
 
             redisHandler.SetObj_V_T(logKey, key, jsonObj, tag, cVid, function (err, reply, vid) {
-                infoLogger.DetailLogger.log('info', '%s Finished SetRequest. Result: %s', logKey, reply);
+                logger.info('%s Finished SetRequest. Result: %s', logKey, reply);
                 callback(err, reply, vid);
             });
         }
         else {
-            infoLogger.DetailLogger.log('info', '%s Finished SetRequest. Result: %s', logKey, "Set Failed- No Existing Obj");
+            logger.info('%s Finished SetRequest. Result: %s', logKey, "Set Failed- No Existing Obj");
             callback(null, "Set Failed- No Existing Obj", 0);
         }
     });
 };
 
 var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequest *************************', logKey);
+    logger.info('%s ************************* Start RemoveRequest *************************', logKey);
 
     var key = util.format('Request:%s:%s:%s', company, tenant, sessionId);
     var tenantInt = parseInt(tenant);
@@ -122,7 +122,7 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
                 //redisHandler.Publish(logKey, "events", pubMessage, function(){});
                 reqQueueHandler.RemoveRequestFromQueue(logKey, company, tenant, requestObj.BusinessUnit, requestObj.QueueId, requestObj.SessionId, requestObj.RequestType, reason, function (err, result) {
                     if (err) {
-                        console.log(err);
+                        logger.error(err);
                         callback(err, "false");
                     }else {
                         redisHandler.RemoveObj_V_T(logKey, key, tag, function (err, result) {
@@ -165,8 +165,8 @@ var RemoveRequest = function (logKey, company, tenant, sessionId, reason, callba
 };
 
 var RejectRequest = function (logKey, company, tenant, sessionId, reason, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start RejectRequest *************************', logKey);
-    console.log("reject method hit :: SessionID: " + sessionId + " :: Reason: " + reason);
+    logger.info('%s ************************* Start RejectRequest *************************', logKey);
+    logger.info("reject method hit :: SessionID: " + sessionId + " :: Reason: " + reason);
 
     var tenantInt = parseInt(tenant);
     var companyInt = parseInt(company);
@@ -208,21 +208,21 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
             } else {
                 SetRequestState(logKey, requestObj.Company, requestObj.Tenant, requestObj.SessionId, "QUEUED", function (err, result) {
                     if (err) {
-                        console.log(err);
+                        logger.error(err);
                         callback(err, "false");
                     }
                     else {
                         reqQueueHandler.ReAddRequestToQueue(logKey, requestObj, function (err, result) {
                             if (err) {
-                                console.log(err);
+                                logger.error(err);
                                 callback(err, "false");
                             }
                             else if (result == "OK") {
-                                console.log("Request Readded to Queue Success");
+                                logger.info("Request Readded to Queue Success");
                                 callback(err, "true");
                             }
                             else {
-                                console.log("Request Readded to Queue Failed");
+                                logger.info("Request Readded to Queue Failed");
                                 callback(err, "false");
                             }
                         });
@@ -234,35 +234,35 @@ var RejectRequest = function (logKey, company, tenant, sessionId, reason, callba
 };
 
 var GetRequest = function (logKey, company, tenant, sessionId, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start GetRequest *************************', logKey);
+    logger.info('%s ************************* Start GetRequest *************************', logKey);
 
     var key = util.format('Request:%s:%s:%s', company, tenant, sessionId);
     redisHandler.GetObj_V(logKey, key, function (err, obj, vid) {
-        infoLogger.DetailLogger.log('info', '%s Finished GetRequest. Result: %s', logKey, obj);
+        logger.info('%s Finished GetRequest. Result: %s', logKey, obj);
         callback(err, obj, vid);
     });
 };
 
 var SearchRequestByTags = function (logKey, tags, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SearchRequestByTags *************************', logKey);
+    logger.info('%s ************************* Start SearchRequestByTags *************************', logKey);
 
     if (Array.isArray(tags)) {
         tags.push("objtype_Request");
         redisHandler.SearchObj_V_T(logKey, tags, function (err, result) {
-            infoLogger.DetailLogger.log('info', '%s Finished SearchRequestByTags. Result: %s', logKey, result);
+            logger.info('%s Finished SearchRequestByTags. Result: %s', logKey, result);
             callback(err, result);
         });
     }
     else {
         var e = new Error();
         e.message = "tags must be a string array";
-        infoLogger.DetailLogger.log('info', '%s Finished SearchRequestByTags. Result: %s', logKey, "tags must be a string array");
+        logger.info('%s Finished SearchRequestByTags. Result: %s', logKey, "tags must be a string array");
         callback(e, null);
     }
 };
 
 var AddProcessingRequest = function (logKey, requestObj, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start AddProcessingRequest *************************', logKey);
+    logger.info('%s ************************* Start AddProcessingRequest *************************', logKey);
 
     var key = util.format('ProcessingRequest:%d:%d:%s', requestObj.Company, requestObj.Tenant, requestObj.SessionId);
     var tag = ["company_" + requestObj.Company, "tenant_" + requestObj.Tenant, "serverType_" + requestObj.ServerType, "requestType_" + requestObj.RequestType, "objtype_ProcessingRequest", "sessionid_" + requestObj.SessionId, "reqserverid_" + requestObj.RequestServerId, "priority_" + requestObj.Priority, "servingalgo_" + requestObj.ServingAlgo, "handlingalgo" + requestObj.HandlingAlgo, "selectionalgo" + requestObj.SelectionAlgo];
@@ -272,23 +272,23 @@ var AddProcessingRequest = function (logKey, requestObj, callback) {
     var jsonObj = JSON.stringify(requestObj);
 
     redisHandler.AddObj_T(logKey, key, jsonObj, tag, function (err, reply) {
-        infoLogger.DetailLogger.log('info', '%s Finished AddProcessingRequest. Result: %s', logKey, reply);
+        logger.info('%s Finished AddProcessingRequest. Result: %s', logKey, reply);
         callback(err, reply);
     });
 };
 
 var GetProcessingRequest = function (logKey, company, tenant, sessionId, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start GetProcessingRequest *************************', logKey);
+    logger.info('%s ************************* Start GetProcessingRequest *************************', logKey);
 
     var key = util.format('ProcessingRequest:%s:%s:%s', company, tenant, sessionId);
     redisHandler.GetObj(logKey, key, function (err, obj) {
-        infoLogger.DetailLogger.log('info', '%s Finished GetProcessingRequest. Result: %s', logKey, obj);
+        logger.info('%s Finished GetProcessingRequest. Result: %s', logKey, obj);
         callback(err, obj);
     });
 };
 
 var RemoveProcessingRequest = function (logKey, company, tenant, sessionId, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveProcessingRequest *************************', logKey);
+    logger.info('%s ************************* Start RemoveProcessingRequest *************************', logKey);
 
     var key = util.format('ProcessingRequest:%s:%s:%s', company, tenant, sessionId);
     redisHandler.GetObj(logKey, key, function (err, obj) {
@@ -315,45 +315,45 @@ var RemoveProcessingRequest = function (logKey, company, tenant, sessionId, call
 };
 
 var SearchProcessingRequestByTags = function (logKey, tags, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SearchProcessingRequestByTags *************************', logKey);
+    logger.info('%s ************************* Start SearchProcessingRequestByTags *************************', logKey);
 
     if (Array.isArray(tags)) {
         tags.push("objtype_ProcessingRequest");
         redisHandler.SearchObj_T(logKey, tags, function (err, result) {
-            infoLogger.DetailLogger.log('info', '%s Finished SearchProcessingRequestByTags. Result: %s', logKey, result);
+            logger.info('%s Finished SearchProcessingRequestByTags. Result: %s', logKey, result);
             callback(err, result);
         });
     }
     else {
         var e = new Error();
         e.message = "tags must be a string array";
-        infoLogger.DetailLogger.log('info', '%s Finished SearchProcessingRequestByTags. Result: %s', logKey, "tags must be a string array");
+        logger.info('%s Finished SearchProcessingRequestByTags. Result: %s', logKey, "tags must be a string array");
         callback(e, null);
     }
 };
 
 var SetRequestState = function (logKey, company, tenant, sessionId, state, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SetRequestState *************************', logKey);
+    logger.info('%s ************************* Start SetRequestState *************************', logKey);
 
     var key = util.format('RequestState:%d:%d:%s', company, tenant, sessionId);
     redisHandler.SetObj(logKey, key, state, function (err, result) {
         if (err) {
-            console.log(err);
+            logger.error(err);
         }
-        infoLogger.DetailLogger.log('info', '%s Finished SetRequestState. Result: %s', logKey, result);
+        logger.info('%s Finished SetRequestState. Result: %s', logKey, result);
         callback(err, result);
     });
 };
 
 var GetRequestState = function (logKey, company, tenant, sessionId, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start GetRequestState *************************', logKey);
+    logger.info('%s ************************* Start GetRequestState *************************', logKey);
 
     var key = util.format('RequestState:%d:%d:%s', company, tenant, sessionId);
     redisHandler.GetObj(logKey, key, function (err, result) {
         if (err) {
-            console.log(err);
+            logger.error(err);
         }
-        infoLogger.DetailLogger.log('info', '%s Finished GetRequestState. Result: %s', logKey, result);
+        logger.info('%s Finished GetRequestState. Result: %s', logKey, result);
         callback(err, result);
     });
 };

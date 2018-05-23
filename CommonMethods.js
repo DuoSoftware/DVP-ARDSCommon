@@ -55,7 +55,7 @@ var RemoveTagFromTagStr = function(tagStr, tag, callback){
     }
 
     var newTags = util.format('tag:%s', splitVal.join(":"));
-    console.log(newTags);
+    //console.log(newTags);
     callback(newTags);
 };
 
@@ -98,7 +98,7 @@ var AppendNewCompanyTagStr = function(tagStr, company, callback){
     var sortedCompanyIds = sortIntArray(companyIds);
 
     var newTags = util.format('tag:%s:%s', sortedCompanyIds.join(":"), splitVal.join(":"));
-    console.log(newTags);
+    //console.log(newTags);
     callback(newTags);
 };
 
