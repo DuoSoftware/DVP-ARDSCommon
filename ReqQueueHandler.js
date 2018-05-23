@@ -30,7 +30,7 @@ var AddRequestToQueue = function (logKey, request, callback) {
                 dashboardEventHandler.PublishEvent(logKey, request.Tenant, request.Company, request.BusinessUnit, "ARDS", "QUEUE", "ADDED", pubQueueId, "", request.SessionId, eventTime);
 
                 var hashKey = util.format('ProcessingHash:%d:%d:%s', request.Company, request.Tenant, request.RequestType);
-                SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function (result) {
+                SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function (err, result) {
                     logger.info("Add item to Hash Success");
                     callback(err, "OK", queuePosition);
                 });
@@ -101,7 +101,7 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
 
 
                 var hashKey = util.format('ProcessingHash:%d:%d:%s', request.Company, request.Tenant, request.RequestType);
-                SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function (result) {
+                SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function (err, result) {
                     logger.info("Add item to Hash Success");
                     callback(err, "OK");
                 });
@@ -172,7 +172,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, businessUnit, qu
                 dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, businessUnit, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
 
                 var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
-                SetNextProcessingItem(logKey, queueId, hashKey, sessionId, function (result) {
+                SetNextProcessingItem(logKey, queueId, hashKey, sessionId, function (err, result) {
                     logger.info("Add item to Hash Success");
                     callback(err, result);
                 });
@@ -210,7 +210,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, businessUnit, qu
                         dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, businessUnit, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
 
                         var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
-                        SetNextProcessingItem(logKey, queueId, hashKey, sessionId, function (result) {
+                        SetNextProcessingItem(logKey, queueId, hashKey, sessionId, function (err, result) {
                             logger.info("Add item to Hash Success");
                             callback(err, result);
                         });
@@ -374,44 +374,6 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
 
                 if (processingHashDetail) {
 
-                    var RemoveItemFromProcessingHash = function (field, callback) {
-                        redisHandler.RemoveItemFromHash(logKey, processingHashId, field, function (err, result) {
-                            if (err) {
-                                logger.error('RemoveItemFromHash failed:: ' + err);
-                                callback("done");
-                            }
-                            else {
-                                if (result === 1) {
-                                    logger.info("Remove HashField Success.." + processingHashId + "::" + field);
-                                }
-                                else {
-                                    logger.info("Remove HashField Failed.." + processingHashId + "::" + field);
-                                }
-
-                                callback("done");
-                            }
-                        });
-                    };
-
-                    var AddItemToProcessingHash = function (field, value, callback) {
-                        redisHandler.AddItemToHash(logKey, processingHashId, field, value, function (err, result) {
-                            if (err) {
-                                logger.error('AddItemToHash failed:: ' + err);
-                                callback("done");
-                            }
-                            else {
-                                if (result === 1 || result === 0) {
-                                    logger.info("Set HashField Success.." + processingHashId + "::" + field + "::" + value);
-                                }
-                                else {
-                                    logger.info("Set HashField Failed.." + processingHashId + "::" + field + "::" + value);
-                                }
-
-                                callback("done");
-                            }
-                        });
-                    };
-
                     var GetNextItemToProcess = function (callback) {
 
                         var rejectedQueueId = GetRejectedQueueId(queueId);
@@ -453,12 +415,38 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                 GetNextItemToProcess(function (nextItem) {
 
                                     if (nextItem) {
-                                        AddItemToProcessingHash(fieldKey, nextItem, function (addToHashStatus) {
-                                            callback('Add item to processing hash ' + addToHashStatus)
+                                        redisHandler.AddItemToHash(logKey, processingHashId, fieldKey, nextItem, function (err, result) {
+                                            if (err) {
+                                                logger.error('AddItemToHash failed:: ' + err);
+                                                callback("Add item to processing hash:: done");
+                                            }
+                                            else {
+                                                if (result === 1 || result === 0) {
+                                                    logger.info("Set HashField Success.." + processingHashId + "::" + field + "::" + value);
+                                                }
+                                                else {
+                                                    logger.info("Set HashField Failed.." + processingHashId + "::" + field + "::" + value);
+                                                }
+
+                                                callback("Add item to processing hash:: done");
+                                            }
                                         });
                                     } else {
-                                        RemoveItemFromProcessingHash(fieldKey, function (removeFromHashStatus) {
-                                            callback('Remove item from processing hash ' + removeFromHashStatus)
+                                        redisHandler.RemoveItemFromHash(logKey, processingHashId, fieldKey, function (err, result) {
+                                            if (err) {
+                                                logger.error('RemoveItemFromHash failed:: ' + err);
+                                                callback("Remove item from processing hash:: done");
+                                            }
+                                            else {
+                                                if (result === 1) {
+                                                    logger.info("Remove HashField Success.." + processingHashId + "::" + field);
+                                                }
+                                                else {
+                                                    logger.info("Remove HashField Failed.." + processingHashId + "::" + field);
+                                                }
+
+                                                callback("Remove item from processing hash::done");
+                                            }
                                         });
                                     }
 
@@ -480,8 +468,21 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                         GetNextItemToProcess(function (nextItem) {
 
                             if (nextItem) {
-                                AddItemToProcessingHash(fieldKey, nextItem, function (addToHashStatus) {
-                                    callback('Add item to processing hash ' + addToHashStatus)
+                                redisHandler.AddItemToHash(logKey, processingHashId, fieldKey, nextItem, function (err, result) {
+                                    if (err) {
+                                        logger.error('AddItemToHash failed:: ' + err);
+                                        callback("Add item to processing hash:: done");
+                                    }
+                                    else {
+                                        if (result === 1 || result === 0) {
+                                            logger.info("Set HashField Success.." + processingHashId + "::" + field + "::" + value);
+                                        }
+                                        else {
+                                            logger.info("Set HashField Failed.." + processingHashId + "::" + field + "::" + value);
+                                        }
+
+                                        callback("Add item to processing hash:: done");
+                                    }
                                 });
                             } else {
                                 callback('No new item found in queue')
@@ -490,47 +491,27 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                         });
                     };
 
-                    var RemoveItem = function (callback) {
-                        if (processingHashDetail.MatchingValues && processingHashDetail.MatchingValues.indexOf(currentSession) > -1) {
-
-                            var hashRecords = processingHashDetail.MatchingKeyValues.filter(function (item) {
-                                return item.Value === currentSession;
-                            });
-
-                            if (hashRecords && hashRecords.length > 0) {
-
-                                var fieldKey = hashRecords[0].Field;
-
-                                RemoveItemFromProcessingHash(fieldKey, function (removeFromHashStatus) {
-                                    callback('Remove item from processing hash ' + removeFromHashStatus)
-                                });
-
-                            } else {
-                                callback('No session found ,ignore RemoveItem')
-                            }
-
-                        } else {
-                            callback('Session Mismatched ,ignore RemoveItem')
-                        }
-                    };
 
                     if (exeCount === processingHashDetail.ItemCount) {
 
+                        logger.info('exeCount === processingHashDetail.ItemCount :: Start SetNextItem');
                         SetNextItem(function (setNextStatus) {
                             lock.unlock()
                                 .catch(function (err) {
                                     logger.error("Release redis lock error:: "+err);
                                 });
                             logger.info('SetNextItem process finished :: ' + setNextStatus);
-                            callback('done');
+                            callback(null, 'done');
                         });
 
                     } else if (exeCount > processingHashDetail.ItemCount) {
 
+                        logger.info('exeCount > processingHashDetail.ItemCount :: Start SetNextItem');
                         SetNextItem(function (setNextStatus) {
                             logger.info('SetNextItem process finished :: ' + setNextStatus);
 
                             var addCount = exeCount - processingHashDetail.ItemCount;
+                            logger.info('processingHash addCount :: '+addCount);
                             var asyncFuncList = [];
                             for (var i = 0; i < addCount; i++) {
                                 asyncFuncList.push(function (callback) {
@@ -547,23 +528,75 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                         .catch(function (err) {
                                             logger.error("Release redis lock error:: "+err);
                                         });
-                                    callback('done');
+                                    callback(null, 'done');
                                 });
                             } else {
-                                callback('done');
+                                logger.info('Add new item process finished :: No new items found');
+                                lock.unlock()
+                                    .catch(function (err) {
+                                        logger.error("Release redis lock error:: "+err);
+                                    });
+                                callback(null, 'done');
                             }
 
                         });
 
                     } else {
-                        RemoveItem(function (removeStatus) {
+
+                        logger.info('exeCount < processingHashDetail.ItemCount :: Start remove slot from processing hash');
+                        if (processingHashDetail.MatchingValues && processingHashDetail.MatchingValues.indexOf(currentSession) > -1) {
+
+                            var hashRecords = processingHashDetail.MatchingKeyValues.filter(function (item) {
+                                return item.Value === currentSession;
+                            });
+
+                            if (hashRecords && hashRecords.length > 0) {
+
+                                var fieldKey = hashRecords[0].Field;
+
+                                redisHandler.RemoveItemFromHash(logKey, processingHashId, fieldKey, function (err, result) {
+                                    if (err) {
+                                        logger.error('SetNextItem process finished :: RemoveItemFromHash failed:: ' + err);
+                                        lock.unlock()
+                                            .catch(function (err) {
+                                                logger.error("Release redis lock error:: "+err);
+                                            });
+                                        callback(null, "done");
+                                    }
+                                    else {
+                                        if (result === 1) {
+                                            logger.info("SetNextItem process finished :: Remove HashField Success.." + processingHashId + "::" + field);
+                                        }
+                                        else {
+                                            logger.info("SetNextItem process finished :: Remove HashField Failed.." + processingHashId + "::" + field);
+                                        }
+                                        lock.unlock()
+                                            .catch(function (err) {
+                                                logger.error("Release redis lock error:: "+err);
+                                            });
+                                        callback(null, "done");
+                                    }
+                                });
+
+
+
+                            } else {
+                                lock.unlock()
+                                    .catch(function (err) {
+                                        logger.error("Release redis lock error:: "+err);
+                                    });
+                                logger.info('SetNextItem process finished :: No session found ,ignore RemoveItem');
+                                callback(null, "done");
+                            }
+
+                        } else {
                             lock.unlock()
                                 .catch(function (err) {
                                     logger.error("Release redis lock error:: "+err);
                                 });
-                            logger.info('SetNextItem process finished :: ' + removeStatus);
-                            callback('done');
-                        });
+                            logger.info('SetNextItem process finished :: Session Mismatched ,ignore RemoveItem');
+                            callback(null, "done");
+                        }
                     }
 
                 } else {
@@ -572,7 +605,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                         .catch(function (err) {
                             logger.error("Release redis lock error:: "+err);
                         });
-                    callback("done");
+                    callback(null, "done");
                 }
 
             });
