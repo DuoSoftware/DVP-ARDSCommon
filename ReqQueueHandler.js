@@ -422,10 +422,10 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                             }
                                             else {
                                                 if (result === 1 || result === 0) {
-                                                    logger.info("Set HashField Success.." + processingHashId + "::" + field + "::" + value);
+                                                    logger.info("Set HashField Success.." + processingHashId + "::" + fieldKey + "::" + nextItem);
                                                 }
                                                 else {
-                                                    logger.info("Set HashField Failed.." + processingHashId + "::" + field + "::" + value);
+                                                    logger.info("Set HashField Failed.." + processingHashId + "::" + fieldKey + "::" + nextItem);
                                                 }
 
                                                 callback("Add item to processing hash:: done");
@@ -439,10 +439,10 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                             }
                                             else {
                                                 if (result === 1) {
-                                                    logger.info("Remove HashField Success.." + processingHashId + "::" + field);
+                                                    logger.info("Remove HashField Success.." + processingHashId + "::" + fieldKey);
                                                 }
                                                 else {
-                                                    logger.info("Remove HashField Failed.." + processingHashId + "::" + field);
+                                                    logger.info("Remove HashField Failed.." + processingHashId + "::" + fieldKey);
                                                 }
 
                                                 callback("Remove item from processing hash::done");
@@ -475,10 +475,10 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                     }
                                     else {
                                         if (result === 1 || result === 0) {
-                                            logger.info("Set HashField Success.." + processingHashId + "::" + field + "::" + value);
+                                            logger.info("Set HashField Success.." + processingHashId + "::" + fieldKey + "::" + nextItem);
                                         }
                                         else {
-                                            logger.info("Set HashField Failed.." + processingHashId + "::" + field + "::" + value);
+                                            logger.info("Set HashField Failed.." + processingHashId + "::" + fieldKey + "::" + nextItem);
                                         }
 
                                         callback("Add item to processing hash:: done");
@@ -565,10 +565,10 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                     }
                                     else {
                                         if (result === 1) {
-                                            logger.info("SetNextItem process finished :: Remove HashField Success.." + processingHashId + "::" + field);
+                                            logger.info("SetNextItem process finished :: Remove HashField Success.." + processingHashId + "::" + fieldKey);
                                         }
                                         else {
-                                            logger.info("SetNextItem process finished :: Remove HashField Failed.." + processingHashId + "::" + field);
+                                            logger.info("SetNextItem process finished :: Remove HashField Failed.." + processingHashId + "::" + fieldKey);
                                         }
                                         lock.unlock()
                                             .catch(function (err) {
