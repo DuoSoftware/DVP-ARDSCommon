@@ -8,7 +8,7 @@ var config = require('config');
 var validator = require('validator');
 var util = require('util');
 var dashboardEventHandler = require('../DashboardEventHandler');
-var infoLogger = require('../InformationLogger.js');
+var logger = require("dvp-common/LogHandler/CommonLogHandler.js").logger;
 var deepcopy = require('deepcopy');
 var ardsMonitoringService = require('./ardsMonitoringService');
 var Q = require('q');
@@ -22,7 +22,7 @@ var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, call
         }
         var params = util.format('/DVP/API/%s/ResourceManager/Group/%d/Attribute/Details', config.Services.resourceServiceVersion, attributeGroupId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-            infoLogger.DetailLogger.log('info', 'GetAttributeGroupWithDetails Result:: ', obj);
+            logger.info('GetAttributeGroupWithDetails Result:: ', obj);
             if (res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
@@ -42,7 +42,7 @@ var GetResourceDetails = function(accessToken, resourceId, callback){
         }
         var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s', config.Services.resourceServiceVersion, resourceId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-            infoLogger.DetailLogger.log('info', 'GetResourceDetails Result:: ', obj);
+            logger.info('GetResourceDetails Result:: ', obj);
             if (res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
@@ -62,7 +62,7 @@ var GetResourceTaskDetails = function(accessToken, resourceId, callback){
         }
         var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s/Tasks', config.Services.resourceServiceVersion, resourceId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-            infoLogger.DetailLogger.log('info', 'GetResourceTaskDetails Result:: ', obj);
+            logger.info('GetResourceTaskDetails Result:: ', obj);
             if (res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
@@ -82,7 +82,7 @@ var GetResourceAttributeDetails = function(accessToken, taskInfo, callback){
         }
         var params = util.format('/DVP/API/%s/ResourceManager/ResourceTask/%d/Attributes', config.Services.resourceServiceVersion, taskInfo.ResTaskId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-            infoLogger.DetailLogger.log('info', 'GetResourceAttributeDetails Result:: ', obj);
+            logger.info('GetResourceAttributeDetails Result:: ', obj);
             if (res.statusCode == 200) {
                 callback(err, res, obj, taskInfo);
             } else {
@@ -193,7 +193,7 @@ var GetAttribute = function(accessToken, attId, callback){
         }
         var params = util.format('/DVP/API/%s/ResourceManager/Attribute/%s', config.Services.resourceServiceVersion, attId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-            infoLogger.DetailLogger.log('info', 'GetAttribute Result:: ', obj);
+            logger.info('GetAttribute Result:: ', obj);
             callback(err, res, obj);
         });
     }catch (ex2) {
@@ -211,7 +211,7 @@ var GetQueueSetting = function(accessToken, queueId){
         }
         var params = util.format('/DVP/API/%s/ResourceManager/QueueSetting/%s', config.Services.resourceServiceVersion, queueId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
-            infoLogger.DetailLogger.log('info', 'GetQueueSetting Result:: ', obj);
+            logger.info('GetQueueSetting Result:: ', obj);
 
             if(err){
                 deferred.resolve(undefined);

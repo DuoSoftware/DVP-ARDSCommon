@@ -1,6 +1,6 @@
 ﻿var util = require('util');
 var redisHandler = require('./RedisHandler.js');
-var infoLogger = require('./InformationLogger.js');
+var logger = require("dvp-common/LogHandler/CommonLogHandler.js").logger;
 var dbConn = require('dvp-dbmodels');
 var EventEmitter = require('events').EventEmitter;
 var resourceService = require('./services/resourceService');
@@ -50,7 +50,7 @@ var SetAttributeJunctionInfo = function (attributeMetaObj, attributes, callback)
             callback("done");
         });
     }).catch(function (resMapGroup) {
-        console.log(resMapGroup);
+        logger.info(resMapGroup);
         callback("Failed");
     });
 
@@ -125,7 +125,7 @@ var SetAttributeGroupInfo = function (accessToken,groupIds) {
                     resourceService.GetAttributeGroupWithDetails(accessToken, val, function (err, res, obj) {
                         count++;
                         if (err) {
-                            console.log(err);
+                            logger.error(err);
                         } else {
                             if (obj.IsSuccess) {
                                 var data = obj.Result;
@@ -163,7 +163,7 @@ var SetAttributeGroupInfo = function (accessToken,groupIds) {
 };
 
 var AddMeataData = function (logKey, metaDataObj, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start AddMeataData *************************', logKey);
+    logger.info('%s ************************* Start AddMeataData *************************', logKey);
     var accessToken = util.format('%d:%d',metaDataObj.Tenant,metaDataObj.Company);
     var key = util.format('ReqMETA:%d:%d:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.ServerType, metaDataObj.RequestType);
     var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
@@ -180,7 +180,7 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
             var obj = JSON.stringify(metaDataObj);
             redisHandler.CheckObjExists(logKey, key, function (err, result) {
                 if (err) {
-                    console.log(err);
+                    logger.error(err);
                     callback(err, "Failed");
                 }
                 else if (result == "0") {
@@ -188,7 +188,7 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
                         if (err) {
                             callback(err, "Failed");
                         } else {
-                            infoLogger.DetailLogger.log('info', '%s Finished AddMeataData- Redis. Result: %s', logKey, result);
+                            logger.info('%s Finished AddMeataData- Redis. Result: %s', logKey, result);
                             dbConn.ArdsRequestMetaData.create(
                                 {
                                     Tenant: metaDataObj.Tenant,
@@ -235,12 +235,12 @@ var ReaddMetaData = function (metaDataObj, callback) {
     var obj = JSON.stringify(metaDataObj);
 
     redisHandler.AddObj_T("ReaddMetadata", key, obj, tag, function (err, result) {
-        infoLogger.DetailLogger.log('info', 'Finished ReAddMeataData- Redis. Result: %s', result);
+        logger.info('Finished ReAddMeataData- Redis. Result: %s', result);
     });
 };
 
 var SetMeataData = function (logKey, metaDataObj, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SetMeataData *************************', logKey);
+    logger.info('%s ************************* Start SetMeataData *************************', logKey);
 
     var key = util.format('ReqMETA:%d:%d:%s:%s', metaDataObj.Company, metaDataObj.Tenant, metaDataObj.ServerType, metaDataObj.RequestType);
     var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
@@ -257,7 +257,7 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
         var obj = JSON.stringify(metaDataObj);
 
         redisHandler.SetObj_T(logKey, key, obj, tag, function (err, result) {
-            infoLogger.DetailLogger.log('info', '%s Finished SetMeataData. Result: %s', logKey, result);
+            logger.info('%s Finished SetMeataData. Result: %s', logKey, result);
 
             dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (results) {
                 if (results) {
@@ -288,12 +288,12 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
 };
 
 var GetMeataData = function (logKey, company, tenant, serverType, requestType, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start GetMeataData *************************', logKey);
+    logger.info('%s ************************* Start GetMeataData *************************', logKey);
 
     var key = util.format('ReqMETA:%s:%s:%s:%s', company, tenant, serverType, requestType);
     redisHandler.GetObj(logKey, key, function (err, result) {
         if(result){
-            infoLogger.DetailLogger.log('info', '%s Finished GetMetaData. Result: %s', logKey, result);
+            logger.info('%s Finished GetMetaData. Result: %s', logKey, result);
             callback(undefined, result);
         }else{
             dbConn.ArdsRequestMetaData.find({
@@ -309,7 +309,7 @@ var GetMeataData = function (logKey, company, tenant, serverType, requestType, c
                         tempAttributeGroupInfo.push(obj);
                     });
                     sagi.on('endgroupInfo', function() {
-                        infoLogger.DetailLogger.log('info', '%s Finished GetMetaData. Result: %s', logKey, result);
+                        logger.info('%s Finished GetMetaData. Result: %s', logKey, result);
 
                         var metaDataObj = { Company: reqMeta.Company, Tenant: reqMeta.Tenant, ServerType: reqMeta.ServerType, RequestType: reqMeta.RequestType, ServingAlgo: reqMeta.ServingAlgo, HandlingAlgo: reqMeta.HandlingAlgo, SelectionAlgo: reqMeta.SelectionAlgo, MaxReservedTime: reqMeta.MaxReservedTime, MaxRejectCount: reqMeta.MaxRejectCount, ReqHandlingAlgo: reqMeta.ReqHandlingAlgo, ReqSelectionAlgo: reqMeta.ReqSelectionAlgo, MaxAfterWorkTime: reqMeta.MaxAfterWorkTime, MaxFreezeTime: reqMeta.MaxFreezeTime };
                         metaDataObj.AttributeMeta = tempAttributeGroupInfo;
@@ -320,7 +320,7 @@ var GetMeataData = function (logKey, company, tenant, serverType, requestType, c
                     callback(undefined, undefined);
                 }
             }).error(function (err) {
-                infoLogger.DetailLogger.log('error', '%s Error in GetMetaData. Error: %s', logKey, err);
+                logger.error('%s Error in GetMetaData. Error: %s', logKey, err);
                 callback(err, undefined);
             });
         }
@@ -328,25 +328,25 @@ var GetMeataData = function (logKey, company, tenant, serverType, requestType, c
 };
 
 var SearchMeataDataByTags = function (logKey, tags, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SearchMeataDataByTags *************************', logKey);
+    logger.info('%s ************************* Start SearchMeataDataByTags *************************', logKey);
 
     if (Array.isArray(tags)) {
         tags.push("objtype_ReqMETA");
         redisHandler.SearchObj_T(logKey, tags, function (err, result) {
-            infoLogger.DetailLogger.log('info', '%s Finished SearchMeataDataByTags. Result: %s', logKey, result);
+            logger.info('%s Finished SearchMeataDataByTags. Result: %s', logKey, result);
             callback(err, result);
         });
     }
     else {
         var e = new Error();
         e.message = "tags must be a string array";
-        infoLogger.DetailLogger.log('info', '%s Finished SearchMeataDataByTags. Result: tags must be a string array', logKey);
+        logger.info('%s Finished SearchMeataDataByTags. Result: tags must be a string array', logKey);
         callback(e, null);
     }
 };
 
 var RemoveMeataData = function (logKey, company, tenant, serverType, requestType, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveMeataData *************************', logKey);
+    logger.info('%s ************************* Start RemoveMeataData *************************', logKey);
 
     var key = util.format('ReqMETA:%s:%s:%s:%s', company, tenant, serverType, requestType);
 
@@ -364,7 +364,7 @@ var RemoveMeataData = function (logKey, company, tenant, serverType, requestType
                         reqMeta.destroy({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (results) {
                             if (results) {
 
-                                infoLogger.DetailLogger.log('info', '%s Finished RemoveMeataData. Result: %s', logKey, result);
+                                logger.info('%s Finished RemoveMeataData. Result: %s', logKey, result);
                                 callback(err, result);
                             }
                         }).error(function (err) {

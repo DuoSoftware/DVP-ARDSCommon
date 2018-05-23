@@ -3,6 +3,7 @@ var restify = require('restify');
 var request = require('request');
 var util = require('util');
 var config = require('config');
+var logger = require("dvp-common/LogHandler/CommonLogHandler.js").logger;
 
 var client = function (url) {
     return restify.createJsonClient({
@@ -14,7 +15,7 @@ var client = function (url) {
 var DoGet = function (url, params, internalAccessToken, callback) {
     var httpUrl = params? util.format('%s%s', url, params): url;
     var accessToken = util.format('Bearer %s',config.Services.accessToken);
-    console.log('DoGet:: %s', httpUrl);
+    logger.info('DoGet:: %s', httpUrl);
     var options = {
         url: httpUrl,
         method: 'GET',
@@ -27,10 +28,10 @@ var DoGet = function (url, params, internalAccessToken, callback) {
     try {
         request(options, function optionalCallback(err, httpResponse, body) {
             if (err) {
-                console.log('upload failed:', err);
+                logger.error('upload failed:', err);
             }
             var jBody = JSON.parse(body);
-            console.log('Server returned: %j', jBody);
+            logger.info('Server returned: %j', jBody);
             callback(err, httpResponse, jBody);
         });
     }catch(ex){
@@ -53,9 +54,9 @@ var DoPost = function (serviceurl, postData, internalAccessToken, callback) {
     };
     request.post(options, function optionalCallback(err, httpResponse, body) {
         if (err) {
-            console.log('upload failed:', err);
+            logger.error('upload failed:', err);
         }
-        console.log('Server returned: %j', body);
+        logger.info('Server returned: %j', body);
         callback(err, httpResponse, body);
     });
 };
@@ -63,7 +64,7 @@ var DoPost = function (serviceurl, postData, internalAccessToken, callback) {
 var DoGetSync = function (url, params) {
     client(url).get(params, function (err, req, res, obj) {
         assert.ifError(err);
-        console.log('Server returned: %j', obj);
+        logger.info('Server returned: %j', obj);
         return obj;
     });
 };
@@ -71,7 +72,7 @@ var DoGetSync = function (url, params) {
 var DoPostSync = function (url, postData) {
     client(url).post(postData, function (err, req, res, obj) {
         assert.ifError(err);
-        console.log('Server returned: %j', obj);
+        logger.info('Server returned: %j', obj);
         return obj;
     });
 };
@@ -88,9 +89,9 @@ var DoPostDirect = function (serviceurl, postData, callback) {
     };
     request.post(options, function optionalCallback(err, httpResponse, body) {
         if (err) {
-            console.log('upload failed:', err);
+            logger.error('upload failed:', err);
         }
-        console.log('Server returned: %j', body);
+        logger.info('Server returned: %j', body);
         callback(err, httpResponse, body);
     });
 };
@@ -98,7 +99,7 @@ var DoPostDirect = function (serviceurl, postData, callback) {
 var DoGetDirect = function (serviceurl, postData, callback) {
     var jsonStr = JSON.stringify(postData);
     var httpUrl = util.format('%s? %s', serviceurl, jsonStr);
-    console.log('RouteRequest:: %s', httpUrl);
+    logger.info('RouteRequest:: %s', httpUrl);
     var options = {
         url: httpUrl,
         headers: {
@@ -107,9 +108,9 @@ var DoGetDirect = function (serviceurl, postData, callback) {
     };
     request(options, function optionalCallback(err, httpResponse, body) {
         if (err) {
-            console.log('upload failed:', err);
+            logger.error('upload failed:', err);
         }
-        console.log('Server returned: %j', body);
+        logger.info('Server returned: %j', body);
         callback(err, httpResponse, body);
     });
 };
@@ -117,7 +118,7 @@ var DoGetDirect = function (serviceurl, postData, callback) {
 var PickResource = function (url, params, callback) {
     var httpUrl = util.format('%s%s', url, params);
     var accessToken = util.format('Bearer %s',config.Services.accessToken);
-    console.log('DoGet:: %s', httpUrl);
+    logger.info('DoGet:: %s', httpUrl);
     var options = {
         url: httpUrl,
         method: 'GET'
@@ -125,9 +126,9 @@ var PickResource = function (url, params, callback) {
     try {
         request(options, function optionalCallback(err, httpResponse, body) {
             if (err) {
-                console.log('upload failed:', err);
+                logger.error('upload failed:', err);
             }
-            console.log('Server returned: %s', body);
+            logger.info('Server returned: %s', body);
             callback(err, httpResponse, body);
         });
     }catch(ex){

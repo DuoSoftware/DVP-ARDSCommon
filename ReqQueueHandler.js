@@ -2,7 +2,6 @@
 var redisHandler = require('./RedisHandler.js');
 var dashboardEventHandler = require('./DashboardEventHandler');
 var requestHandler = require('./RequestHandler.js');
-var infoLogger = require('./InformationLogger.js');
 var rabbitMqHandler = require('./RabbitMQHandler.js');
 var restClientHandler = require('./RestClient.js');
 var config = require('config');
@@ -12,18 +11,18 @@ var uuidv4 = require('uuid/v4');
 
 
 var AddRequestToQueue = function (logKey, request, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start AddRequestToQueue *************************', logKey);
+    logger.info('%s ************************* Start AddRequestToQueue *************************', logKey);
 
     redisHandler.AddItemToListR(logKey, request.QueueId, request.SessionId, function (err, result) {
         if (err) {
-            console.log(err);
+            logger.error("AddItemToListR error:: "+err);
             callback(err, "Failed", null);
         }
         else {
             if (parseInt(result) > 0) {
                 var queuePosition = result;
                 requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
-                    console.log("set Request State QUEUED");
+                    logger.info("set Request State QUEUED");
                 });
 
                 var pubQueueId = request.QueueId.replace(/:/g, "-");
@@ -87,12 +86,12 @@ var AddRequestToQueue = function (logKey, request, callback) {
 };
 
 var ReAddRequestToQueue = function (logKey, request, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start ReAddRequestToQueue *************************', logKey);
+    logger.info('%s ************************* Start ReAddRequestToQueue *************************', logKey);
 
     var newQueueId = GetRejectedQueueId(request.QueueId);
     redisHandler.AddItemToListR(logKey, newQueueId, request.SessionId, function (err, result) {
         if (err) {
-            console.log(err);
+            logger.error("AddItemToListR error:: "+err);
             callback(err, "Failed");
         }
         else {
@@ -156,7 +155,7 @@ var ReAddRequestToQueue = function (logKey, request, callback) {
 };
 
 var RemoveRequestFromQueue = function (logKey, company, tenant, businessUnit, queueId, sessionId, requestType, reason, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start RemoveRequestFromQueue *************************', logKey);
+    logger.info('%s ************************* Start RemoveRequestFromQueue *************************', logKey);
 
     var tenantInt = parseInt(tenant);
     var companyInt = parseInt(company);
@@ -164,7 +163,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, businessUnit, qu
 
     redisHandler.RemoveItemFromList(logKey, queueId, sessionId, function (err, result) {
         if (err) {
-            console.log(err);
+            logger.error("RemoveItemFromList error:: "+err);
             callback(err, result);
         } else {
             if (result > 0) {
@@ -203,7 +202,7 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, businessUnit, qu
                 var rejectedQueueId = GetRejectedQueueId(queueId);
                 redisHandler.RemoveItemFromList(logKey, rejectedQueueId, sessionId, function (err, result) {
                     if (err) {
-                        console.log(err);
+                        logger.error("RemoveItemFromList error:: "+err);
                         callback(err, result);
                     } else {
                         var pubQueueId = queueId.replace(/:/g, "-");
@@ -246,17 +245,17 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, businessUnit, qu
 };
 
 var GetNextRequestToProcess = function (logKey, queueId, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start GetNextRequestToProcess *************************', logKey);
+    logger.info('%s ************************* Start GetNextRequestToProcess *************************', logKey);
     var rejectedQueueId = GetRejectedQueueId(queueId);
 
     redisHandler.GetItemFromList(logKey, rejectedQueueId, function (err, rejectListResult) {
         if (err) {
-            console.log(err);
+            logger.error("GetItemFromList error:: "+err);
         } else {
             if (rejectListResult == "") {
                 redisHandler.GetItemFromList(logKey, queueId, function (err, result) {
                     if (err) {
-                        console.log(err);
+                        logger.error("GetItemFromList error:: "+err);
                     }
                     callback(err, result);
                 });
@@ -269,7 +268,7 @@ var GetNextRequestToProcess = function (logKey, queueId, callback) {
 
 /*
 var SetNextProcessingItem = function (logKey, queueId, processingHashId, currentSession, callback) {
-    infoLogger.DetailLogger.log('info', '%s ************************* Start SetNextProcessingItem *************************', logKey);
+    logger.info('%s ************************* Start SetNextProcessingItem *************************', logKey);
     //var setNextLock = util.format("setNextLock.%s", queueId);
     //redisHandler.RLock(setNextLock, 1000, function (done) {
     redisHandler.GetHashValue(logKey, processingHashId, queueId, function (err, eSession) {
@@ -520,7 +519,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                         SetNextItem(function (setNextStatus) {
                             lock.unlock()
                                 .catch(function (err) {
-                                    console.error(err);
+                                    logger.error("Release redis lock error:: "+err);
                                 });
                             logger.info('SetNextItem process finished :: ' + setNextStatus);
                             callback('done');
@@ -546,7 +545,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                                     logger.info('Add new item process finished :: ' + results);
                                     lock.unlock()
                                         .catch(function (err) {
-                                            console.error(err);
+                                            logger.error("Release redis lock error:: "+err);
                                         });
                                     callback('done');
                                 });
@@ -560,7 +559,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                         RemoveItem(function (removeStatus) {
                             lock.unlock()
                                 .catch(function (err) {
-                                    console.error(err);
+                                    logger.error("Release redis lock error:: "+err);
                                 });
                             logger.info('SetNextItem process finished :: ' + removeStatus);
                             callback('done');
@@ -571,7 +570,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                     logger.info("No processing hash detail found, ignore set next item");
                     lock.unlock()
                         .catch(function (err) {
-                            console.error(err);
+                            logger.error("Release redis lock error:: "+err);
                         });
                     callback("done");
                 }
@@ -590,7 +589,7 @@ var GetRejectedQueueId = function (queueId) {
 };
 
 var SendQueuePositionInfo = function (logKey, url, queueId, callbackOption, callback) {
-    infoLogger.DetailLogger.log('info', '%s:Queue: %s ************************* Start SendQueuePositionInfo *************************', logKey, queueId);
+    logger.info('%s:Queue: %s ************************* Start SendQueuePositionInfo *************************', logKey, queueId);
     GetProcessingQueueInfo(logKey, queueId, function (err, processingHashItem) {
 
         var RequestPositionList = [];
@@ -600,7 +599,7 @@ var SendQueuePositionInfo = function (logKey, url, queueId, callbackOption, call
 
             redisHandler.GetRangeFromList(logKey, queueId, function (err, result) {
                 if (err) {
-                    console.log(err);
+                    logger.error("GetRangeFromList error:: "+err);
                 } else {
                     if (result) {
                         result.forEach(function (item, i) {
@@ -619,17 +618,17 @@ var SendQueuePositionInfo = function (logKey, url, queueId, callbackOption, call
                         if (callbackOption == "GET") {
                             restClientHandler.DoGetDirect(url, RequestPositionList, function (err, res, result) {
                                 if (err) {
-                                    console.log(err);
+                                    logger.error("DoGetDirect error:: "+err);
                                 } else {
-                                    console.log("SendQueuePositionInfo: %s", result);
+                                    logger.info("SendQueuePositionInfo: %s", result);
                                 }
                             });
                         } else {
                             restClientHandler.DoPostDirect(url, RequestPositionList, function (err, res, result) {
                                 if (err) {
-                                    console.log(err);
+                                    logger.error("DoPostDirect error:: "+err);
                                 } else {
-                                    console.log("SendQueuePositionInfo: %s", result);
+                                    logger.info("SendQueuePositionInfo: %s", result);
                                 }
                             });
                         }
@@ -643,7 +642,7 @@ var SendQueuePositionInfo = function (logKey, url, queueId, callbackOption, call
 };
 
 var GetProcessingQueueInfo = function (logKey, queueId, callback) {
-    infoLogger.DetailLogger.log('info', '%s:Queue: %s ************************* Start SendProcessingQueueInfo *************************', logKey, queueId);
+    logger.info('%s:Queue: %s ************************* Start SendProcessingQueueInfo *************************', logKey, queueId);
 
     var splitQueueId = queueId.split(":");
     if (splitQueueId && splitQueueId.length > 5) {
@@ -664,7 +663,7 @@ var GetProcessingQueueInfo = function (logKey, queueId, callback) {
 };
 
 //var SendProcessingQueueInfo = function(logKey, queueId, sessionId, callback){
-//    infoLogger.DetailLogger.log('info', '%s:Queue: %s ************************* Start SendProcessingQueueInfo *************************', logKey, queueId);
+//    logger.info('%s:Queue: %s ************************* Start SendProcessingQueueInfo *************************', logKey, queueId);
 //
 //    var splitQueueId = queueId.split(":");
 //    if(splitQueueId && splitQueueId.length > 3) {

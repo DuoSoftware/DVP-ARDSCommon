@@ -168,7 +168,7 @@ module.exports.startBreak = function (company, tenant, userName, resourceId, bre
                 });
             })
             .fail(function (err) {
-                console.error(err);
+                logger.error(err);
             })
             .done();
 
