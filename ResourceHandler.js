@@ -18,7 +18,7 @@ var async = require('async');
 var ardsMonitoringService = require('./services/ardsMonitoringService');
 var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
 
-var SetProductivityData = function (logKey, company, businessUnit, tenant, resourceId, eventType) {
+var SetProductivityData = function (logKey, company, tenant, businessUnit, resourceId, eventType) {
     try {
         logger.info("Start SetProductivityData:: eventType: " + eventType);
         var slotInfoTags = ["company_" + company, "tenant_" + tenant, "state_Connected", "resourceid_" + resourceId];
