@@ -238,14 +238,19 @@ var processState = function (logKey, stateKey, internalAccessToken, resourceId, 
                         return callback(null, statusObj);
                     }
                 } else if (reason === "Outbound" || reason === "Inbound" || reason === "Offline") {
-                    statusObj.Mode = reason;
+                    if(statusObj.Mode !== reason) {
+                        statusObj.Mode = reason;
 
-                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, "end"+statusObjR.Mode, {
-                        SessionId: "",
-                        Direction: ""
-                    }, function (err, result, obj) {
-                        return callback(null, statusObj);
-                    });
+                        resourceService.AddResourceStatusChangeInfo(internalAccessToken, resourceId, "ResourceStatus", statusObjR.State, "end" + statusObjR.Mode, {
+                            SessionId: "",
+                            Direction: ""
+                        }, function (err, result, obj) {
+                            return callback(null, statusObj);
+                        });
+                    }else{
+                        console.log("Resource already in same mode.");
+                        return callback(new Error("Resource already in same mode."), statusObj);
+                    }
 
 
                 } else {
