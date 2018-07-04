@@ -1917,6 +1917,8 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                     break;
 
                                 case "Available":
+                                    if(reason === "End ACW by Agent")
+                                        otherInfo = "AfterWork";
                                     UpdateSlotStateAvailable(logKey, cs.Company, cs.Tenant, cs.HandlingType, cs.ResourceId, cs.SlotId, reason, otherInfo, "Available", function (err, result) {
                                         callback(err, result);
                                     });
