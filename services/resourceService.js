@@ -120,7 +120,7 @@ var AddResourceStatusChangeInfo = function(accessToken, businessUnit, resourceId
     }
 
     if(reason) {
-        if(reason.toLowerCase().indexOf('end') === -1)
+        //if(reason.toLowerCase().indexOf('end') === -1)
             ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
     }else {
         ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
