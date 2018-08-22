@@ -93,14 +93,14 @@ function stopCronJob(company, tenant, id, cb) {
         if ((config.Services && config.Services.cronurl && config.Services.cronport && config.Services.cronversion)) {
 
 
-            var cronURL = format("http://{0}/DVP/API/{1}/Cron/Reference/{2}/Action/destroy", config.Services.cronurl, config.Services.cronversion, id);
+            var cronURL = format("http://{0}/DVP/API/{1}/Cron/Reference/{2}", config.Services.cronurl, config.Services.cronversion, id);
             if (validator.isIP(config.Services.cronurl))
-                cronURL = format("http://{0}:{1}/DVP/API/{2}/Cron/Reference/{3}/Action/destroy", config.Services.cronurl, config.Services.cronport, config.Services.cronversion, id);
+                cronURL = format("http://{0}:{1}/DVP/API/{2}/Cron/Reference/{3}", config.Services.cronurl, config.Services.cronport, config.Services.cronversion, id);
 
 
             logger.debug("stopCronJob service URL %s", cronURL);
             request({
-                method: "POST",
+                method: "DELETE",
                 url: cronURL,
                 headers: {
                     authorization: "bearer " + config.Services.accessToken,
@@ -157,15 +157,19 @@ module.exports.startBreak = function (company, tenant, userName, resourceId, bre
         getBreakThresholdValue(logKey, breakTypeKey)
             .then(function (val) {
                 var timeJobject = JSON.parse(val);
-                var time = parseInt(timeJobject.MaxDurationPerDay ? timeJobject.MaxDurationPerDay : 10)*60;
-                registerCronJob(company, tenant, userName, callbackData, mainServer, time, function (isSuccess) {
-                    if (isSuccess) {
-                        logger.info('Create Cron Job.' + userName);
-                    }
-                    else {
-                        logger.error('failed Create Cron Job. ' + userName);
-                    }
-                });
+                if(timeJobject) {
+                    var time = parseInt(timeJobject.MaxDurationPerDay ? timeJobject.MaxDurationPerDay : 10) * 60;
+                    registerCronJob(company, tenant, userName, callbackData, mainServer, time, function (isSuccess) {
+                        if (isSuccess) {
+                            logger.info('Create Cron Job.' + userName);
+                        }
+                        else {
+                            logger.error('failed Create Cron Job. ' + userName);
+                        }
+                    });
+                }else{
+                    logger.info('Break threshold value is not found');
+                }
             })
             .fail(function (err) {
                 logger.error(err);
