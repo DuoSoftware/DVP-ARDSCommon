@@ -1477,7 +1477,7 @@ var UpdateSlotStateAfterWork = function (logKey, company, tenant, handlingType, 
     });
 };
 
-var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, resourceid, slotid, sessionid, maxReservedTime, maxAfterWorkTime, maxFreezeTime, maxRejectCount, otherInfo, callback) {
+var UpdateSlotStateReserved = function (logKey, company, tenant,businessUnit, handlingType, resourceid, slotid, sessionid, maxReservedTime, maxAfterWorkTime, maxFreezeTime, maxRejectCount, otherInfo, callback) {
     logger.info('%s ************************* Start UpdateSlotStateReserved *************************', logKey);
 
     var slotInfokey = util.format('CSlotInfo:%s:%s:%s:%s:%s', company, tenant, resourceid, handlingType, slotid);
@@ -1512,6 +1512,7 @@ var UpdateSlotStateReserved = function (logKey, company, tenant, handlingType, r
                             tempObj.StateChangeTime = date.toISOString();
                             tempObj.HandlingRequest = sessionid;
                             tempObj.LastReservedTime = date.toISOString();
+                            tempObj.BusinessUnit = businessUnit;
                             tempObj.OtherInfo = otherInfo;
                             if (maxReservedTime)
                                 tempObj.MaxReservedTime = maxReservedTime;
@@ -1864,7 +1865,7 @@ var UpdateSlotStateBySessionId = function (logKey, company, tenant, handlingType
                                 callback(err, result);
                             });
                         } else if (state.toLowerCase() === "reserved" && selectedSlot.State !== "Connected") {
-                            UpdateSlotStateReserved(logKey, selectedSlot.Company, selectedSlot.Tenant, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, null, null, null, null, otherInfo, function (err, result) {
+                            UpdateSlotStateReserved(logKey, selectedSlot.Company, selectedSlot.Tenant,selectedSlot.BusinessUnit, selectedSlot.HandlingType, selectedSlot.ResourceId, selectedSlot.SlotId, sessionid, null, null, null, null, otherInfo, function (err, result) {
                                 callback(err, result);
                             });
                         } else {
