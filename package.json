@@ -1,11 +1,11 @@
 {
   "name": "dvp-ardscommon",
-  "version": "3.0.7",
+  "version": "3.0.8",
   "description": "",
   "main": "Authorization.js",
   "dependencies": {
     "amqp": "^0.2.6",
-    "async": "^2.1.5",
+    "async": "^2.6.1",
     "config": "^1.19.0",
     "deepcopy": "^0.6.1",
     "dvp-dbmodels": "2.1.0",
