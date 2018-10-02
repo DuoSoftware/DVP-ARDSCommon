@@ -120,8 +120,16 @@ var AddResourceStatusChangeInfo = function(accessToken, businessUnit, resourceId
     }
 
     if(reason) {
-        if(reason.toLowerCase().indexOf('end') === -1)
+        if(reason.toLowerCase().indexOf('end') === -1) {
             ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
+        }
+        else{
+
+            if(reason.toLowerCase().indexOf('endBreak') >= 0){
+                ardsMonitoringService.SendResosurceStatus(accessToken, resourceId, undefined);
+            }
+        }
+
     }else {
         ardsMonitoringService.SendResourceStatus(accessToken, resourceId, undefined);
     }
