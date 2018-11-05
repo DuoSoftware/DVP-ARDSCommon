@@ -78,45 +78,50 @@ var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId)
                 var validateHandlingType = commonMethods.FilterByID(loginTask, "Type", taskInfo.ResTask.ResTaskInfo.TaskType);
                 if (validateHandlingType) {
 
-                    loadBusinessUnitGroupSkills(resourceId,accessToken,taskInfo).then(function (result) {
-                        var resAttErr=result.resAttErr; var resAttRes=result.resAttRes; var resAttObj=result.resAttObj; var reTaskInfo=result.reTaskInfo;
-                        var businessUnitGroupSkills = result.businessUnitGroupSkills;
-                        if(businessUnitGroupSkills){
-                            businessUnitGroupSkills.map(function (value) {
-                                if(resAttObj&&resAttObj.Result$$resAttObj.Result.ResResourceAttributeTask){
+                    loadBusinessUnitGroupSkills(resourceId,accessToken,taskInfo).then(function (businessUnitGroupSkills) {
+                        resourceService.GetResourceAttributeDetails(accessToken, taskInfo, function (resAttErr, resAttRes, resAttObj, reTaskInfo) {
 
-                                    resAttObj.Result.ResResourceAttributeTask.push(value);
-                                }
+                            if(businessUnitGroupSkills){
+                                businessUnitGroupSkills.map(function (value) {
+                                    if(resAttObj&&resAttObj.Result$$resAttObj.Result.ResResourceAttributeTask){
 
-                            })
-                        }
+                                        resAttObj.Result.ResResourceAttributeTask.push(value);
+                                    }
 
-                        var task = {
-                            HandlingType: reTaskInfo.ResTask.ResTaskInfo.TaskType,
-                            EnableToProductivity: reTaskInfo.ResTask.AddToProductivity,
-                            NoOfSlots: reTaskInfo.Concurrency,
-                            RefInfo: reTaskInfo.RefInfo
-                        };
-                        if (resAttErr) {
-                            count++;
-                            consile.log(resAttErr);
-                            e.emit('taskInfo', task, attributes);
-                            if (taskInfos.length === count) {
-                                e.emit('endTaskInfo');
+                                })
                             }
-                        } else {
-                            var ppad = PreProcessAttributeData(task.HandlingType, resAttObj.Result.ResResourceAttributeTask);
-                            ppad.on('attributeInfo', function (attribute) {
-                                attributes.push(attribute);
-                            });
-                            ppad.on('endAttributeInfo', function () {
+
+                            var task = {
+                                HandlingType: reTaskInfo.ResTask.ResTaskInfo.TaskType,
+                                EnableToProductivity: reTaskInfo.ResTask.AddToProductivity,
+                                NoOfSlots: reTaskInfo.Concurrency,
+                                RefInfo: reTaskInfo.RefInfo
+                            };
+                            if (resAttErr) {
                                 count++;
+                                consile.log(resAttErr);
                                 e.emit('taskInfo', task, attributes);
                                 if (taskInfos.length === count) {
                                     e.emit('endTaskInfo');
                                 }
-                            });
-                        }
+                            } else {
+                                var ppad = PreProcessAttributeData(task.HandlingType, resAttObj.Result.ResResourceAttributeTask);
+                                ppad.on('attributeInfo', function (attribute) {
+                                    attributes.push(attribute);
+                                });
+                                ppad.on('endAttributeInfo', function () {
+                                    count++;
+                                    e.emit('taskInfo', task, attributes);
+                                    if (taskInfos.length === count) {
+                                        e.emit('endTaskInfo');
+                                    }
+                                });
+                            }
+
+                        });
+
+
+
                     }, function (error) {
                         console.log(error);
                         e.emit('endTaskInfo');
@@ -314,14 +319,14 @@ var loadBusinessUnitGroupSkills = function (resourceid,accessToken,taskInfo) {
                 }
             });
         },
-        function (businessUnitGroupSkills,callback) {
-            resourceService.GetResourceAttributeDetails(accessToken, taskInfo, function (resAttErr, resAttRes, resAttObj, reTaskInfo) {
-                var reply = {
-                    resAttErr:resAttErr, resAttRes:resAttRes, resAttObj:resAttObj, reTaskInfo:reTaskInfo,businessUnitGroupSkills:businessUnitGroupSkills
-                }
-                callback(null, reply);
-            });
-        }
+        /* function (businessUnitGroupSkills,callback) {
+             resourceService.GetResourceAttributeDetails(accessToken, taskInfo, function (resAttErr, resAttRes, resAttObj, reTaskInfo) {
+                 var reply = {
+                     resAttErr:resAttErr, resAttRes:resAttRes, resAttObj:resAttObj, reTaskInfo:reTaskInfo,businessUnitGroupSkills:businessUnitGroupSkills
+                 }
+                 callback(null, reply);
+             });
+         }*/
     ], function (err, result) {
         if(err){
             deferred.resolve(null);
