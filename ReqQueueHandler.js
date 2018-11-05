@@ -369,7 +369,8 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
 
             var exeCount = (err || !exeCountStr) ? 1 : parseInt(exeCountStr);
 
-            var hscanPattern = util.format('%s:*', queueId);
+            ///the culprit
+            var hscanPattern = util.format('%s*', queueId);
             redisHandler.HScanHash(logKey, processingHashId, hscanPattern, function (processingHashDetail) {
 
                 if (processingHashDetail) {
