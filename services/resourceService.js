@@ -26,11 +26,11 @@ var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, call
             if (res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
-                callback(new error(obj), res, obj);
+                callback(new Error(obj), res, obj);
             }
         });
     }catch (ex2) {
-        callback(new error(ex2), null, null);
+        callback(new Error(ex2), null, null);
     }
 };
 
@@ -46,11 +46,11 @@ var GetResourceDetails = function(accessToken, resourceId, callback){
             if (res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
-                callback(new error(obj), res, obj);
+                callback(new Error(obj), res, obj);
             }
         });
     }catch (ex2) {
-        callback(new error(ex2), null, null);
+        callback(new Error(ex2), null, null);
     }
 };
 
@@ -66,11 +66,11 @@ var GetResourceTaskDetails = function(accessToken, resourceId, callback){
             if (res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
-                callback(new error(obj), res, obj);
+                callback(new Error(obj), res, obj);
             }
         });
     }catch (ex2) {
-        callback(new error(ex2), null, null);
+        callback(new Error(ex2), null, null);
     }
 };
 
@@ -86,11 +86,11 @@ var GetResourceAttributeDetails = function(accessToken, taskInfo, callback){
             if (res.statusCode == 200) {
                 callback(err, res, obj, taskInfo);
             } else {
-                callback(new error(obj), res, obj, taskInfo);
+                callback(new Error(obj), res, obj, taskInfo);
             }
         });
     }catch (ex2) {
-        callback(new error(ex2), null, null);
+        callback(new Error(ex2), null, null);
     }
 };
 
@@ -205,7 +205,7 @@ var GetAttribute = function(accessToken, attId, callback){
             callback(err, res, obj);
         });
     }catch (ex2) {
-        callback(new error(ex2), null, null);
+        callback(new Error(ex2), null, null);
     }
 };
 
@@ -233,7 +233,7 @@ var GetQueueSetting = function(accessToken, queueId){
 
         });
     }catch (ex2) {
-        deferred.resolve(new error(ex2), undefined, undefined);
+        deferred.resolve(new Error(ex2), undefined, undefined);
     }
 
     return deferred.promise;
