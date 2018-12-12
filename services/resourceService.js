@@ -263,6 +263,31 @@ var AddQueueSetting = function(accessToken, queueName, skills, serverType, reque
     }
 };
 
+module.exports.GetBusinessUnitGroupSkills =  function(businessUnits,groups,accessToken, callback){
+
+    try {
+        var jObject = {businessUnits :businessUnits,groups:groups};
+
+        var serverUrl = util.format("http://%s/DVP/API/%s/ResourceManager/BusinessUnitGroupSkills", config.Services.resourceServiceHost, config.Services.resourceServiceVersion);
+        if (validator.isIP(config.Services.resourceServiceHost)) {
+            serverUrl = util.format("http://%s:%s/DVP/API/%s/ResourceManager/BusinessUnitGroupSkills", config.Services.resourceServiceHost, config.Services.resourceServicePort, config.Services.resourceServiceVersion);
+        }
+        restClientHandler.DoPost(serverUrl,jObject, accessToken,function(err, res1, result){
+            if(err){
+                callback(err, undefined);
+            }else{
+                if(res1.statusCode === 200) {
+                    callback(undefined, JSON.parse(result));
+                }else{
+                    callback(new Error(result), undefined);
+                }
+            }
+        });
+    }catch (ex2) {
+        callback(new error(ex2), null, null);
+    }
+};
+
 module.exports.GetAttributeGroupWithDetails = GetAttributeGroupWithDetails;
 module.exports.GetResourceDetails = GetResourceDetails;
 module.exports.GetResourceTaskDetails = GetResourceTaskDetails;

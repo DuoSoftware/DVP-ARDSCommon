@@ -8,6 +8,7 @@ var logger = require("dvp-common/LogHandler/CommonLogHandler.js").logger;
 var config = require('config');
 var validator = require('validator');
 var resourceService = require('./services/resourceService');
+var userService = require('./services/userService');
 var resourceStateMapper = require('./ResourceStateMapper');
 var deepcopy = require("deepcopy");
 var commonMethods = require('./CommonMethods');
@@ -17,6 +18,7 @@ var moment = require('moment');
 var async = require('async');
 var ardsMonitoringService = require('./services/ardsMonitoringService');
 var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
+var q = require('q');
 
 var SetProductivityData = function (logKey, company, tenant, businessUnit, resourceId, eventType) {
     try {
@@ -65,7 +67,7 @@ var SetProductivityData = function (logKey, company, tenant, businessUnit, resou
     }
 };
 
-var PreProcessTaskData = function (accessToken, taskInfos, loginTask) {
+var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId) {
     var e = new EventEmitter();
     process.nextTick(function () {
         if (Array.isArray(taskInfos) && taskInfos.length > 0) {
@@ -75,7 +77,20 @@ var PreProcessTaskData = function (accessToken, taskInfos, loginTask) {
                 var attributes = [];
                 var validateHandlingType = commonMethods.FilterByID(loginTask, "Type", taskInfo.ResTask.ResTaskInfo.TaskType);
                 if (validateHandlingType) {
-                    resourceService.GetResourceAttributeDetails(accessToken, taskInfo, function (resAttErr, resAttRes, resAttObj, reTaskInfo) {
+
+                    loadBusinessUnitGroupSkills(resourceId,accessToken,taskInfo).then(function (result) {
+                        var resAttErr=result.resAttErr; var resAttRes=result.resAttRes; var resAttObj=result.resAttObj; var reTaskInfo=result.reTaskInfo;
+                        var businessUnitGroupSkills = result.businessUnitGroupSkills;
+                        if(businessUnitGroupSkills){
+                            businessUnitGroupSkills.map(function (value) {
+                                if(resAttObj&&resAttObj.Result$$resAttObj.Result.ResResourceAttributeTask){
+
+                                    resAttObj.Result.ResResourceAttributeTask.push(value);
+                                }
+
+                            })
+                        }
+
                         var task = {
                             HandlingType: reTaskInfo.ResTask.ResTaskInfo.TaskType,
                             EnableToProductivity: reTaskInfo.ResTask.AddToProductivity,
@@ -102,7 +117,11 @@ var PreProcessTaskData = function (accessToken, taskInfos, loginTask) {
                                 }
                             });
                         }
+                    }, function (error) {
+                        console.log(error);
+                        e.emit('endTaskInfo');
                     });
+
                 } else {
                     count++;
                     if (taskInfos.length === count) {
@@ -157,7 +176,7 @@ var PreProcessResourceData = function (logKey, accessToken, preResourceData, log
             callback(taskErr, taskRes, preResourceData, newAttributeInfo);
         } else {
             if (taskObj.IsSuccess) {
-                var pptd = PreProcessTaskData(accessToken, taskObj.Result, loginTask);
+                var pptd = PreProcessTaskData(accessToken, taskObj.Result, loginTask,preResourceData.ResourceId);
                 pptd.on('taskInfo', function (taskInfo, attributeInfo) {
                     preResourceData.ConcurrencyInfo.push(taskInfo);
                     for (var i in attributeInfo) {
@@ -268,6 +287,50 @@ var RemoveResourceState = function (logKey, company, tenant, resourceid, callbac
     redisHandler.RemoveObj(logKey, StateKey, function (err, result) {
         callback(err, result);
     });
+};
+
+var loadBusinessUnitGroupSkills = function (resourceid,accessToken,taskInfo) {
+    var deferred = q.defer();
+    async.waterfall([
+        function(callback) {
+            userService.GetBusinessUnitAndGroups(resourceid,accessToken,function (err, res, resObj) {
+                if (err) {
+                    callback(err, null, null);
+                } else if (resObj.IsSuccess){
+                    callback(null, resObj.Result.businessUnits, resObj.Result.groups);
+                }else {
+                    callback(null, null, null);
+                }
+            })
+        },
+        function(businessUnits, groups, callback) {
+            resourceService.GetBusinessUnitGroupSkills(businessUnits,groups,accessToken,function (err, res, resObj) {
+                if (err) {
+                    callback(err, null);
+                } else if (res.IsSuccess){
+                    callback(null, res.Result);
+                }else {
+                    callback(null, null);
+                }
+            });
+        },
+        function (businessUnitGroupSkills,callback) {
+            resourceService.GetResourceAttributeDetails(accessToken, taskInfo, function (resAttErr, resAttRes, resAttObj, reTaskInfo) {
+                var reply = {
+                    resAttErr:resAttErr, resAttRes:resAttRes, resAttObj:resAttObj, reTaskInfo:reTaskInfo,businessUnitGroupSkills:businessUnitGroupSkills
+                }
+                callback(null, reply);
+            });
+        }
+    ], function (err, result) {
+        if(err){
+            deferred.resolve(null);
+        }else{
+            deferred.resolve(result);
+        }
+
+    });
+    return deferred.promise;
 };
 
 var SetResourceLogin = function (logKey, basicData, callback) {
@@ -422,6 +485,10 @@ var SetResourceLogin = function (logKey, basicData, callback) {
                         });
                     }
                 });
+
+
+
+
             } else {
                 callback(resObj.Exception, resObj.CustomMessage, preResourceData);
             }
