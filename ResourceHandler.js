@@ -83,7 +83,7 @@ var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId)
                         var businessUnitGroupSkills = result.businessUnitGroupSkills;
                         if(businessUnitGroupSkills){
                             businessUnitGroupSkills.map(function (value) {
-                                if(resAttObj&&resAttObj.Result$$resAttObj.Result.ResResourceAttributeTask){
+                                if(resAttObj&&resAttObj.Result&&resAttObj.Result.ResResourceAttributeTask){
 
                                     resAttObj.Result.ResResourceAttributeTask.push(value);
                                 }
