@@ -99,7 +99,7 @@ var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId)
                             };
                             if (resAttErr) {
                                 count++;
-                                consile.log(resAttErr);
+                                console.log(resAttErr);
                                 e.emit('taskInfo', task, attributes);
                                 if (taskInfos.length === count) {
                                     e.emit('endTaskInfo');
