@@ -30,9 +30,13 @@ var DoGet = function (url, params, internalAccessToken, callback) {
             if (err) {
                 logger.error('upload failed:', err);
             }
-            var jBody = JSON.parse(body);
-            logger.info('Server returned: %j', jBody);
-            callback(err, httpResponse, jBody);
+            try {
+                var jBody = JSON.parse(body);
+                logger.info('Server returned: %j', jBody);
+                callback(err, httpResponse, jBody);
+            }catch(exx){
+                callback(exx, undefined, undefined);
+            }
         });
     }catch(ex){
         callback(ex, undefined, undefined);
