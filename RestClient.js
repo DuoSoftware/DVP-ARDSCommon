@@ -35,7 +35,7 @@ var DoGet = function (url, params, internalAccessToken, callback) {
                 logger.info('Server returned: %j', jBody);
                 callback(err, httpResponse, jBody);
             }catch(exx){
-                callback(exx, undefined, undefined);
+                callback(exx, httpResponse, undefined);
             }
         });
     }catch(ex){

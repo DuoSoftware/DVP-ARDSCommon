@@ -121,11 +121,11 @@ var SendCallBack = function (logKey, serverurl, callbackOption, resultToSend, ca
                 callback(false, "error");
             }
             else {
-                if (res.statusCode == "503" || result.startsWith("-ERR")) {
+                if (res && res.statusCode == "503" || result.startsWith("-ERR")) {
                     logger.info('%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
                     callback(true, "readdRequired");
                 }
-                else if (res.statusCode == "200") {
+                else if (res && res.statusCode == "200") {
                     logger.info('%s Finished SendCallBack. Result: %s', logKey, "setNext");
                     callback(true, "setNext");
                 }
@@ -142,11 +142,11 @@ var SendCallBack = function (logKey, serverurl, callbackOption, resultToSend, ca
                 callback(false, "error");
             }
             else {
-                if (res.statusCode == "503" || result.startsWith("-ERR")) {
+                if (res && res.statusCode == "503" || result.startsWith("-ERR")) {
                     logger.info('%s Finished SendCallBack. Result: %s', logKey, "readdRequired");
                     callback(true, "readdRequired");
                 }
-                else if (res.statusCode == "200") {
+                else if (res && res.statusCode == "200") {
                     logger.info('%s Finished SendCallBack. Result: %s', logKey, "setNext");
                     callback(true, "setNext");
                 }

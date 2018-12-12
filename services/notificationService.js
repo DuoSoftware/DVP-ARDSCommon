@@ -35,7 +35,7 @@ module.exports.SendNotificationToRoom = function (company, tenant, roomName, eve
 
         httpReq.post(options, function (error, response, body)
         {
-            if (!error && response.statusCode >= 200 && response.statusCode <= 299)
+            if (!error && response && response.statusCode >= 200 && response.statusCode <= 299)
             {
                 logger.debug("[DVP-ARDSLiteService.SendNotificationToRoom] - [%s] - Send Notification Success : %s", logKey, body);
             }
@@ -90,7 +90,7 @@ var SendNotificationInitiate = function(logKey, eventname, eventuuid, payload, c
 
         httpReq.post(options, function (error, response, body)
         {
-            if (!error && response.statusCode >= 200 && response.statusCode <= 299)
+            if (!error && response && response.statusCode >= 200 && response.statusCode <= 299)
             {
                 logger.debug("[DVP-ARDSLiteService.SendNotificationByKey] - [%s] - Send Notification Success : %s", logKey, body);
             }
