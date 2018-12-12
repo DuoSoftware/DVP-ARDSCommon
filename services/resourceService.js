@@ -23,7 +23,7 @@ var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, call
         var params = util.format('/DVP/API/%s/ResourceManager/Group/%d/Attribute/Details', config.Services.resourceServiceVersion, attributeGroupId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
             logger.info('GetAttributeGroupWithDetails Result:: ', obj);
-            if (res.statusCode == 200) {
+            if (res && res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
                 callback(new Error(obj), res, obj);
@@ -43,7 +43,7 @@ var GetResourceDetails = function(accessToken, resourceId, callback){
         var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s', config.Services.resourceServiceVersion, resourceId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
             logger.info('GetResourceDetails Result:: ', obj);
-            if (res.statusCode == 200) {
+            if (res && res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
                 callback(new Error(obj), res, obj);
@@ -63,7 +63,7 @@ var GetResourceTaskDetails = function(accessToken, resourceId, callback){
         var params = util.format('/DVP/API/%s/ResourceManager/Resource/%s/Tasks', config.Services.resourceServiceVersion, resourceId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
             logger.info('GetResourceTaskDetails Result:: ', obj);
-            if (res.statusCode == 200) {
+            if (res && res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
                 callback(new Error(obj), res, obj);
@@ -83,7 +83,7 @@ var GetResourceAttributeDetails = function(accessToken, taskInfo, callback){
         var params = util.format('/DVP/API/%s/ResourceManager/ResourceTask/%d/Attributes', config.Services.resourceServiceVersion, taskInfo.ResTaskId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
             logger.info('GetResourceAttributeDetails Result:: ', obj);
-            if (res.statusCode == 200) {
+            if (res && res.statusCode == 200) {
                 callback(err, res, obj, taskInfo);
             } else {
                 callback(new Error(obj), res, obj, taskInfo);
@@ -157,7 +157,7 @@ var AddResourceStatusDurationInfo = function(accessToken, businessUnit, resource
             if(err){
                 callback(err, undefined);
             }else{
-                if(res1.statusCode === 200) {
+                if(res1 && res1.statusCode === 200) {
                     callback(undefined, JSON.parse(result));
                 }else{
                     callback(new Error(result), undefined);
@@ -181,7 +181,7 @@ var AddResourceTaskRejectInfo = function(accessToken, businessUnit, resourceId, 
             if(err){
                 callback(err, undefined);
             }else{
-                if(res1.statusCode === 200) {
+                if(res1 && res1.statusCode === 200) {
                     callback(undefined, JSON.parse(result));
                 }else{
                     callback(new Error(result), undefined);
@@ -251,7 +251,7 @@ var AddQueueSetting = function(accessToken, queueName, skills, serverType, reque
             if(err){
                 callback(err, undefined);
             }else{
-                if(res1.statusCode === 200) {
+                if(res1 && res1.statusCode === 200) {
                     callback(undefined, JSON.parse(result));
                 }else{
                     callback(new Error(result), undefined);
