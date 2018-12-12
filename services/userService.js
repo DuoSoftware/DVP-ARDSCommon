@@ -19,10 +19,10 @@ module.exports.GetBusinessUnitAndGroups =  function(resourceId,accessToken, call
             if (res.statusCode == 200) {
                 callback(err, res, obj);
             } else {
-                callback(new error(obj), res, obj);
+                callback(new Error(obj), res, obj);
             }
         });
     }catch (ex2) {
-        callback(new error(ex2), null, null);
+        callback(new Error(ex2), null, null);
     }
 };
