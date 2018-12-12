@@ -5,7 +5,7 @@ var resourceService = require('./services/resourceService');
 var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
 var moment = require('moment');
 
-var SetResourceState = function (logKey, company, tenant, resourceId, resourceName, state, reason, callback) {
+var SetResourceState = function (logKey, company, tenant, bu, resourceId, resourceName, state, reason, callback) {
     logger.info('%s ************************* Start SetResourceState *************************', logKey);
 
     var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
@@ -13,6 +13,7 @@ var SetResourceState = function (logKey, company, tenant, resourceId, resourceNa
 
     validateState(logKey, tenant, company, resourceId, reason, function (isRequestValid, message, businessUnit) {
 
+        businessUnit =  bu || businessUnit;
         if(isRequestValid){
             processState(logKey, StateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, function (err, resultObj) {
                 if (err !== null) {
