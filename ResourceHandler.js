@@ -942,6 +942,7 @@ var SetResource = function (logKey, company, tenant, basicObj, callback) {
                 var resourceObj = {
                     Company: obj.Company,
                     Tenant: obj.Tenant,
+                    BusinessUnit: obj.BusinessUnit,
                     Class: obj.Class,
                     Type: obj.Type,
                     Category: obj.Category,
