@@ -86,7 +86,7 @@ var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId)
                 if (validateHandlingType) {
 
                     loadBusinessUnitGroupSkills(resourceId,accessToken,taskInfo).then(function (businessUnitGroupSkills) {
-                        resourceService.GetResourceAttributeDetails(accessToken, taskInfo, function (resAttErr, resAttRes, resAttObj, reTaskInfo) {
+                        resourceService.GetResourceAttributeDetails(accessToken, businessUnitGroupSkills.taskInfo, function (resAttErr, resAttRes, resAttObj, reTaskInfo) {
 
                             if(businessUnitGroupSkills){
                                 businessUnitGroupSkills.map(function (value) {
@@ -336,10 +336,15 @@ var loadBusinessUnitGroupSkills = function (resourceid,accessToken,taskInfo) {
              });
          }*/
     ], function (err, result) {
+        var reply = {taskInfo:taskInfo};
         if(err){
-            deferred.resolve(null);
+            deferred.resolve(reply);
         }else{
-            deferred.resolve(result);
+            if(result){
+                result.taskInfo = taskInfo;
+                reply = result;
+            }
+            deferred.resolve(reply);
         }
 
     });
