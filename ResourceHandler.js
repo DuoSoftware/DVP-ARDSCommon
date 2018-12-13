@@ -498,16 +498,18 @@ var EditResource = function (logKey, editType, accessToken, basicData, resourceD
                         var cObjTags = ["company_" + basicData.Company, "tenant_" + basicData.Tenant, "handlingType_" + concurrencyObj.HandlingType, "resourceid_" + preProcessResData.ResourceId, "objtype_ConcurrencyInfo"];
 
                         var jsonConObj = JSON.stringify(concurrencyObj);
-                        if (!isExists || editType == "addResource") {
+                        if ((loginTasks.indexOf(concurrencyObj.HandlingType) == -1) || !isExists || editType == "addResource") {
                             if (concurrencyInfo.indexOf(cObjkey) === -1) {
                                 loginTasks.push(concurrencyObj.HandlingType);
                                 concurrencyInfo.push(cObjkey);
                             }
+
                             redisHandler.AddObj_V_T(logKey, cObjkey, jsonConObj, cObjTags, function (err, reply, vid) {
                                 if (err) {
                                     logger.error(err);
                                 }
                             });
+
                         } else if (isExists && isExists.IsRejectCountExceeded == true) {
                             isExists.IsRejectCountExceeded = false;
                             isExists.RejectCount = 0;
