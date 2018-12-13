@@ -67,6 +67,13 @@ var SetProductivityData = function (logKey, company, tenant, businessUnit, resou
     }
 };
 
+function removeDuplicateUsingFilter(arr){
+    var unique_array = arr.filter(function(elem, index, self) {
+        return index == self.indexOf(elem);
+    });
+    return unique_array
+}
+
 var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId) {
     var e = new EventEmitter();
     process.nextTick(function () {
@@ -83,7 +90,7 @@ var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId)
 
                             if(businessUnitGroupSkills){
                                 businessUnitGroupSkills.map(function (value) {
-                                    if(resAttObj&&resAttObj.Result$$resAttObj.Result.ResResourceAttributeTask){
+                                    if(resAttObj&&resAttObj.Result&&resAttObj.Result.ResResourceAttributeTask){
 
                                         resAttObj.Result.ResResourceAttributeTask.push(value);
                                     }
@@ -111,6 +118,7 @@ var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId)
                                 });
                                 ppad.on('endAttributeInfo', function () {
                                     count++;
+                                    attributes = removeDuplicateUsingFilter(attributes);
                                     e.emit('taskInfo', task, attributes);
                                     if (taskInfos.length === count) {
                                         e.emit('endTaskInfo');
