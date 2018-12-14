@@ -74,7 +74,7 @@ function removeDuplicateUsingFilter(arr){
     return unique_array
 }
 
-var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId) {
+/*var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId) {
     var e = new EventEmitter();
     process.nextTick(function () {
         if (Array.isArray(taskInfos) && taskInfos.length > 0) {
@@ -133,6 +133,84 @@ var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId)
                     }, function (error) {
                         console.log(error);
                         e.emit('endTaskInfo');
+                    });
+
+                } else {
+                    count++;
+                    if (taskInfos.length === count) {
+                        e.emit('endTaskInfo');
+                    }
+                }
+            }
+        }
+        else {
+            e.emit('endTaskInfo');
+        }
+    });
+
+    return (e);
+};*/
+
+var PreProcessTaskData = function (accessToken, taskInfos, loginTask,resourceId) {
+    var e = new EventEmitter();
+    process.nextTick(function () {
+        if (Array.isArray(taskInfos) && taskInfos.length > 0) {
+            var count = 0;
+            for (var i in taskInfos) {
+                var taskInfo = taskInfos[i];
+                var attributes = [];
+                var validateHandlingType = commonMethods.FilterByID(loginTask, "Type", taskInfo.ResTask.ResTaskInfo.TaskType);
+                if (validateHandlingType) {
+
+                    resourceService.GetResourceAttributeDetails(accessToken, taskInfo, function (resAttErr, resAttRes, resAttObj, reTaskInfo) {
+
+                        var task = {
+                            HandlingType: reTaskInfo.ResTask.ResTaskInfo.TaskType,
+                            EnableToProductivity: reTaskInfo.ResTask.AddToProductivity,
+                            NoOfSlots: reTaskInfo.Concurrency,
+                            RefInfo: reTaskInfo.RefInfo
+                        };
+                        if (resAttErr) {
+                            count++;
+                            console.log(resAttErr);
+                            e.emit('taskInfo', task, attributes);
+                            if (taskInfos.length === count) {
+                                e.emit('endTaskInfo');
+                            }
+                        } else {
+                            var ppad = PreProcessAttributeData(task.HandlingType, resAttObj.Result.ResResourceAttributeTask);
+                            ppad.on('attributeInfo', function (attribute) {
+                                attributes.push(attribute);
+                            });
+                            ppad.on('endAttributeInfo', function () {
+                                count++;
+
+                                loadBusinessUnitGroupSkills(resourceId,accessToken).then(function (businessUnitGroupSkills) {
+
+                                    if(businessUnitGroupSkills){
+                                        businessUnitGroupSkills.map(function (value) {
+                                            attributes.push({Attribute: value.toString(), HandlingType: task.HandlingType,
+                                                Percentage: 100});
+                                        });
+                                    }
+
+                                    e.emit('taskInfo', task, attributes);
+                                    if (taskInfos.length === count) {
+                                        e.emit('endTaskInfo');
+                                    }
+
+                                }, function (error) {
+
+                                    e.emit('taskInfo', task, attributes);
+                                    if (taskInfos.length === count) {
+                                        e.emit('endTaskInfo');
+                                    }
+
+                                });
+
+                            });
+                        }
+
                     });
 
                 } else {
