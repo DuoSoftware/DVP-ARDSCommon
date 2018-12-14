@@ -276,7 +276,7 @@ module.exports.GetBusinessUnitGroupSkills =  function(businessUnits,groups,acces
             if(err){
                 callback(err, undefined);
             }else{
-                if(res1.statusCode === 200) {
+                if(res1 && res1.statusCode === 200) {
                     callback(undefined, JSON.parse(result));
                 }else{
                     callback(new Error(result), undefined);
@@ -284,7 +284,7 @@ module.exports.GetBusinessUnitGroupSkills =  function(businessUnits,groups,acces
             }
         });
     }catch (ex2) {
-        callback(new error(ex2), null, null);
+        callback(new Error(ex2), null, null);
     }
 };
 

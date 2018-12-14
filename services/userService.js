@@ -16,7 +16,7 @@ module.exports.GetBusinessUnitAndGroups =  function(resourceId,accessToken, call
         var params = util.format('/DVP/API/%s/GetBusinessUnitAndGroups/%d', config.Services.userServiceVersion, resourceId);
         restClientHandler.DoGet(rUrl, params, accessToken, function (err, res, obj) {
             logger.info('GetBusinessUnitAndGroups Result:: ', obj);
-            if (res.statusCode == 200) {
+            if (res && res.statusCode === 200) {
                 callback(err, res, obj);
             } else {
                 callback(new Error(obj), res, obj);
