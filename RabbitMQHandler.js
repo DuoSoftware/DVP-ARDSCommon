@@ -44,10 +44,10 @@ var Publish = function(logKey, messageType, sendObj){
         queueConnection.publish(messageType, sendObj, {
             contentType: 'application/json'
         });
-        infoLogger.info('%s RabbitMQ Publish Success - queue: %s :: message: %s', logKey, messageType, sendObj);
+        infoLogger.info('%s RabbitMQ Publish Success - queue: %s :: message: %s', logKey, messageType, JSON.stringify(sendObj));
     }catch(exp){
 
-        infoLogger.error('%s RabbitMQ Publish Error - queue: %s :: message: %s :: Error: %s', logKey, messageType, sendObj, exp);
+        infoLogger.error('%s RabbitMQ Publish Error - queue: %s :: message: %s :: Error: %s', logKey, messageType, JSON.stringify(sendObj), exp);
     }
 };
 
