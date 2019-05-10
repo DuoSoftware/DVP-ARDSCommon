@@ -12,6 +12,7 @@ var logger = require("dvp-common/LogHandler/CommonLogHandler.js").logger;
 var deepcopy = require('deepcopy');
 var ardsMonitoringService = require('./ardsMonitoringService');
 var Q = require('q');
+var dvpEventsHandler = require('../DVPEventsHandler.js');
 
 
 var GetAttributeGroupWithDetails = function (accessToken, attributeGroupId, callback) {
@@ -115,6 +116,8 @@ var AddResourceStatusChangeInfo = function(accessToken, businessUnit, resourceId
         var tenant = parseInt(splitData[0]);
         var company = parseInt(splitData[1]);
         var eventTime = new Date().toISOString();
+
+        dvpEventsHandler.SendDVPEvent(resourceId, businessUnit, statusType, status, reason, tenant, company, pOtherData);
         //var pubMessage = util.format("EVENT:%s:%s:%s:%s:%s:%s:%s:%s:YYYY", splitData[0], splitData[1], statusType, status, dashBoardReason, resourceId, param2, resourceId);
         dashboardEventHandler.PublishEvent(resourceId, tenant, company, businessUnit, statusType, status, dashBoardReason, resourceId, param2, resourceId, eventTime);
     }
