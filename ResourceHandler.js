@@ -1319,6 +1319,7 @@ var UpdateSlotStateAvailable = function (logKey, company, tenant, handlingType, 
                                         else {
                                             var duration = moment(tempObj.StateChangeTime).diff(moment(tempObjCopy.StateChangeTime), 'seconds');
                                             var internalAccessToken = util.format('%s:%s', tenant, company);
+                                            console.log('ResourceId : ' + tempObj.ResourceId + ' , State : ' + tempObj.State + ' , otherInfo : ' + otherInfo);
                                             resourceService.AddResourceStatusChangeInfo(internalAccessToken, tempObj.BusinessUnit, tempObj.ResourceId, "SloatStatus", tempObj.State, otherInfo, {
                                                 SessionId: handledRequest,
                                                 Direction: ""
