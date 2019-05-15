@@ -2,7 +2,7 @@ var rabbitmqHandler = require('./RabbitMQHandler.js');
 
  var SendDVPEvent = function(resourceId, businessUnit, statusType, status, reason, tenant, company, sessionId) {
 
-     if(statusType === 'ResourceStatus')
+     if(statusType === 'ResourceStatus' || statusType === 'SloatStatus')
      {
          var date = new Date();
          var evtData =
