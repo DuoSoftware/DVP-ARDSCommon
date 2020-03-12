@@ -1288,3 +1288,4 @@ module.exports.HScanHash = HScanHash;
 module.exports.Publish = Publish;
 
 module.exports.RLock = redlock;
+module.exports.RedisCon = client;
