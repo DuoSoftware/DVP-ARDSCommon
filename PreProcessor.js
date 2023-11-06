@@ -35,7 +35,8 @@ var execute = function (logKey, data, callback) {
                 var metaObj = JSON.parse(result);
 
                 var attributeInfo = [];
-                var sortedAttributes = sort.sortData(data.Attributes);
+                //var sortedAttributes = sort.sortData(data.Attributes);
+                var sortedAttributes = data.Attributes;
                 //var attributeNames = [];
                 for (var i in sortedAttributes) {
                     var val = sortedAttributes[i];
@@ -54,7 +55,8 @@ var execute = function (logKey, data, callback) {
                         }
                     });
 
-                    var sortedRequestAttributes = sort.sortData(requestAttributes);
+                    //var sortedRequestAttributes = sort.sortData(requestAttributes);
+                    var sortedRequestAttributes = requestAttributes;
 
                     var attributeDataString = util.format('attribute_%s', sortedRequestAttributes.join(":attribute_"));
                     var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority);
