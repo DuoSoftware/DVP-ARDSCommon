@@ -127,8 +127,6 @@ var execute = function (logKey, data, callback) {
                             var reqSkills = [];
                             for (var k = 0; k <= attributeInfo.length - 1; k++) {
                                 for (var l = 0; l <= attributeInfo[k].AttributeNames.length - 1; l++) {
-                                    console.log("attributeInfo[k].AttributeNames[l]")
-                                    console.log(attributeInfo[k].AttributeNames[l])
                                     reqSkills.push(attributeInfo[k].AttributeNames[l]);
                                 }
                             }
@@ -161,8 +159,8 @@ var execute = function (logKey, data, callback) {
                         logger.info('%s Finished PreProcessor. Result: %s', logKey, requestObj);
 
                         var reqSkills = [];
-                        for (var k = attributeInfo.length - 1; k >= 0; k--) {
-                            for (var l = attributeInfo[k].AttributeNames.length - 1; l >= 0; l--) {
+                        for (var k = 0; k <= attributeInfo.length - 1; k++) {
+                            for (var l = 0; l <= attributeInfo[k].AttributeNames.length - 1; l++) {
                                 reqSkills.push(attributeInfo[k].AttributeNames[l]);
                             }
                         }
