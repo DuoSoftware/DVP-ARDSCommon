@@ -37,6 +37,8 @@ var execute = function (logKey, data, callback) {
                 var attributeInfo = [];
                 //var sortedAttributes = sort.sortData(data.Attributes);
                 var sortedAttributes = data.Attributes;
+		        console.log("data.Attributes")
+                console.log(data.Attributes)
                 //var attributeNames = [];
                 for (var i in sortedAttributes) {
                     var val = sortedAttributes[i];
@@ -57,6 +59,12 @@ var execute = function (logKey, data, callback) {
 
                     //var sortedRequestAttributes = sort.sortData(requestAttributes);
                     var sortedRequestAttributes = requestAttributes;
+                    console.log("sortedRequestAttributes ")
+                    console.log(sortedRequestAttributes )
+
+                    console.log("attributeInfo")
+                    console.log(attributeInfo)
+
 
                     var attributeDataString = util.format('attribute_%s', sortedRequestAttributes.join(":attribute_"));
                     var queueId = util.format('Queue:%d:%d:%s:%s:%s:%s', data.Company, data.Tenant, data.ServerType, data.RequestType, attributeDataString, data.Priority);
@@ -117,13 +125,17 @@ var execute = function (logKey, data, callback) {
                         if (addQueueSettings || !queueName) {
                             // --------------Set Name for QueueId--------------------------
                             var reqSkills = [];
-                            for (var k = attributeInfo.length - 1; k >= 0; k--) {
-                                for (var l = attributeInfo[k].AttributeNames.length - 1; l >= 0; l--) {
+                            for (var k = 0; k <= attributeInfo.length - 1; k++) {
+                                for (var l = 0; l <= attributeInfo[k].AttributeNames.length - 1; l++) {
+                                    console.log("attributeInfo[k].AttributeNames[l]")
+                                    console.log(attributeInfo[k].AttributeNames[l])
                                     reqSkills.push(attributeInfo[k].AttributeNames[l]);
                                 }
                             }
 
                             var attributeNameString = util.format('%s', reqSkills.join("-"));
+                            console.log("attributeNameString")
+                            console.log(attributeNameString)
 
                             if (addQueueSettings)
                                 resourceService.AddQueueSetting(accessToken, attributeNameString, sortedRequestAttributes, data.ServerType, data.RequestType, function () {
