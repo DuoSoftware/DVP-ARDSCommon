@@ -1286,5 +1286,5 @@ module.exports.AddItemToHashNX = AddItemToHashNX;
 module.exports.HScanHash = HScanHash;
 
 module.exports.Publish = Publish;
-
+module.exports.RedisCon = client;
 module.exports.RLock = redlock;
