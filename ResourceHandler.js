@@ -18,6 +18,8 @@ var async = require("async");
 var ardsMonitoringService = require("./services/ardsMonitoringService");
 var scheduleWorkerHandler = require("./ScheduleWorkerHandler");
 
+let timeoutID;
+
 var SetProductivityData = function (
   logKey,
   company,
@@ -2681,6 +2683,7 @@ var UpdateSlotStateConnected = function (
   });
 };
 
+
 var UpdateSlotStateCompleted = function (
   logKey,
   company,
@@ -2741,7 +2744,7 @@ var UpdateSlotStateCompleted = function (
           logger.info("GetObjSuccess: " + slotInfokey);
           var timeOut = 10000;
           if (err) {
-            setTimeout(function () {
+            timeoutID = setTimeout(function () {
               logger.info("AfterWorkEnd: " + Date.now());
               UpdateSlotStateAvailable(
                 logKey,
@@ -2756,7 +2759,9 @@ var UpdateSlotStateCompleted = function (
                 function (err, result) {}
               );
             }, timeOut);
+
           } else {
+
             if (slotObjStr) {
               var slotObj = JSON.parse(slotObjStr);
               logger.info("MaxAfterWorkTime: " + slotObj.MaxAfterWorkTime);
@@ -2768,9 +2773,11 @@ var UpdateSlotStateCompleted = function (
                   awTime = 10;
                 }
               }
+
+
               timeOut = awTime * 1000;
               logger.info("New timeout: " + timeOut);
-              setTimeout(function () {
+              timeoutID = setTimeout(function () {
                 logger.info("AfterWorkEnd: " + Date.now());
                 UpdateSlotStateAvailable(
                   logKey,
@@ -2785,8 +2792,10 @@ var UpdateSlotStateCompleted = function (
                   function (err, result) {}
                 );
               }, timeOut);
+
+
             } else {
-              setTimeout(function () {
+              timeoutID = setTimeout(function () {
                 logger.info("AfterWorkEnd: " + Date.now());
                 UpdateSlotStateAvailable(
                   logKey,
@@ -3143,6 +3152,13 @@ var UpdateSlotStateBySessionId = function (
 
                 case "Available":
                   if (reason === "End ACW by Agent") otherInfo = "AfterWork";
+                  logger.info(
+                    "%s ************************* Start clearing acw count down *************************",
+                  );
+                  clearTimeout(timeoutID);
+                  logger.info(
+                    "%s ************************* End clearing acw count down *************************",
+                  );
                   UpdateSlotStateAvailable(
                     logKey,
                     cs.Company,
