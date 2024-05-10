@@ -18,7 +18,6 @@ var async = require("async");
 var ardsMonitoringService = require("./services/ardsMonitoringService");
 var scheduleWorkerHandler = require("./ScheduleWorkerHandler");
 
-let timeoutID;
 
 var SetProductivityData = function (
   logKey,
@@ -2684,6 +2683,43 @@ var UpdateSlotStateConnected = function (
 };
 
 
+var addAcwProcessingKey = function(logKey, company, tenant, resourceId, sessionid){
+
+  var slotInfokey = util.format(
+    "AcwTimeoutKey:%s:%s:%s",
+    company,
+    tenant,
+    resourceId,
+  );
+
+  var statusJson = {
+    status : true,
+    sessionid : sessionid
+  }
+
+  var slotInfoTags1 = [
+    "company_" + company,
+    "tenant_" + tenant,
+    "resourceid_" + resourceId,
+  ];
+  
+  var jsonSlotObj = JSON.stringify(statusJson)
+ 
+  redisHandler.AddObj_V_T(
+    logKey,
+    slotInfokey,
+    jsonSlotObj,
+    slotInfoTags1,
+    function (err, reply, vid) {
+      if (err) {
+        logger.error(err);
+      }
+    }
+  );
+
+}
+
+
 var UpdateSlotStateCompleted = function (
   logKey,
   company,
@@ -2744,20 +2780,42 @@ var UpdateSlotStateCompleted = function (
           logger.info("GetObjSuccess: " + slotInfokey);
           var timeOut = 10000;
           if (err) {
-            timeoutID = setTimeout(function () {
-              logger.info("AfterWorkEnd: " + Date.now());
-              UpdateSlotStateAvailable(
-                logKey,
+
+            addAcwProcessingKey(logKey, company, tenant, resourceid, sessionid);
+
+            setTimeout(function () {
+
+              logger.info("Check Time out Started");
+              var slotInfokey = util.format(
+                "AcwTimeoutKey:%s:%s:%s",
                 company,
                 tenant,
-                handlingType,
                 resourceid,
-                slotid,
-                "",
-                "AfterWork",
-                "Completed",
-                function (err, result) {}
               );
+
+
+              redisHandler.GetObj(logKey, slotInfokey, function (err, record) {
+                // if (record) {
+                  var tempObj = JSON.parse(record);
+                  if (record && tempObj.sessionid == sessionid) {
+                  logger.info("AfterWorkEnd: " + Date.now());
+                  UpdateSlotStateAvailable(
+                    logKey,
+                    company,
+                    tenant,
+                    handlingType,
+                    resourceid,
+                    slotid,
+                    "",
+                    "AfterWork",
+                    "Completed",
+                    function (err, result) {}
+                  );
+                  redisHandler.RemoveObj(logKey, slotInfokey, function (err, result) {
+                    callback(err, result);
+                  })
+                }
+              });
             }, timeOut);
 
           } else {
@@ -2777,38 +2835,84 @@ var UpdateSlotStateCompleted = function (
 
               timeOut = awTime * 1000;
               logger.info("New timeout: " + timeOut);
-              timeoutID = setTimeout(function () {
-                logger.info("AfterWorkEnd: " + Date.now());
-                UpdateSlotStateAvailable(
-                  logKey,
+              addAcwProcessingKey(logKey, company, tenant, resourceid, sessionid);
+
+              setTimeout(function () {
+              logger.info("Check Time out Started");
+              try {
+                
+                var slotInfokey = util.format(
+                  "AcwTimeoutKey:%s:%s:%s",
                   company,
                   tenant,
-                  handlingType,
                   resourceid,
-                  slotid,
-                  "",
-                  "AfterWork",
-                  "Completed",
-                  function (err, result) {}
                 );
+
+                logger.info(slotInfokey);
+
+                redisHandler.GetObj(logKey, slotInfokey, function (err, record) {
+                  logger.info(record)
+                  var tempObj = JSON.parse(record);
+                  if (record && tempObj.sessionid == sessionid) {
+                    logger.info("AfterWorkEnd: " + Date.now());
+                    UpdateSlotStateAvailable(
+                      logKey,
+                      company,
+                      tenant,
+                      handlingType,
+                      resourceid,
+                      slotid,
+                      "",
+                      "AfterWork",
+                      "Completed",
+                      function (err, result) {}
+                    );
+                    redisHandler.RemoveObj(logKey, slotInfokey, function (err, result) {
+                      callback(err, result);
+                    })
+                  }
+                });
+
+              } catch (error) {
+                logger.error(error);
+              }
+
               }, timeOut);
 
 
             } else {
-              timeoutID = setTimeout(function () {
-                logger.info("AfterWorkEnd: " + Date.now());
-                UpdateSlotStateAvailable(
-                  logKey,
+              addAcwProcessingKey(logKey, company, tenant, resourceid, sessionid);
+              setTimeout(function () {
+              logger.info("Check Time out Started");
+                var slotInfokey = util.format(
+                  "AcwTimeoutKey:%s:%s:%s",
                   company,
                   tenant,
-                  handlingType,
                   resourceid,
-                  slotid,
-                  "",
-                  "AfterWork",
-                  "Completed",
-                  function (err, result) {}
                 );
+
+                redisHandler.GetObj(logKey, slotInfokey, function (err, record) {
+                  // if (record) {
+                    var tempObj = JSON.parse(record);
+                    if (record && tempObj.sessionid == sessionid) {
+                    logger.info("AfterWorkEnd: " + Date.now());
+                    UpdateSlotStateAvailable(
+                      logKey,
+                      company,
+                      tenant,
+                      handlingType,
+                      resourceid,
+                      slotid,
+                      "",
+                      "AfterWork",
+                      "Completed",
+                      function (err, result) {}
+                    );
+                    redisHandler.RemoveObj(logKey, slotInfokey, function (err, result) {
+                      callback(err, result);
+                    })
+                  }
+                });
               }, timeOut);
             }
           }
@@ -3152,13 +3256,36 @@ var UpdateSlotStateBySessionId = function (
 
                 case "Available":
                   if (reason === "End ACW by Agent") otherInfo = "AfterWork";
-                  logger.info(
-                    "%s ************************* Start clearing acw count down *************************",
-                  );
-                  clearTimeout(timeoutID);
-                  logger.info(
-                    "%s ************************* End clearing acw count down *************************",
-                  );
+                  try {
+
+                    var slotInfokey = util.format(
+                      "AcwTimeoutKey:%s:%s:%s",
+                      cs.Company,
+                      cs.Tenant,
+                      cs.ResourceId,
+                    );
+
+                    redisHandler.GetObj(logKey, slotInfokey, function (err, record) {
+                      // if (record) {
+                        logger.info("End ACW by Agent")
+                        logger.info(sessionid);
+                        logger.info(record);
+                        var tempObj = JSON.parse(record);
+                        if (record && tempObj.sessionid == sessionid) {
+                        redisHandler.RemoveObj(logKey, slotInfokey, function (err, result) {
+                          callback(err, result);
+                        });
+
+                      }
+
+                    });
+
+                    //  addAcwProcessingKey(logKey, cs.Company, cs.Tenant, cs.ResourceId);
+                    
+                  } catch (error) {
+                    logger.error("Acw add key faild:: " + error);
+                  }
+
                   UpdateSlotStateAvailable(
                     logKey,
                     cs.Company,
