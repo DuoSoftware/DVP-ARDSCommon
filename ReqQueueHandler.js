@@ -10,6 +10,7 @@ var async = require('async');
 var uuidv4 = require('uuid/v4');
 
 
+
 var AddRequestToQueue = function (logKey, request, callback) {
     logger.info('%s ************************* Start AddRequestToQueue *************************', logKey);
 
@@ -20,6 +21,7 @@ var AddRequestToQueue = function (logKey, request, callback) {
         }
         else {
             if (parseInt(result) > 0) {
+        
                 var queuePosition = result;
                 requestHandler.SetRequestState(logKey, request.Company, request.Tenant, request.SessionId, "QUEUED", function (err, result) {
                     logger.info("set Request State QUEUED");
@@ -32,8 +34,14 @@ var AddRequestToQueue = function (logKey, request, callback) {
                 var hashKey = util.format('ProcessingHash:%d:%d:%s', request.Company, request.Tenant, request.RequestType);
                 SetNextProcessingItem(logKey, request.QueueId, hashKey, "CreateHash", function (err, result) {
                     logger.info("Add item to Hash Success");
+                    if (request.QPositionEnable) {
+                        SendQueuePositionInfo(logKey, request.QPositionUrl, request.QueueId, request.CallbackOption, function () {
+                        });
+                    }
                     callback(err, "OK", queuePosition);
                 });
+
+                
 
 
                 //var redLokKey = util.format('lock:%s:%s', hashKey, request.QueueId);
@@ -172,10 +180,17 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, businessUnit, qu
                 dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, businessUnit, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
 
                 var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
+                var queuePositionUrl = util.format('%s:%s/api/ards_position', config.Services.callServerUrl, config.Services.callServerPort);
                 SetNextProcessingItem(logKey, queueId, hashKey, sessionId, function (err, result) {
                     logger.info("Add item to Hash Success");
+                    //if (request.QPositionEnable) {
+                        SendQueuePositionInfo(logKey, queuePositionUrl, queueId, "GET", function () {
+                        });
+                    //}
                     callback(err, result);
                 });
+
+                
                 // var redLokKey = util.format('lock:%s:%s', hashKey, queueId);
                 //
                 // redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
@@ -210,8 +225,13 @@ var RemoveRequestFromQueue = function (logKey, company, tenant, businessUnit, qu
                         dashboardEventHandler.PublishEvent(logKey, tenantInt, companyInt, businessUnit, "ARDS", "QUEUE", "REMOVED", pubQueueId, "", sessionId, eventTime);
 
                         var hashKey = util.format('ProcessingHash:%s:%s:%s', company, tenant, requestType);
+                        var queuePositionUrl = util.format('%s:%s/api/ards_position', config.Services.callServerUrl, config.Services.callServerPort);
                         SetNextProcessingItem(logKey, queueId, hashKey, sessionId, function (err, result) {
                             logger.info("Add item to Hash Success");
+                            //if (request.QPositionEnable) {
+                                SendQueuePositionInfo(logKey, queuePositionUrl, queueId, "GET", function () {
+                                });
+                            //}
                             callback(err, result);
                         });
 
@@ -469,17 +489,17 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                         GetNextItemToProcess(function (nextItem) {
 
                             if (nextItem) {
-                                redisHandler.AddItemToHash(logKey, processingHashId, fieldKey, nextItem, function (err, result) {
+                                redisHandler.AddItemToHash(logKey, processingHashId, queueId, nextItem, function (err, result) {
                                     if (err) {
                                         logger.error('AddItemToHash failed:: ' + err);
                                         callback("Add item to processing hash:: done");
                                     }
                                     else {
                                         if (result === 1 || result === 0) {
-                                            logger.info("Set HashField Success.." + processingHashId + "::" + fieldKey + "::" + nextItem);
+                                            logger.info("Set HashField Success.." + processingHashId + "::" + queueId + "::" + nextItem);
                                         }
                                         else {
-                                            logger.info("Set HashField Failed.." + processingHashId + "::" + fieldKey + "::" + nextItem);
+                                            logger.info("Set HashField Failed.." + processingHashId + "::" + queueId + "::" + nextItem);
                                         }
 
                                         callback("Add item to processing hash:: done");
@@ -496,6 +516,7 @@ var SetNextProcessingItem = function (logKey, queueId, processingHashId, current
                     if (exeCount === processingHashDetail.ItemCount) {
 
                         logger.info('exeCount === processingHashDetail.ItemCount :: Start SetNextItem');
+                        
                         SetNextItem(function (setNextStatus) {
                             lock.unlock()
                                 .catch(function (err) {
@@ -625,6 +646,8 @@ var GetRejectedQueueId = function (queueId) {
 var SendQueuePositionInfo = function (logKey, url, queueId, callbackOption, callback) {
     logger.info('%s:Queue: %s ************************* Start SendQueuePositionInfo *************************', logKey, queueId);
     GetProcessingQueueInfo(logKey, queueId, function (err, processingHashItem) {
+        console.log("ProcessingHashItem :: ")
+        console.log(processingHashItem)
 
         var RequestPositionList = [];
 
@@ -636,18 +659,28 @@ var SendQueuePositionInfo = function (logKey, url, queueId, callbackOption, call
                     logger.error("GetRangeFromList error:: "+err);
                 } else {
                     if (result) {
+                        console.log("RequestPositionList :: result")
+                        console.log(result)
+                        
+                        logger.debug("Before FOREACH Function in ELSE :: ");
                         result.forEach(function (item, i) {
+                            console.log("GetRangeFromList :: item")
+                            console.log(item)
                             if (item) {
-                                var queuePosition = i + 2;
+                                var queuePosition = i + 1;
                                 var requestPosition = {
                                     SessionId: item,
                                     QueueId: queueId,
                                     QueuePosition: queuePosition.toString()
                                 };
+                                console.log("GetRangeFromList :: item")
+                                console.log(i)
                                 RequestPositionList.push(requestPosition);
 
                             }
                         });
+                        console.log("RequestPositionList :: AFTER")
+                        console.log(RequestPositionList)
 
                         if (callbackOption == "GET") {
                             restClientHandler.DoGetDirect(url, RequestPositionList, function (err, res, result) {
@@ -666,9 +699,11 @@ var SendQueuePositionInfo = function (logKey, url, queueId, callbackOption, call
                                 }
                             });
                         }
+                        
                     }
                 }
             });
+
         }
     });
 
@@ -679,12 +714,17 @@ var GetProcessingQueueInfo = function (logKey, queueId, callback) {
     logger.info('%s:Queue: %s ************************* Start SendProcessingQueueInfo *************************', logKey, queueId);
 
     var splitQueueId = queueId.split(":");
+    console.log("splitQueueId :: ")
+    console.log(splitQueueId)
     if (splitQueueId && splitQueueId.length > 5) {
         var hashKey = util.format('ProcessingHash:%s:%s:%s', splitQueueId[1], splitQueueId[2], splitQueueId[4]);
+        console.log("hashKey :: ")
+        console.log(hashKey)
 
         redisHandler.GetHashValue(logKey, hashKey, queueId, function (err, sessionId) {
             if (!err && sessionId) {
                 var positionInfo = {SessionId: sessionId, QueueId: queueId, QueuePosition: "1"};
+                
                 callback(null, positionInfo);
             } else {
                 callback(null, null);
