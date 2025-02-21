@@ -164,7 +164,7 @@ var SetTags = function (logKey, tagKey, objKey, callback) {
                     }
                     else if (reply > 0) {
                         logger.info('%s SetTags Delete old tag success.', logKey);
-                        logger.info('%s SetTags Deleted Keys : .', result);
+                        logger.info('%s SetTags Deleted Keys : ', reply);
 
                         client.set(tagKey, objKey, function (err, reply) {
                             if (err) {
