@@ -162,8 +162,9 @@ var SetTags = function (logKey, tagKey, objKey, callback) {
                         logger.error('%s SetTags Delete old tag - Error: %s', logKey, err);
                         callback(err, null)
                     }
-                    else if (reply === 1) {
+                    else if (reply > 0) {
                         logger.info('%s SetTags Delete old tag success.', logKey);
+                        logger.info('%s SetTags Deleted Keys : .', result);
 
                         client.set(tagKey, objKey, function (err, reply) {
                             if (err) {
