@@ -1666,8 +1666,19 @@ var GetMyChats = function (
   var key = util.format("WhatsappChats:%s:%s:%s", company, tenant, resourceId);
   redisHandler.GetHObj(key, function (err, result) {
     logger.info("%s Finished Get My Whatsapp Chats. Result: %s", result);
-    if (result) {
-      callback(err, JSON.parse(result));
+     if (result) {
+      let data = result;
+      const parsed = {};
+      for (const [key, value] of Object.entries(data)) {
+        try {
+              const inner = JSON.parse(value);         // Step 1: Remove outer quotes
+              parsed[key] = JSON.parse(inner);         // Step 2: Parse actual JSON string
+            } catch (e) {
+              console.error(`Failed to parse key ${key}:`, e.message);
+            }
+          }
+        console.log(parsed);
+      callback(err, parsed);
     } else {
       callback(new Error("No Chats Found"), null);
     }
