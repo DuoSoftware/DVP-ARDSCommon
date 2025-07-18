@@ -667,7 +667,7 @@ var SendQueuePositionInfo = function (logKey, url, queueId, callbackOption, call
                             console.log("GetRangeFromList :: item")
                             console.log(item)
                             if (item) {
-                                var queuePosition = i + 1;
+                                var queuePosition = i + 2;
                                 var requestPosition = {
                                     SessionId: item,
                                     QueueId: queueId,
