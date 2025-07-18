@@ -1653,6 +1653,27 @@ var GetResourceState = function (
   });
 };
 
+var GetMyChats = function (
+  company,
+  tenant,
+  resourceId,
+  callback
+) {
+  logger.info(
+    "%s ************************* Start Get My Whatsapp Chats *************************"
+  );
+
+  var key = util.format("WhatsappChats:%s:%s:%s", company, tenant, resourceId);
+  redisHandler.GetHObj(key, function (err, result) {
+    logger.info("%s Finished Get My Whatsapp Chats. Result: %s", result);
+    if (result) {
+      callback(err, JSON.parse(result));
+    } else {
+      callback(new Error("No Chats Found"), null);
+    }
+  });
+};
+
 var SearchResourcebyTags = function (logKey, tags, callback) {
   logger.info(
     "%s ************************* Start SearchResourcebyTags *************************",
@@ -3488,6 +3509,7 @@ module.exports.RemoveResource = RemoveResource;
 module.exports.RemoveShareResource = RemoveShareResource;
 module.exports.GetResource = GetResource;
 module.exports.GetResourceState = GetResourceState;
+module.exports.GetMyChats = GetMyChats;
 module.exports.SearchResourcebyTags = SearchResourcebyTags;
 
 module.exports.UpdateLastConnectedTime = UpdateLastConnectedTime;

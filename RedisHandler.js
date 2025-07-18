@@ -306,6 +306,23 @@ var GetObj = function (logKey, key, callback) {
 };
 
 
+var GetHObj = function (key, callback) {
+    logger.info('%s -------------------------------------------------- Whatsapp Chats');
+    logger.info('%s GetObj - key: %s', key);
+
+    client.hgetall(key, function (err, result) {
+        if (err) {
+            logger.error('%s GetObj - key: %s :: Error: %s', key, err);
+            callback(err, null);
+        } else {
+            logger.info('%s GetObj - key: %s :: Reply: %s', key, result);
+            callback(null, result);
+        }
+    });
+};
+
+
+
 var MGetObj = function (logKey, keys, callback) {
     logger.info('%s --------------------------------------------------', logKey);
     logger.info('%s MGetObj - key: %s', logKey, keys);
@@ -1267,6 +1284,7 @@ module.exports.AddObj_V_T = AddObj_V_T;
 module.exports.SetObj_V_T = SetObj_V_T;
 module.exports.RemoveObj_V_T = RemoveObj_V_T;
 module.exports.SearchObj_V_T = SearchObj_V_T;
+module.exports.GetHObj = GetHObj;
 
 module.exports.CheckObjExists = CheckObjExists;
 
