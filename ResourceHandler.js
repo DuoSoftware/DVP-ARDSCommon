@@ -1663,7 +1663,7 @@ var GetMyChats = function (
     "%s ************************* Start Get My Whatsapp Chats *************************"
   );
 
-  var key = util.format("WhatsappChats:%s:%s:%s", company, tenant, resourceId);
+  var key = util.format("WhatsappChats:%s:%s:%s",tenant ,company, resourceId);
   redisHandler.GetHObj(key, function (err, result) {
     logger.info("%s Finished Get My Whatsapp Chats. Result: %s", result);
      if (result) {
