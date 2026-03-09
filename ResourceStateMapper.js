@@ -15,13 +15,14 @@ var SetResourceState = function (logKey, company, tenant, bu, resourceId, resour
 
         businessUnit =  bu || businessUnit;
         if(isRequestValid){
-            processState(logKey, StateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, function (err, resultObj) {
+            processState(logKey, StateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, function (err, resultObj ,prevStateObj) {
                 if (err !== null) {
                     logger.error(err);
                     callback(err, undefined);
                 }
                 else {
-
+                    logger.info("State change processed  ,prevStateObj & resultObj",prevStateObj, resultObj);
+                    var  prevStateOb = prevStateOb ? JSON.stringify(prevStateOb) : null;
                     var strObj = JSON.stringify(resultObj);
                     redisHandler.SetObj(logKey, StateKey, strObj, function (err, result) {
                         if (err !== null) {
@@ -29,16 +30,20 @@ var SetResourceState = function (logKey, company, tenant, bu, resourceId, resour
                             callback(err, undefined);
                         }
                         else {
-                            resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", state, reason, {
-                                SessionId: "",
-                                Direction: ""
-                            }, function (err, result, obj) {
-                                if (err) {
-                                    logger.error("AddResourceStatusChangeInfo Failed.", err);
-                                } else {
-                                    logger.info("AddResourceStatusChangeInfo Success.", obj);
-                                }
-                            });
+                            var OnBreak = prevStateObj && prevStateObj.State === "NotAvailable" && prevStateObj.Reason && prevStateObj.Reason.toLowerCase().indexOf('break') > -1;
+                            logger.info("State change info updated in cache successfully, now updating in database if needed.",OnBreak);
+                            if (!OnBreak) {
+                                resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", state, reason, {
+                                    SessionId: "",
+                                    Direction: ""
+                                }, function (err, result, obj) {
+                                    if (err) {
+                                        logger.error("AddResourceStatusChangeInfo Failed.", err);
+                                    } else {
+                                        logger.info("AddResourceStatusChangeInfo Success.", obj);
+                                    }
+                                });
+                            }
                             if (reason && reason.toLowerCase() !== "endbreak" && reason.toLowerCase().indexOf('break') > -1) {
                                 scheduleWorkerHandler.startBreak(company, tenant, resourceName, resourceId, reason, logKey);
                             }
@@ -187,13 +192,19 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
     redisHandler.GetObj(logKey, stateKey, function (err, statusStrObj) {
         if (err) {
             statusObj.Mode = 'Offline';
-            return callback(null, statusObj);
+            return callback(null, statusObj, null);
         } else {
             if (statusStrObj) {
                 var statusObjR = JSON.parse(statusStrObj);
                 statusObj.Mode = statusObjR.Mode;
 
                 if (statusObjR && statusObjR.State === "NotAvailable" && statusObjR.Reason.toLowerCase().indexOf('break') > -1) {
+                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", "Available", "endBreak", {
+                                SessionId: "",
+                                Direction: ""
+                            }, function (err, result, obj) {
+
+                    });
                     var duration = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
                     resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
                         if (err) {
@@ -231,12 +242,12 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                                 }
                             });
 
-                            return callback(null, statusObj);
+                            return callback(null, statusObj, statusObjR);
                         } else {
-                            return callback(null, statusObj);
+                            return callback(null, statusObj, statusObjR);
                         }
                     }else {
-                        return callback(null, statusObj);
+                        return callback(null, statusObj, null);
                     }
                 } else if (reason === "Outbound" || reason === "Inbound" || reason === "Offline") {
 
@@ -247,20 +258,21 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                             SessionId: "",
                             Direction: ""
                         }, function (err, result, obj) {
-                            return callback(null, statusObj);
+                            return callback(null, statusObj, statusObjR);
                         });
                     }else{
                         logger.error("Resource already in same mode.");
-                        return callback(new Error("Resource already in same mode."), statusObj);
+                        return callback(new Error("Resource already in same mode."), statusObj, statusObjR);
                     }
 
 
                 } else {
-                    return callback(null, statusObj);
+                    logger.log("No mode change, just state change statusObjR",statusObjR);
+                    return callback(null, statusObj, statusObjR);
                 }
             } else {
                 statusObj.Mode = 'Offline';
-                return callback(null, statusObj);
+                return callback(null, statusObj,statusObjR);
             }
         }
 
