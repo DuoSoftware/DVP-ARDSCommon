@@ -21,7 +21,7 @@ var SetResourceState = function (logKey, company, tenant, bu, resourceId, resour
                     callback(err, undefined);
                 }
                 else {
-                    logger.info("State change processed successfully ,prevStateObj & resultObj",prevStateObj, resultObj);
+                    logger.info("State change processed  ,prevStateObj & resultObj",prevStateObj, resultObj);
                     var  prevStateOb = prevStateOb ? JSON.stringify(prevStateOb) : null;
                     var strObj = JSON.stringify(resultObj);
                     redisHandler.SetObj(logKey, StateKey, strObj, function (err, result) {
