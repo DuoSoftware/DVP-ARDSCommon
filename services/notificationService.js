@@ -2,7 +2,7 @@
  * Created by Heshan.i on 10/12/2016.
  */
 
-var httpReq = require("request");
+var axios = require("axios");
 var config = require("config");
 var validator = require("validator");
 var util = require("util");
@@ -14,14 +14,14 @@ module.exports.SendNotificationToRoom = function (
   roomName,
   eventName,
   msgData,
-  logKey
+  logKey,
 ) {
   try {
     var notificationUrl = util.format(
       "http://%s/DVP/API/%s/NotificationService/Notification/initiate/%s",
       config.Services.notificationServiceHost,
       config.Services.notificationServiceVersion,
-      roomName
+      roomName,
     );
     if (
       config.Services.dynamicPort ||
@@ -32,45 +32,39 @@ module.exports.SendNotificationToRoom = function (
         config.Services.notificationServiceHost,
         config.Services.notificationServicePort,
         config.Services.notificationServiceVersion,
-        roomName
+        roomName,
       );
     }
     var companyInfo = util.format("%d:%d", tenant, company);
 
     var jsonStr = JSON.stringify(msgData);
     var accessToken = "bearer " + config.Services.accessToken;
-    var options = {
-      url: notificationUrl,
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: accessToken,
-        companyinfo: companyInfo,
-        eventname: eventName,
-      },
-      body: jsonStr,
-    };
 
-    httpReq.post(options, function (error, response, body) {
-      if (
-        !error &&
-        response &&
-        response.statusCode >= 200 &&
-        response.statusCode <= 299
-      ) {
-        logger.debug(
-          "[DVP-ARDSLiteService.SendNotificationToRoom] - [%s] - Send Notification Success : %s",
-          logKey,
-          body
-        );
-      } else {
+    axios
+      .post(notificationUrl, jsonStr, {
+        headers: {
+          "content-type": "application/json",
+          authorization: accessToken,
+          companyinfo: companyInfo,
+          eventname: eventName,
+        },
+      })
+      .then(function (response) {
+        if (response && response.status >= 200 && response.status <= 299) {
+          logger.debug(
+            "[DVP-ARDSLiteService.SendNotificationToRoom] - [%s] - Send Notification Success : %s",
+            logKey,
+            response.data,
+          );
+        }
+      })
+      .catch(function (error) {
         logger.error(
           "[DVP-ARDSLiteService.SendNotificationToRoom] - [%s] - Send Notification Fail",
           logKey,
-          error
+          error.message,
         );
-      }
-    });
+      });
   } catch (ex) {
     logger.error("Do Post: Error:: " + ex);
   }
@@ -82,7 +76,7 @@ var SendNotificationInitiate = function (
   eventuuid,
   payload,
   companyId,
-  tenantId
+  tenantId,
 ) {
   try {
     var nsIp = config.Services.notificationServiceHost;
@@ -93,7 +87,7 @@ var SendNotificationInitiate = function (
     var httpUrl = util.format(
       "http://%s/DVP/API/%s/NotificationService/Notification/initiate",
       nsIp,
-      nsVersion
+      nsVersion,
     );
 
     if (config.Services.dynamicPort || validator.isIP(nsIp)) {
@@ -101,56 +95,49 @@ var SendNotificationInitiate = function (
         "http://%s:%d/DVP/API/%s/NotificationService/Notification/initiate",
         nsIp,
         nsPort,
-        nsVersion
+        nsVersion,
       );
     }
 
     var jsonStr = JSON.stringify(payload);
 
-    var options = {
-      url: httpUrl,
-      method: "POST",
-      headers: {
-        authorization: "bearer " + token,
-        "content-type": "application/json",
-        eventname: eventname,
-        eventuuid: eventuuid,
-        companyinfo: tenantId + ":" + companyId,
-      },
-      body: jsonStr,
-    };
-
     logger.debug(
       "[DVP-ARDSLiteService.SendNotificationByKey] - [%s] - Creating Api Url : %s",
       logKey,
-      httpUrl
+      httpUrl,
     );
 
-    httpReq.post(options, function (error, response, body) {
-      if (
-        !error &&
-        response &&
-        response.statusCode >= 200 &&
-        response.statusCode <= 299
-      ) {
-        logger.debug(
-          "[DVP-ARDSLiteService.SendNotificationByKey] - [%s] - Send Notification Success : %s",
-          logKey,
-          body
-        );
-      } else {
+    axios
+      .post(httpUrl, jsonStr, {
+        headers: {
+          authorization: "bearer " + token,
+          "content-type": "application/json",
+          eventname: eventname,
+          eventuuid: eventuuid,
+          companyinfo: tenantId + ":" + companyId,
+        },
+      })
+      .then(function (response) {
+        if (response && response.status >= 200 && response.status <= 299) {
+          logger.debug(
+            "[DVP-ARDSLiteService.SendNotificationByKey] - [%s] - Send Notification Success : %s",
+            logKey,
+            response.data,
+          );
+        }
+      })
+      .catch(function (error) {
         logger.error(
           "[DVP-ARDSLiteService.SendNotificationByKey] - [%s] - Send Notification Fail",
           logKey,
-          error
+          error.message,
         );
-      }
-    });
+      });
   } catch (ex) {
     logger.error(
       "[DVP-ARDSLiteService.SendNotificationByKey] - [%s] - ERROR Occurred",
       logKey,
-      ex
+      ex,
     );
   }
 };

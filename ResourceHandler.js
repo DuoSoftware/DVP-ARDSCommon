@@ -1,4 +1,4 @@
-﻿var util = require("util");
+var util = require("util");
 var redisHandler = require("./RedisHandler.js");
 var dashboardEventHandler = require("./DashboardEventHandler");
 var EventEmitter = require("events").EventEmitter;
@@ -1902,11 +1902,11 @@ var UpdateSlotStateAvailable = function (
   );
   var redLokKey = util.format("lockM:%s", slotInfokey);
 
-  redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
+  redisHandler.RLock.acquire([redLokKey], 500).then(function (lock) {
     redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
       if (err) {
         logger.error(err);
-        lock.unlock().catch(function (err) {
+        lock.release().catch(function (err) {
           logger.error(err);
         });
         callback(err, false);
@@ -1925,7 +1925,7 @@ var UpdateSlotStateAvailable = function (
           tempObj.FreezeAfterWorkTime === true
         ) {
           logger.info("Reject Available Request:: Completed");
-          lock.unlock().catch(function (err) {
+          lock.release().catch(function (err) {
             logger.error(err);
           });
           callback(new Error("Resource in AfterWork Freeze State"), null);
@@ -1934,7 +1934,7 @@ var UpdateSlotStateAvailable = function (
           tempObj.State === "Reserved"
         ) {
           logger.info("Reject Available Request:: Reserved");
-          lock.unlock().catch(function (err) {
+          lock.release().catch(function (err) {
             logger.error(err);
           });
           callback(new Error("Resource in Reserved State"), null);
@@ -1943,7 +1943,7 @@ var UpdateSlotStateAvailable = function (
           tempObj.State === "Connected"
         ) {
           logger.info("Reject Available Request:: Connected");
-          lock.unlock().catch(function (err) {
+          lock.release().catch(function (err) {
             logger.error(err);
           });
           callback(new Error("Resource in Connected State"), null);
@@ -1952,7 +1952,7 @@ var UpdateSlotStateAvailable = function (
           tempObj.State != "AfterWork"
         ) {
           logger.info("Reject Available Request:: endFreeze");
-          lock.unlock().catch(function (err) {
+          lock.release().catch(function (err) {
             logger.error(err);
           });
           callback(new Error("Resource in Connected State"), null);
@@ -1962,7 +1962,7 @@ var UpdateSlotStateAvailable = function (
             var tagMetaKey = util.format("tagMeta:%s", slotInfokey);
             redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
               if (err) {
-                lock.unlock().catch(function (err) {
+                lock.release().catch(function (err) {
                   logger.error(err);
                 });
                 callback(err, null, null);
@@ -2085,7 +2085,7 @@ var UpdateSlotStateAvailable = function (
                           }
                         );
                       }
-                      lock.unlock().catch(function (err) {
+                      lock.release().catch(function (err) {
                         logger.error(err);
                       });
                       callback(err, reply);
@@ -2093,14 +2093,14 @@ var UpdateSlotStateAvailable = function (
                   );
                 });
               } else {
-                lock.unlock().catch(function (err) {
+                lock.release().catch(function (err) {
                   logger.error(err);
                 });
                 callback(new Error("Update Redis tags failed"), null, null);
               }
             });
           } else {
-            lock.unlock().catch(function (err) {
+            lock.release().catch(function (err) {
               logger.error(err);
             });
             callback(new Error("Slot Already in Available State"), null, null);
@@ -2139,11 +2139,11 @@ var UpdateSlotStateAfterWork = function (
   );
   var redLokKey = util.format("lockM:%s", slotInfokey);
 
-  redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
+  redisHandler.RLock.acquire([redLokKey], 500).then(function (lock) {
     redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
       if (err) {
         logger.error(err);
-        lock.unlock().catch(function (err) {
+        lock.release().catch(function (err) {
           logger.error(err);
         });
         callback(err, false);
@@ -2151,7 +2151,7 @@ var UpdateSlotStateAfterWork = function (
         var tagMetaKey = util.format("tagMeta:%s", slotInfokey);
         redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
           if (err) {
-            lock.unlock().catch(function (err) {
+            lock.release().catch(function (err) {
               logger.error(err);
             });
             callback(err, null);
@@ -2196,7 +2196,7 @@ var UpdateSlotStateAfterWork = function (
                       reply
                     );
                     if (err != null) {
-                      lock.unlock().catch(function (err) {
+                      lock.release().catch(function (err) {
                         logger.error(err);
                       });
                       logger.error(err);
@@ -2294,26 +2294,26 @@ var UpdateSlotStateAfterWork = function (
                         }
                       );
                     }
-                    lock.unlock().catch(function (err) {
+                    lock.release().catch(function (err) {
                       logger.error(err);
                     });
                     callback(err, reply);
                   }
                 );
               } else if (tempObj.State === "AfterWork") {
-                lock.unlock().catch(function (err) {
+                lock.release().catch(function (err) {
                   logger.error(err);
                 });
                 callback(null, "Slot_in_Afterwork_State");
               } else {
-                lock.unlock().catch(function (err) {
+                lock.release().catch(function (err) {
                   logger.error(err);
                 });
                 callback(new Error("Slot in Invalid State"), null);
               }
             });
           } else {
-            lock.unlock().catch(function (err) {
+            lock.release().catch(function (err) {
               logger.error(err);
             });
             callback(new Error("Update Redis tags failed"), null);
@@ -2355,11 +2355,11 @@ var UpdateSlotStateReserved = function (
   );
   var redLokKey = util.format("lockM:%s", slotInfokey);
 
-  redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
+  redisHandler.RLock.acquire([redLokKey], 500).then(function (lock) {
     redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
       if (err) {
         logger.error(err);
-        lock.unlock().catch(function (err) {
+        lock.release().catch(function (err) {
           logger.error(err);
         });
         callback(err, false);
@@ -2367,7 +2367,7 @@ var UpdateSlotStateReserved = function (
         var tagMetaKey = util.format("tagMeta:%s", slotInfokey);
         redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
           if (err) {
-            lock.unlock().catch(function (err) {
+            lock.release().catch(function (err) {
               logger.error(err);
             });
             callback(err, null, null);
@@ -2484,7 +2484,7 @@ var UpdateSlotStateReserved = function (
                       }
                     );
                   }
-                  lock.unlock().catch(function (err) {
+                  lock.release().catch(function (err) {
                     logger.error(err);
                   });
                   callback(err, reply);
@@ -2492,7 +2492,7 @@ var UpdateSlotStateReserved = function (
               );
             });
           } else {
-            lock.unlock().catch(function (err) {
+            lock.release().catch(function (err) {
               logger.error(err);
             });
             callback(new Error("Update Redis tags failed"), null, null);
@@ -2530,11 +2530,11 @@ var UpdateSlotStateConnected = function (
   );
   var redLokKey = util.format("lockM:%s", slotInfokey);
 
-  redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
+  redisHandler.RLock.acquire([redLokKey], 500).then(function (lock) {
     redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
       if (err) {
         logger.error(err);
-        lock.unlock().catch(function (err) {
+        lock.release().catch(function (err) {
           logger.error(err);
         });
         callback(err, false);
@@ -2542,7 +2542,7 @@ var UpdateSlotStateConnected = function (
         var tagMetaKey = util.format("tagMeta:%s", slotInfokey);
         redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
           if (err) {
-            lock.unlock().catch(function (err) {
+            lock.release().catch(function (err) {
               logger.error(err);
             });
             callback(err, null, null);
@@ -2663,7 +2663,7 @@ var UpdateSlotStateConnected = function (
                       }
                     );
                   }
-                  lock.unlock().catch(function (err) {
+                  lock.release().catch(function (err) {
                     logger.error(err);
                   });
                   callback(err, reply);
@@ -2671,7 +2671,7 @@ var UpdateSlotStateConnected = function (
               );
             });
           } else {
-            lock.unlock().catch(function (err) {
+            lock.release().catch(function (err) {
               logger.error(err);
             });
             callback(new Error("Update Redis tags failed"), null, null);
@@ -2950,11 +2950,11 @@ var SetSlotStateFreeze = function (
   );
   var redLokKey = util.format("lockM:%s", slotInfokey);
 
-  redisHandler.RLock.lock(redLokKey, 500).then(function (lock) {
+  redisHandler.RLock.acquire([redLokKey], 500).then(function (lock) {
     redisHandler.GetObj_V(logKey, slotInfokey, function (err, obj, vid) {
       if (err) {
         logger.error(err);
-        lock.unlock().catch(function (err) {
+        lock.release().catch(function (err) {
           logger.error(err);
         });
         callback(err, false);
@@ -2964,7 +2964,7 @@ var SetSlotStateFreeze = function (
           var tagMetaKey = util.format("tagMeta:%s", slotInfokey);
           redisHandler.GetObj(logKey, tagMetaKey, function (err, ceTags) {
             if (err) {
-              lock.unlock().catch(function (err) {
+              lock.release().catch(function (err) {
                 logger.error(err);
               });
               callback(err, null, null);
@@ -3014,7 +3014,7 @@ var SetSlotStateFreeze = function (
                     } catch (ex) {
                       logger.info("scheduleWorkerHandler.startFreeze :: " + ex);
                     }
-                    lock.unlock().catch(function (err) {
+                    lock.release().catch(function (err) {
                       logger.error(err);
                     });
                     callback(err, reply);
@@ -3022,14 +3022,14 @@ var SetSlotStateFreeze = function (
                 );
               });
             } else {
-              lock.unlock().catch(function (err) {
+              lock.release().catch(function (err) {
                 logger.error(err);
               });
               callback(new Error("Update Redis tags failed"), null, null);
             }
           });
         } else {
-          lock.unlock().catch(function (err) {
+          lock.release().catch(function (err) {
             logger.error(err);
           });
           callback(

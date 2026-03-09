@@ -2,7 +2,7 @@
  * Created by Waruna on 6/1/2017.
  */
 
-var request = require("request");
+var axios = require("axios");
 var config = require("config");
 var validator = require("validator");
 var util = require("util");
@@ -33,7 +33,7 @@ function registerCronJob(
   callbackData,
   mainServer,
   time,
-  cb
+  cb,
 ) {
   try {
     if (
@@ -45,7 +45,7 @@ function registerCronJob(
       var cronURL = format(
         "http://{0}/DVP/API/{1}/Cron",
         config.Services.cronurl,
-        config.Services.cronversion
+        config.Services.cronversion,
       );
       if (
         config.Services.dynamicPort ||
@@ -55,7 +55,7 @@ function registerCronJob(
           "http://{0}:{1}/DVP/API/{2}/Cron",
           config.Services.cronurl,
           config.Services.cronport,
-          config.Services.cronversion
+          config.Services.cronversion,
         );
 
       var parsedDate = new Date();
@@ -70,26 +70,24 @@ function registerCronJob(
       };
 
       logger.debug("Calling cron registration service URL %s", cronURL);
-      request(
-        {
-          method: "POST",
-          url: cronURL,
-          headers: {
-            authorization: "bearer " + config.Services.accessToken,
-            companyinfo: format("{0}:{1}", tenant, company),
-          },
-          json: notificationMsg,
+      axios({
+        method: "POST",
+        url: cronURL,
+        headers: {
+          authorization: "bearer " + config.Services.accessToken,
+          companyinfo: format("{0}:{1}", tenant, company),
         },
-        function (_error, _response, datax) {
+        data: notificationMsg,
+      })
+        .then(function (response) {
           try {
             if (
-              !_error &&
-              _response &&
-              _response.statusCode == 200 &&
-              _response.body &&
-              _response.body.IsSuccess
+              response &&
+              response.status == 200 &&
+              response.data &&
+              response.data.IsSuccess
             ) {
-              return cb(true, _response.body.Result);
+              return cb(true, response.data.Result);
             } else {
               logger.error("There is an error in  cron registration for this");
               return cb(false, {});
@@ -97,8 +95,11 @@ function registerCronJob(
           } catch (excep) {
             return cb(false, {});
           }
-        }
-      );
+        })
+        .catch(function (error) {
+          logger.error("There is an error in  cron registration for this");
+          return cb(false, {});
+        });
     }
   } catch (ex) {
     logger.error("registerCronJob - [%s] - ERROR Occurred", reference, ex);
@@ -117,7 +118,7 @@ function stopCronJob(company, tenant, id, cb) {
         "http://{0}/DVP/API/{1}/Cron/Reference/{2}",
         config.Services.cronurl,
         config.Services.cronversion,
-        id
+        id,
       );
       if (
         config.Services.dynamicPort ||
@@ -128,29 +129,27 @@ function stopCronJob(company, tenant, id, cb) {
           config.Services.cronurl,
           config.Services.cronport,
           config.Services.cronversion,
-          id
+          id,
         );
 
       logger.debug("stopCronJob service URL %s", cronURL);
-      request(
-        {
-          method: "DELETE",
-          url: cronURL,
-          headers: {
-            authorization: "bearer " + config.Services.accessToken,
-            companyinfo: format("{0}:{1}", tenant, company),
-          },
+      axios({
+        method: "DELETE",
+        url: cronURL,
+        headers: {
+          authorization: "bearer " + config.Services.accessToken,
+          companyinfo: format("{0}:{1}", tenant, company),
         },
-        function (_error, _response, datax) {
+      })
+        .then(function (response) {
           try {
             if (
-              !_error &&
-              _response &&
-              _response.statusCode == 200 &&
-              _response.body &&
-              _response.body.IsSuccess
+              response &&
+              response.status == 200 &&
+              response.data &&
+              response.data.IsSuccess
             ) {
-              return cb(true, _response.body.Result);
+              return cb(true, response.data.Result);
             } else {
               logger.error("There is an error in  stopCronJob for this");
               return cb(false, {});
@@ -158,8 +157,11 @@ function stopCronJob(company, tenant, id, cb) {
           } catch (excep) {
             return cb(false, {});
           }
-        }
-      );
+        })
+        .catch(function (error) {
+          logger.error("There is an error in  stopCronJob for this");
+          return cb(false, {});
+        });
     }
   } catch (ex) {
     logger.error("startBreak registerCronJob - [%s] - ERROR Occurred", id, ex);
@@ -172,14 +174,14 @@ module.exports.startBreak = function (
   userName,
   resourceId,
   breakType,
-  logKey
+  logKey,
 ) {
   try {
     var mainServer = format(
       "http://{0}/DVP/API/{1}/ARDS/Notification/{2}",
       config.Host.LBIP,
       config.Host.Version,
-      userName
+      userName,
     );
 
     if (config.Services.dynamicPort || validator.isIP(config.Host.LBIP))
@@ -188,7 +190,7 @@ module.exports.startBreak = function (
         config.Host.LBIP,
         config.Host.LBPort,
         config.Host.Version,
-        userName
+        userName,
       );
 
     var callbackData = {
@@ -205,7 +207,7 @@ module.exports.startBreak = function (
       "BreakType:%d:%d:%s",
       tenant,
       company,
-      breakType
+      breakType,
     );
     getBreakThresholdValue(logKey, breakTypeKey)
       .then(function (val) {
@@ -213,7 +215,9 @@ module.exports.startBreak = function (
         if (timeJobject) {
           var time =
             parseInt(
-              timeJobject.MaxDurationPerDay ? timeJobject.MaxDurationPerDay : 10
+              timeJobject.MaxDurationPerDay
+                ? timeJobject.MaxDurationPerDay
+                : 10,
             ) * 60;
           registerCronJob(
             company,
@@ -228,7 +232,7 @@ module.exports.startBreak = function (
               } else {
                 logger.error("failed Create Cron Job. " + userName);
               }
-            }
+            },
           );
         } else {
           logger.info("Break threshold value is not found");
@@ -242,7 +246,7 @@ module.exports.startBreak = function (
     logger.error(
       "startBreak registerCronJob - [%s] - ERROR Occurred",
       logKey,
-      ex
+      ex,
     );
   }
 };
@@ -268,14 +272,14 @@ module.exports.startFreeze = function (
   resourceId,
   time,
   sessionId,
-  logKey
+  logKey,
 ) {
   try {
     var mainServer = format(
       "http://{0}/DVP/API/{1}/ARDS/Notification/{2}",
       config.Host.LBIP,
       config.Host.Version,
-      userName
+      userName,
     );
 
     if (config.Services.dynamicPort || validator.isIP(config.Host.LBIP))
@@ -284,7 +288,7 @@ module.exports.startFreeze = function (
         config.Host.LBIP,
         config.Host.LBPort,
         config.Host.Version,
-        userName
+        userName,
       );
 
     var callbackData = {
@@ -311,13 +315,13 @@ module.exports.startFreeze = function (
         } else {
           logger.error("failed Create Cron Job. " + userName);
         }
-      }
+      },
     );
   } catch (ex) {
     logger.error(
       "startBreak registerCronJob - [%s] - ERROR Occurred",
       logKey,
-      ex
+      ex,
     );
   }
 };
