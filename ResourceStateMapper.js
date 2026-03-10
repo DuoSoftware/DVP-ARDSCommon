@@ -199,7 +199,7 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                 statusObj.Mode = statusObjR.Mode;
 
                 if (statusObjR && statusObjR.State === "NotAvailable" && statusObjR.Reason.toLowerCase().indexOf('break') > -1) {
-                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", "Available", "endBreak", {
+                    resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", "Available", "EndBreak", {
                                 SessionId: "",
                                 Direction: ""
                             }, function (err, result, obj) {
