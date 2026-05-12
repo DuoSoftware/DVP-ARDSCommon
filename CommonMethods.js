@@ -193,6 +193,7 @@ var RemoveItemFromObjectArray = function(array, field, value) {
 };
 
 var FilterByID = function(array,field, value) {
+    if (!Array.isArray(array)) return null;
     for (var i=array.length-1; i>=0; i--) {
         if (array[i].hasOwnProperty(field)) {
             if (array[i][field] == value) {

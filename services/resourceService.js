@@ -42,7 +42,7 @@ var GetAttributeGroupWithDetails = function (
       obj
     ) {
       logger.info("GetAttributeGroupWithDetails Result:: ", obj);
-      if (res && res.statusCode == 200) {
+      if (res && res.status == 200) {
         callback(err, res, obj);
       } else {
         callback(new Error(obj), res, obj);
@@ -77,7 +77,7 @@ var GetResourceDetails = function (accessToken, resourceId, callback) {
       obj
     ) {
       logger.info("GetResourceDetails Result:: ", obj);
-      if (res && res.statusCode == 200) {
+      if (res && res.status == 200) {
         callback(err, res, obj);
       } else {
         callback(new Error(obj), res, obj);
@@ -112,7 +112,7 @@ var GetResourceTaskDetails = function (accessToken, resourceId, callback) {
       obj
     ) {
       logger.info("GetResourceTaskDetails Result:: ", obj);
-      if (res && res.statusCode == 200) {
+      if (res && res.status == 200) {
         callback(err, res, obj);
       } else {
         callback(new Error(obj), res, obj);
@@ -147,7 +147,7 @@ var GetResourceAttributeDetails = function (accessToken, taskInfo, callback) {
       obj
     ) {
       logger.info("GetResourceAttributeDetails Result:: ", obj);
-      if (res && res.statusCode == 200) {
+      if (res && res.status == 200) {
         callback(err, res, obj, taskInfo);
       } else {
         callback(new Error(obj), res, obj, taskInfo);
@@ -328,7 +328,7 @@ var AddResourceStatusDurationInfo = function (
       if (err) {
         callback(err, undefined);
       } else {
-        if (res1 && res1.statusCode === 200) {
+        if (res1 && res1.status === 200) {
           callback(undefined, JSON.parse(result));
         } else {
           callback(new Error(result), undefined);
@@ -385,7 +385,7 @@ var AddResourceTaskRejectInfo = function (
       if (err) {
         callback(err, undefined);
       } else {
-        if (res1 && res1.statusCode === 200) {
+        if (res1 && res1.status === 200) {
           callback(undefined, JSON.parse(result));
         } else {
           callback(new Error(result), undefined);
@@ -515,7 +515,7 @@ var AddQueueSetting = function (
       if (err) {
         callback(err, undefined);
       } else {
-        if (res1 && res1.statusCode === 200) {
+        if (res1 && res1.status === 200) {
           callback(undefined, JSON.parse(result));
         } else {
           callback(new Error(result), undefined);

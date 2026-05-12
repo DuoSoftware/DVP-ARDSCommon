@@ -1482,29 +1482,58 @@ var SetResource = function (logKey, company, tenant, basicObj, callback) {
           OtherInfo: basicObj.OtherInfo ? basicObj.OtherInfo : obj.OtherInfo,
         };
 
-        var checkExist = undefined;
-        resourceObj.ResourceAttributeInfo.forEach(function (
-          resAttInfo,
-          resAttIndex
+        // Normalize current attributes and payload variants:
+        // - legacy: basicObj.ResourceAttributeInfo (object/array)
+        // - current: basicObj.Attributes (array of ids)
+        var existingResourceAttributes = Array.isArray(
+          resourceObj.ResourceAttributeInfo
+        )
+          ? resourceObj.ResourceAttributeInfo.filter(function (item) {
+              return item && item.Attribute != null;
+            })
+          : [];
+
+        var incomingResourceAttributes = [];
+
+        if (Array.isArray(basicObj.Attributes)) {
+          basicObj.Attributes.forEach(function (attr) {
+            if (attr != null) {
+              incomingResourceAttributes.push({
+                Attribute: attr.toString(),
+              });
+            }
+          });
+        }
+
+        if (Array.isArray(basicObj.ResourceAttributeInfo)) {
+          basicObj.ResourceAttributeInfo.forEach(function (attrInfo) {
+            if (attrInfo && attrInfo.Attribute != null) {
+              incomingResourceAttributes.push(attrInfo);
+            }
+          });
+        } else if (
+          basicObj.ResourceAttributeInfo &&
+          basicObj.ResourceAttributeInfo.Attribute != null
         ) {
-          if (
-            resAttInfo.Attribute === basicObj.ResourceAttributeInfo.Attribute
-          ) {
-            checkExist = resAttIndex;
+          incomingResourceAttributes.push(basicObj.ResourceAttributeInfo);
+        }
+
+        incomingResourceAttributes.forEach(function (newAttrInfo) {
+          var checkExist = -1;
+          existingResourceAttributes.forEach(function (resAttInfo, resAttIndex) {
+            if (resAttInfo.Attribute == newAttrInfo.Attribute) {
+              checkExist = resAttIndex;
+            }
+          });
+
+          if (checkExist > -1) {
+            existingResourceAttributes[checkExist] = newAttrInfo;
+          } else {
+            existingResourceAttributes.push(newAttrInfo);
           }
         });
 
-        //var checkExist = resourceObj.ResourceAttributeInfo.indexOf(basicObj.ResourceAttributeInfo);
-        if (checkExist > -1) {
-          resourceObj.ResourceAttributeInfo[checkExist] =
-            basicObj.ResourceAttributeInfo;
-        } else {
-          //resourceObj.ResourceAttributeInfo[checkExist] = basicObj.ResourceAttributeInfo;
-
-          resourceObj.ResourceAttributeInfo.push(
-            basicObj.ResourceAttributeInfo
-          );
-        }
+        resourceObj.ResourceAttributeInfo = existingResourceAttributes;
 
         var defaultTags = [
           "company_" + resourceObj.Company,
@@ -1533,7 +1562,9 @@ var SetResource = function (logKey, company, tenant, basicObj, callback) {
 
           var tempAttributeList = [];
           resourceObj.ResourceAttributeInfo.forEach(function (resAttrInfo) {
-            tempAttributeList.push(resAttrInfo.Attribute);
+            if (resAttrInfo && resAttrInfo.Attribute != null) {
+              tempAttributeList.push(resAttrInfo.Attribute);
+            }
           });
 
           var sortedAttributes = sortArray.sortData(tempAttributeList);

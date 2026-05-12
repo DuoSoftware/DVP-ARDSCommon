@@ -34,7 +34,7 @@ var SetAttributeJunctionInfo = function (attributeMetaObj, attributes, callback)
     attributeMetaObj.setArdsAttributeInfo(null).then(function (result) {
         var saji = IterateData(attributes);
         saji.on('continueIterateData', function (obj) {
-            dbConn.ArdsAttributeInfo.find({ where: [{ Tenant: attributeMetaObj.Tenant }, { Company: attributeMetaObj.Company }, { Attribute: obj }] }).then(function (results) {
+            dbConn.ArdsAttributeInfo.findOne({ where: [{ Tenant: attributeMetaObj.Tenant }, { Company: attributeMetaObj.Company }, { Attribute: obj }] }).then(function (results) {
                 if (results) {
                     results.addArdsAttributeMetaData(attributeMetaObj).then(function (result) {
 
@@ -42,7 +42,7 @@ var SetAttributeJunctionInfo = function (attributeMetaObj, attributes, callback)
 
                     });
                 }
-            }).error(function (err) {
+            }).catch(function (err) {
                 //callback(err, "Failed");
             });
         });
@@ -73,7 +73,7 @@ var SetAttributeMetaData = function (company, tenant, reqMetaId, atrributeMetaIn
 
                 SetAttributeJunctionInfo(results, obj.AttributeCode, function () { });
                 //callback(null, "OK");
-            }).error(function (err) {
+            }).catch(function (err) {
                 callback(err, "Failed");
             });
     });
@@ -86,9 +86,9 @@ var UpdateAttributeMetaData = function (company, tenant, reqMetaId, atrributeMet
     var sam = IterateData(atrributeMetaInfo);
     sam.on('continueIterateData', function (obj) {
 
-        dbConn.ArdsAttributeMetaData.find({ where: [{ RequestMetadataId: reqMetaId }] }).then(function (results) {
+        dbConn.ArdsAttributeMetaData.findOne({ where: [{ RequestMetadataId: reqMetaId }] }).then(function (results) {
             if (results) {
-                results.updateAttributes({
+                results.update({
                     Tenant: tenant,
                     Company: company,
                     AttributeClass: obj.AttributeClass,
@@ -99,11 +99,11 @@ var UpdateAttributeMetaData = function (company, tenant, reqMetaId, atrributeMet
 
                     SetAttributeJunctionInfo(results, obj.AttributeCode, function () { });
                     //callback(null, "OK");
-                }).error(function (err) {
+                }).catch(function (err) {
                     callback(err, "Failed");
                 });
             }
-        }).error(function (err) {
+        }).catch(function (err) {
             callback(err, "Failed");
         });
     });
@@ -133,13 +133,14 @@ var SetAttributeGroupInfo = function (accessToken,groupIds) {
                                 var attDetailList = [];
                                 for (var j in data.ResAttributeGroups) {
                                     var attInfo = data.ResAttributeGroups[j];
+                                    if (attInfo.AttributeId == null || attInfo.ResAttribute == null) continue;
                                     attIdList.push(attInfo.AttributeId.toString());
                                     attDetailList.push({Id:attInfo.AttributeId.toString(), Name:attInfo.ResAttribute.Attribute});
                                 }
                                 var tmpGroupInfo = {
                                     AttributeGroupName: data.GroupName,
                                     HandlingType: data.GroupType,
-                                    WeightPrecentage: data.Percentage.toString(),
+                                    WeightPrecentage: data.Percentage != null ? data.Percentage.toString() : "0",
                                     AttributeCode: attIdList,
                                     AttributeDetails: attDetailList
                                 };
@@ -208,7 +209,7 @@ var AddMeataData = function (logKey, metaDataObj, callback) {
                                 }
                             ).then(function (results) {
                                     callback(null, "OK");
-                                }).error(function (err) {
+                                }).catch(function (err) {
                                     if(err.name == "SequelizeUniqueConstraintError"){
                                         callback(null, "OK");
                                     }else {
@@ -259,9 +260,9 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
         redisHandler.SetObj_T(logKey, key, obj, tag, function (err, result) {
             logger.info('%s Finished SetMeataData. Result: %s', logKey, result);
 
-            dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (results) {
+            dbConn.ArdsRequestMetaData.findOne({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (results) {
                 if (results) {
-                    results.updateAttributes({
+                    results.update({
                         AttributeGroups: JSON.stringify(metaDataObj.AttributeGroups),
                         ServingAlgo: metaDataObj.ServingAlgo,
                         HandlingAlgo: metaDataObj.HandlingAlgo,
@@ -274,11 +275,13 @@ var SetMeataData = function (logKey, metaDataObj, callback) {
                         MaxFreezeTime: metaDataObj.MaxFreezeTime
                     }).then(function (results) {
                         callback(null, "OK");
-                    }).error(function (err) {
+                    }).catch(function (err) {
                         callback(err, "Failed");
                     });
+                } else {
+                    callback(new Error("Metadata Not Exsist."), "Failed");
                 }
-            }).error(function (err) {
+            }).catch(function (err) {
                 callback(err, "Failed");
             });
 
@@ -296,7 +299,7 @@ var GetMeataData = function (logKey, company, tenant, serverType, requestType, c
             logger.info('%s Finished GetMetaData. Result: %s', logKey, result);
             callback(undefined, result);
         }else{
-            dbConn.ArdsRequestMetaData.find({
+            dbConn.ArdsRequestMetaData.findOne({
                 where: [{ Tenant: tenant }, { Company: company }, { ServerType: serverType }, { RequestType: requestType }]
             }).then(function (reqMeta) {
                 if (reqMeta) {
@@ -319,7 +322,7 @@ var GetMeataData = function (logKey, company, tenant, serverType, requestType, c
                 }else{
                     callback(undefined, undefined);
                 }
-            }).error(function (err) {
+            }).catch(function (err) {
                 logger.error('%s Error in GetMetaData. Error: %s', logKey, err);
                 callback(err, undefined);
             });
@@ -359,7 +362,7 @@ var RemoveMeataData = function (logKey, company, tenant, serverType, requestType
             var tag = ["company_" + metaDataObj.Company, "tenant_" + metaDataObj.Tenant, "serverType_" + metaDataObj.ServerType, "requestType_" + metaDataObj.RequestType, "objtype_ReqMETA"];
 
             redisHandler.RemoveObj_T(logKey, key, tag, function (err, result) {
-                dbConn.ArdsRequestMetaData.find({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (reqMeta) {
+                dbConn.ArdsRequestMetaData.findOne({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (reqMeta) {
                     if (reqMeta) {
                         reqMeta.destroy({ where: [{ Tenant: metaDataObj.Tenant }, { Company: metaDataObj.Company }, { ServerType: metaDataObj.ServerType }, { RequestType: metaDataObj.RequestType }] }).then(function (results) {
                             if (results) {
@@ -367,11 +370,11 @@ var RemoveMeataData = function (logKey, company, tenant, serverType, requestType
                                 logger.info('%s Finished RemoveMeataData. Result: %s', logKey, result);
                                 callback(err, result);
                             }
-                        }).error(function (err) {
+                        }).catch(function (err) {
                             callback(err, "Failed");
                         });
                     }
-                }).error(function (err) {
+                }).catch(function (err) {
                     callback(err, "Failed");
                 });
 
@@ -381,7 +384,7 @@ var RemoveMeataData = function (logKey, company, tenant, serverType, requestType
 };
 
 var ReloadMetaData = function (company, tenant, serverType, requestType) {
-    dbConn.ArdsRequestMetaData.find({
+    dbConn.ArdsRequestMetaData.findOne({
         where: [{ Tenant: tenant }, { Company: company }, { ServerType: serverType }, { RequestType: requestType }]
     }).then(function (reqMeta) {
         if (reqMeta) {
@@ -400,7 +403,7 @@ var ReloadMetaData = function (company, tenant, serverType, requestType) {
                 return metaDataObj;
             });
         }
-    }).error(function (err) {
+    }).catch(function (err) {
         return null;
     });
 };

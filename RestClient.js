@@ -30,12 +30,16 @@ var DoGet = function (url, params, internalAccessToken, callback) {
         callback(null, response, response.data);
       })
       .catch(function (error) {
-        logger.error("upload failed:", error.message);
-        callback(
-          error,
-          error.response,
-          error.response ? error.response.data : undefined,
-        );
+        if (error.isAxiosError || error.response) {
+          logger.error("upload failed:", error.message);
+          callback(
+            error,
+            error.response,
+            error.response ? error.response.data : undefined,
+          );
+        } else {
+          logger.error("Callback error in DoGet:", error.message);
+        }
       });
   } catch (ex) {
     callback(ex, undefined, undefined);
