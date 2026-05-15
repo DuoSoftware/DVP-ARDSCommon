@@ -9,7 +9,7 @@
     "axios": "^1.6.0",
     "config": "^3.3.3",
     "deepcopy": "^0.6.1",
-    "dvp-common": "2.0.0",
+    "dvp-common": "2.0.1",
     "dvp-dbmodels": "5.0.0",
     "ioredis": "^5.3.2",
     "moment": "^2.18.1",
