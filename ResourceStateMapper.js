@@ -37,10 +37,11 @@ var SetResourceState = function (logKey, company, tenant, bu, resourceId, resour
                             var OnBreak = prevStateObj && prevStateObj.State === "NotAvailable" && prevStateObj.Reason && prevStateObj.Reason.toLowerCase().indexOf('break') > -1;
                             logger.info("State change info updated in cache successfully, now updating in database if needed.",OnBreak);
                             if (!OnBreak) {
+                                console.log("wwwwww",createdAt);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", state, reason, {
                                     SessionId: "",
                                     Direction: ""
-                                }, function (err, result, obj) {
+                                }, createdAt, function (err, result, obj) {
                                     if (err) {
                                         logger.error("AddResourceStatusChangeInfo Failed.", err);
                                     } else {
