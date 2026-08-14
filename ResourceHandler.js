@@ -1067,7 +1067,7 @@ var RemoveResource = function (logKey, company, tenant, data, callback) {
             resourceObj.UserName,
             "NotAvailable",
             "UnRegister",
-            createdAt,
+            data,
             function (err, result) {
               redisHandler.RemoveObj_V_T(logKey, key, tag, function (
                 err,
