@@ -166,8 +166,23 @@ var AddResourceStatusChangeInfo = function (
   status,
   reason,
   otherData,
+  createdAt,
   callback
 ) {
+  if (typeof createdAt === "function") {
+    callback = createdAt;
+    createdAt = undefined;
+  }
+  logger.info(
+    "AddResourceStatusChangeInfo :: Start :: resourceId: %s, businessUnit: %s, statusType: %s, status: %s, reason: %s, createdAt: %s",
+    resourceId,
+    businessUnit,
+    statusType,
+    status,
+    reason,
+    createdAt
+  );
+  console.log("createdAt",createdAt);
   var splitData = accessToken.split(":");
   var param2 = deepcopy(reason);
   var dashBoardReason = deepcopy(reason);
@@ -180,7 +195,10 @@ var AddResourceStatusChangeInfo = function (
     Reason: reason,
     OtherData: pOtherData,
   };
-
+  if (createdAt) {
+    jObject.CreatedAt = createdAt;
+  }
+  console.log("jObject",jObject);
   if (
     status.toLowerCase() === "connected" ||
     (status.toLowerCase() === "completed" &&
@@ -275,6 +293,19 @@ var AddResourceStatusChangeInfo = function (
     res,
     obj
   ) {
+    if (err) {
+      logger.error(
+        "AddResourceStatusChangeInfo :: End :: Error :: resourceId: %s :: %s",
+        resourceId,
+        err
+      );
+    } else {
+      logger.info(
+        "AddResourceStatusChangeInfo :: End :: Success :: resourceId: %s, result: %j",
+        resourceId,
+        obj
+      );
+    }
     callback(err, res, obj);
   });
 };

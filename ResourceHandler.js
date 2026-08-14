@@ -1007,12 +1007,15 @@ var ShareResource = function (logKey, basicData, callback) {
   });
 };
 
-var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
+var RemoveResource = function (logKey, company, tenant, data, callback) {
   logger.info(
     "%s ************************* Start RemoveResource *************************",
     logKey
   );
 
+  var resourceId = (data && typeof data === "object") ? data["resourceid"] : data.resourceid;
+  var createdAt = (data && typeof data === "object") ? data["CreatedAt"] : undefined;
+  console.log("data",data);
   var key = util.format("Resource:%s:%s:%s", company, tenant, resourceId);
   redisHandler.GetObj(logKey, key, function (err, obj) {
     if (err) {
@@ -1064,6 +1067,7 @@ var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
             resourceObj.UserName,
             "NotAvailable",
             "UnRegister",
+            createdAt,
             function (err, result) {
               redisHandler.RemoveObj_V_T(logKey, key, tag, function (
                 err,

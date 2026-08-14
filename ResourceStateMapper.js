@@ -5,7 +5,11 @@ var resourceService = require('./services/resourceService');
 var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
 var moment = require('moment');
 
-var SetResourceState = function (logKey, company, tenant, bu, resourceId, resourceName, state, reason, callback) {
+var SetResourceState = function (logKey, company, tenant, bu, resourceId, resourceName, state, reason, createdAt, callback) {
+    if (typeof createdAt === "function") {
+        callback = createdAt;
+        createdAt = undefined;
+    }
     logger.info('%s ************************* Start SetResourceState *************************', logKey);
 
     var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
@@ -15,7 +19,7 @@ var SetResourceState = function (logKey, company, tenant, bu, resourceId, resour
 
         businessUnit =  bu || businessUnit;
         if(isRequestValid){
-            processState(logKey, StateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, function (err, resultObj ,prevStateObj) {
+            processState(logKey, StateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, createdAt, function (err, resultObj ,prevStateObj) {
                 if (err !== null) {
                     logger.error(err);
                     callback(err, undefined);
@@ -185,10 +189,13 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
 
 };
 
-var processState = function (logKey, stateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, callback) {
+var processState = function (logKey, stateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, createdAt, callback) {
 
     var date = new Date();
     var statusObj = {ResourceName: resourceName, State: state, Reason: reason, StateChangeTime: date.toISOString()};
+    if (createdAt) {
+        statusObj.CreatedAt = createdAt;
+    }
     redisHandler.GetObj(logKey, stateKey, function (err, statusStrObj) {
         if (err) {
             statusObj.Mode = 'Offline';
@@ -222,7 +229,7 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                         resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, "end" + statusObjR.Mode, {
                             SessionId: "",
                             Direction: ""
-                        }, function (err, result, obj) {
+                        }, createdAt, function (err, result, obj) {
 
                         });
 
@@ -230,7 +237,7 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                             resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", "Available", "endBreak", {
                                 SessionId: "",
                                 Direction: ""
-                            }, function (err, result, obj) {
+                            }, createdAt, function (err, result, obj) {
 
                             });
                             var duration1 = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
