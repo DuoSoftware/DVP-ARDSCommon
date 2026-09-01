@@ -217,14 +217,37 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                             }, function (err, result, obj) {
 
                     });
-                    var duration = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
-                    resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
-                        if (err) {
-                            logger.error("AddResourceStatusDurationInfo Failed.", err);
-                        } else {
-                            logger.info("AddResourceStatusDurationInfo Success.");
+                     var breakDurationKey = util.format('BreakDurationRecorded:%s', stateKey);
+                    logger.info("log key",logKey);
+                    logger.info("breakDurationkey",breakDurationKey);
+                    logger.info("stat key",stateKey);
+                    redisHandler.GetObj(logKey, breakDurationKey, function (durErr, lastRecordedStart) {
+                        var alreadyRecorded = !durErr && lastRecordedStart === statusObjR.StateChangeTime;
+                       // var isNoOpModeChange = (reason === "Outbound" || reason === "Inbound" || reason === "Offline") && statusObjR.Mode === reason;
+                        console.log("alreadyRecorded",alreadyRecorded);
+                        if ( !alreadyRecorded) {
+                            var duration = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
+                            logger.info("statusObj.StateChangeTime",statusObj.StateChangeTime);
+                            logger.info("statusObjR.StateChangeTime",statusObjR.StateChangeTime);
+                            logger.info("duration",duration);
+                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
+                                if (err) {
+                                    logger.error("AddResourceStatusDurationInfo Failed.", err);
+                                } else {
+                                    logger.info("AddResourceStatusDurationInfo Success.");
+                                }
+                            });
+                            redisHandler.SetObj(logKey, breakDurationKey, statusObjR.StateChangeTime, function () {});
                         }
                     });
+                    // var duration = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
+                    // resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
+                    //     if (err) {
+                    //         logger.error("AddResourceStatusDurationInfo Failed.", err);
+                    //     } else {
+                    //         logger.info("AddResourceStatusDurationInfo Success.");
+                    //     }
+                    // });
                 }
 
                 if (state === "NotAvailable" && reason === "UnRegister") {
@@ -262,7 +285,6 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                         return callback(null, statusObj, null);
                     }
                 } else if (reason === "Outbound" || reason === "Inbound" || reason === "Offline") {
-                    
                     logger.info("statusObjR.Reason",statusObjR.Reason);
                     logger.info("reason",reason);
                     logger.info("statusObjR.State",statusObjR.State);
