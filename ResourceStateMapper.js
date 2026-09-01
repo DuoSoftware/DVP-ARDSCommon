@@ -262,16 +262,34 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                         return callback(null, statusObj, null);
                     }
                 } else if (reason === "Outbound" || reason === "Inbound" || reason === "Offline") {
-
-                    if(statusObj.Mode !== reason) {
+                    
+                    logger.info("statusObjR.Reason",statusObjR.Reason);
+                    logger.info("reason",reason);
+                    logger.info("statusObjR.State",statusObjR.State);
+                    logger.info("state",state);
+                    var stateAlsoUnchanged = statusObjR.State === state && statusObjR.Reason === reason;
+                    logger.info("statusObj.Mode",statusObj.Mode);
+                    logger.info("reason",reason);
+                    logger.info("stateAlsoUnchanged",stateAlsoUnchanged);
+                    if(statusObj.Mode !== reason || !stateAlsoUnchanged) {
                         statusObj.Mode = reason;
-
+                        console.log("statusObj.Mode287",statusObj.Mode);
+                        logger.info("statusObj.Mode287",statusObj.Mode);
                         resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, "end" + statusObjR.Mode, {
                             SessionId: "",
                             Direction: ""
                         }, function (err, result, obj) {
                             return callback(null, statusObj, statusObjR);
                         });
+                    // if(statusObj.Mode !== reason) {
+                    //     statusObj.Mode = reason;
+
+                    //     resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, "end" + statusObjR.Mode, {
+                    //         SessionId: "",
+                    //         Direction: ""
+                    //     }, function (err, result, obj) {
+                    //         return callback(null, statusObj, statusObjR);
+                    //     });
                     }else{
                         logger.error("Resource already in same mode.");
                         return callback(new Error("Resource already in same mode."), statusObj, statusObjR);
