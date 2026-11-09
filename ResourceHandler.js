@@ -1007,12 +1007,15 @@ var ShareResource = function (logKey, basicData, callback) {
   });
 };
 
-var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
+var RemoveResource = function (logKey, company, tenant, data, callback) {
   logger.info(
     "%s ************************* Start RemoveResource *************************",
     logKey
   );
 
+  var resourceId = (data && typeof data === "object") ? data["resourceid"] : data.resourceid;
+  var createdAt = (data && typeof data === "object") ? data["CreatedAt"] : undefined;
+  console.log("data",data);
   var key = util.format("Resource:%s:%s:%s", company, tenant, resourceId);
   redisHandler.GetObj(logKey, key, function (err, obj) {
     if (err) {
@@ -1064,6 +1067,7 @@ var RemoveResource = function (logKey, company, tenant, resourceId, callback) {
             resourceObj.UserName,
             "NotAvailable",
             "UnRegister",
+            data,
             function (err, result) {
               redisHandler.RemoveObj_V_T(logKey, key, tag, function (
                 err,
@@ -1384,18 +1388,49 @@ var RemoveShareResource = function (
                     if (
                       resourceObj.LoginTasks &&
                       resourceObj.LoginTasks.length === 0
-                    ) {
-                      resourceStateMapper.SetResourceState(
-                        logKey,
+                    )  {
+                      var resourceStateKey = util.format(
+                        "ResourceState:%d:%d:%s",
                         resourceObj.Company,
                         resourceObj.Tenant,
-                        resourceObj.BusinessUnit,
-                        resourceObj.ResourceId,
-                        resourceObj.UserName,
-                        "Available",
-                        "Offline",
-                        function (err, result) {}
+                        resourceObj.ResourceId
                       );
+                      logger.info("resourceStateKey",resourceStateKey);
+                      redisHandler.GetObj(logKey, resourceStateKey, function (
+                        stateErr,
+                        stateStr
+                      ) {
+                        var currentState = null;
+                        if (!stateErr && stateStr) {
+                          try {
+                            currentState = JSON.parse(stateStr);
+                          } catch (e) {}
+                        }
+                        var onBreak =
+                          currentState &&
+                          currentState.State === "NotAvailable" &&
+                          currentState.Reason &&
+                          currentState.Reason.toLowerCase().indexOf("break") > -1;
+                        logger.log("onBreak",onBreak);
+                        if (onBreak) {
+                          logger.info(
+                            "%s Resource is on break, skipping forced Available on last task removal",
+                            logKey
+                          );
+                        } else {
+                          resourceStateMapper.SetResourceState(
+                            logKey,
+                            resourceObj.Company,
+                            resourceObj.Tenant,
+                            resourceObj.BusinessUnit,
+                            resourceObj.ResourceId,
+                            resourceObj.UserName,
+                            "Available",
+                            "Offline",
+                            function (err, result) {}
+                          );
+                        }
+                      });
                     } else {
                       var pubAdditionalParams = util.format(
                         "resourceName=%s&statusType=%s&task=%s",

@@ -5,7 +5,15 @@ var resourceService = require('./services/resourceService');
 var scheduleWorkerHandler = require('./ScheduleWorkerHandler');
 var moment = require('moment');
 
-var SetResourceState = function (logKey, company, tenant, bu, resourceId, resourceName, state, reason, callback) {
+var SetResourceState = function (logKey, company, tenant, bu, resourceId, resourceName, state, reason, data, callback) {
+    if (typeof data === "function") {
+        callback = data;
+        data = undefined;
+    }
+    console.log("data 12 ResourcestateMap",data);
+    var createdAt = (data && typeof data === "object") ? data.CreatedAt : undefined;
+    var source = (data && typeof data === "object") ? data.source : undefined;
+
     logger.info('%s ************************* Start SetResourceState *************************', logKey);
 
     var StateKey = util.format('ResourceState:%d:%d:%s', company, tenant, resourceId);
@@ -15,7 +23,7 @@ var SetResourceState = function (logKey, company, tenant, bu, resourceId, resour
 
         businessUnit =  bu || businessUnit;
         if(isRequestValid){
-            processState(logKey, StateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, function (err, resultObj ,prevStateObj) {
+            processState(logKey, StateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason,  function (err, resultObj ,prevStateObj) {
                 if (err !== null) {
                     logger.error(err);
                     callback(err, undefined);
@@ -33,10 +41,14 @@ var SetResourceState = function (logKey, company, tenant, bu, resourceId, resour
                             var OnBreak = prevStateObj && prevStateObj.State === "NotAvailable" && prevStateObj.Reason && prevStateObj.Reason.toLowerCase().indexOf('break') > -1;
                             logger.info("State change info updated in cache successfully, now updating in database if needed.",OnBreak);
                             if (!OnBreak) {
+                                console.log("44 createdat",createdAt);
+                                console.log("45 source",source);
+                                var effectiveCreatedAt = (source === 'forcedLogoffById') ? createdAt : undefined;
+                                console.log("createdAt test",effectiveCreatedAt);
                                 resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", state, reason, {
                                     SessionId: "",
                                     Direction: ""
-                                }, function (err, result, obj) {
+                                }, effectiveCreatedAt, function (err, result, obj) {
                                     if (err) {
                                         logger.error("AddResourceStatusChangeInfo Failed.", err);
                                     } else {
@@ -185,7 +197,7 @@ var validateState = function (logKey, tenant, company, resourceId, reason, callb
 
 };
 
-var processState = function (logKey, stateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason, callback) {
+var processState = function (logKey, stateKey, internalAccessToken, businessUnit, resourceId, resourceName, state, reason,  callback) {
 
     var date = new Date();
     var statusObj = {ResourceName: resourceName, State: state, Reason: reason, StateChangeTime: date.toISOString()};
@@ -205,14 +217,37 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                             }, function (err, result, obj) {
 
                     });
-                    var duration = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
-                    resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
-                        if (err) {
-                            logger.error("AddResourceStatusDurationInfo Failed.", err);
-                        } else {
-                            logger.info("AddResourceStatusDurationInfo Success.");
+                     var breakDurationKey = util.format('BreakDurationRecorded:%s', stateKey);
+                    logger.info("log key",logKey);
+                    logger.info("breakDurationkey",breakDurationKey);
+                    logger.info("stat key",stateKey);
+                    redisHandler.GetObj(logKey, breakDurationKey, function (durErr, lastRecordedStart) {
+                        var alreadyRecorded = !durErr && lastRecordedStart === statusObjR.StateChangeTime;
+                       // var isNoOpModeChange = (reason === "Outbound" || reason === "Inbound" || reason === "Offline") && statusObjR.Mode === reason;
+                        console.log("alreadyRecorded",alreadyRecorded);
+                        if ( !alreadyRecorded) {
+                            var duration = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
+                            logger.info("statusObj.StateChangeTime",statusObj.StateChangeTime);
+                            logger.info("statusObjR.StateChangeTime",statusObjR.StateChangeTime);
+                            logger.info("duration",duration);
+                            resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
+                                if (err) {
+                                    logger.error("AddResourceStatusDurationInfo Failed.", err);
+                                } else {
+                                    logger.info("AddResourceStatusDurationInfo Success.");
+                                }
+                            });
+                            redisHandler.SetObj(logKey, breakDurationKey, statusObjR.StateChangeTime, function () {});
                         }
                     });
+                    // var duration = moment(statusObj.StateChangeTime).diff(moment(statusObjR.StateChangeTime), 'seconds');
+                    // resourceService.AddResourceStatusDurationInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, statusObjR.Reason, '', '', duration, function () {
+                    //     if (err) {
+                    //         logger.error("AddResourceStatusDurationInfo Failed.", err);
+                    //     } else {
+                    //         logger.info("AddResourceStatusDurationInfo Success.");
+                    //     }
+                    // });
                 }
 
                 if (state === "NotAvailable" && reason === "UnRegister") {
@@ -250,16 +285,33 @@ var processState = function (logKey, stateKey, internalAccessToken, businessUnit
                         return callback(null, statusObj, null);
                     }
                 } else if (reason === "Outbound" || reason === "Inbound" || reason === "Offline") {
-
-                    if(statusObj.Mode !== reason) {
+                    logger.info("statusObjR.Reason",statusObjR.Reason);
+                    logger.info("reason",reason);
+                    logger.info("statusObjR.State",statusObjR.State);
+                    logger.info("state",state);
+                    var stateAlsoUnchanged = statusObjR.State === state && statusObjR.Reason === reason;
+                    logger.info("statusObj.Mode",statusObj.Mode);
+                    logger.info("reason",reason);
+                    logger.info("stateAlsoUnchanged",stateAlsoUnchanged);
+                    if(statusObj.Mode !== reason || !stateAlsoUnchanged) {
                         statusObj.Mode = reason;
-
+                        console.log("statusObj.Mode287",statusObj.Mode);
+                        logger.info("statusObj.Mode287",statusObj.Mode);
                         resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, "end" + statusObjR.Mode, {
                             SessionId: "",
                             Direction: ""
                         }, function (err, result, obj) {
                             return callback(null, statusObj, statusObjR);
                         });
+                    // if(statusObj.Mode !== reason) {
+                    //     statusObj.Mode = reason;
+
+                    //     resourceService.AddResourceStatusChangeInfo(internalAccessToken, businessUnit, resourceId, "ResourceStatus", statusObjR.State, "end" + statusObjR.Mode, {
+                    //         SessionId: "",
+                    //         Direction: ""
+                    //     }, function (err, result, obj) {
+                    //         return callback(null, statusObj, statusObjR);
+                    //     });
                     }else{
                         logger.error("Resource already in same mode.");
                         return callback(new Error("Resource already in same mode."), statusObj, statusObjR);
